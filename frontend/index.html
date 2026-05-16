@@ -1406,6 +1406,152 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
 .pricing-card.featured .pricing-cta { background: var(--teal); color: #fff; border-color: var(--teal); }
 .pricing-card.featured .pricing-cta:hover { background: var(--slate); }
 
+
+/* ── Crisis Resource Modal ── */
+.crisis-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(13,40,50,.85);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+}
+.crisis-overlay.show { display: flex; }
+.crisis-modal {
+  background: #fff;
+  border-radius: 24px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.25);
+  animation: riseUp .3s ease;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.crisis-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+.crisis-modal-title {
+  font-family: 'Lora', serif;
+  font-size: 1.35rem;
+  color: var(--text-dark);
+  font-weight: 700;
+  line-height: 1.3;
+}
+.crisis-modal-close {
+  background: var(--soft);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--text-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.crisis-modal-msg {
+  font-size: 15px;
+  color: var(--text-body);
+  line-height: 1.75;
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.25rem;
+  background: var(--lteal);
+  border-radius: 12px;
+  border-left: 4px solid var(--teal);
+}
+.crisis-resources {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  margin-bottom: 1.25rem;
+}
+.crisis-resource-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: .85rem 1.1rem;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  text-decoration: none;
+  transition: all .2s;
+  cursor: pointer;
+}
+.crisis-resource-card:hover { border-color: var(--teal); background: var(--lteal); }
+.crisis-resource-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.cri-purple { background: #EDE8F5; color: #5B2D8E; }
+.cri-teal   { background: var(--lteal); color: var(--teal); }
+.cri-blue   { background: #E8F0FE; color: #1A56C4; }
+.cri-red    { background: #FDE8E8; color: #C02020; }
+.cri-orange { background: #FEF0DC; color: #B85010; }
+.crisis-resource-info { flex: 1; }
+.crisis-resource-name {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 2px;
+}
+.crisis-resource-detail {
+  font-size: 12.5px;
+  color: var(--text-soft);
+  line-height: 1.4;
+}
+.crisis-resource-action {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--teal);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.crisis-also {
+  font-size: 13px;
+  color: var(--text-soft);
+  text-align: center;
+  line-height: 1.6;
+  margin-top: .5rem;
+}
+.crisis-also a { color: var(--teal); font-weight: 500; }
+.crisis-chip {
+  background: rgba(255,255,255,.1);
+  border: 1.5px solid rgba(255,100,100,.35);
+  color: rgba(255,200,200,.9);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all .15s;
+  font-family: 'Inter', sans-serif;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.crisis-chip:hover {
+  background: rgba(255,80,80,.15);
+  border-color: rgba(255,120,120,.6);
+  color: #fff;
+}
+
 /* ════════════════════════════════════════
    RESPONSIVE
 ════════════════════════════════════════ */
@@ -1422,45 +1568,6 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
 <script>
 !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+" (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
 posthog.init('POSTHOG_API_KEY_REPLACE_ME', {api_host:'https://us.i.posthog.com', person_profiles:'identified_only'});
-
-
-
-
-/* ── Stat Counter ── */
-window.addEventListener('load', function() {
-  var els = document.querySelectorAll('.count-num');
-  if (!els.length) return;
-
-  function runCounters() {
-    els.forEach(function(el) {
-      var target = parseInt(el.getAttribute('data-target'), 10);
-      if (isNaN(target)) return;
-      var start = 0;
-      var duration = 1500;
-      var startTime = null;
-      function step(timestamp) {
-        if (!startTime) startTime = timestamp;
-        var elapsed = timestamp - startTime;
-        var progress = Math.min(elapsed / duration, 1);
-        var eased = 1 - Math.pow(1 - progress, 3);
-        el.textContent = Math.round(eased * target);
-        if (progress < 1) requestAnimationFrame(step);
-        else el.textContent = target;
-      }
-      requestAnimationFrame(step);
-    });
-  }
-
-  // Try IntersectionObserver first
-  var banner = document.querySelector('.banner-stats');
-  if (banner && 'IntersectionObserver' in window) {
-    var fired = false;
-    var obs = new IntersectionObserver(function(entries) {
-      if (entries[0].isIntersecting && !fired) {
-        fired = true;
-        runCounters();
-        obs.disconnect();
-      }
     }, { threshold: 0 });
     obs.observe(banner);
     // Hard fallback: if user doesn't scroll, fire after 3s
@@ -1471,6 +1578,27 @@ window.addEventListener('load', function() {
   }
 });
 
+
+/* ── Stat Counter ── */
+setTimeout(function() {
+  var els = document.querySelectorAll('.count-num');
+  els.forEach(function(el) {
+    var target = parseInt(el.getAttribute('data-target'), 10);
+    if (isNaN(target)) return;
+    var duration = 2000;
+    var startTime = performance.now();
+    function tick(now) {
+      var elapsed = now - startTime;
+      var progress = Math.min(elapsed / duration, 1);
+      var eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.round(eased * target);
+      if (progress < 1) requestAnimationFrame(tick);
+      else el.textContent = target;
+    }
+    requestAnimationFrame(tick);
+  });
+}, 800);
+
 </script>
 
 </head>
@@ -1478,6 +1606,74 @@ window.addEventListener('load', function() {
 
 <!-- ═══ NAV ═══ -->
 <a href="#main-content" class="skip-link">Skip to main content</a>
+
+
+<!-- ── Crisis Resource Modal ── -->
+<div class="crisis-overlay" id="crisisModal" role="dialog" aria-modal="true" aria-label="Immediate support resources">
+  <div class="crisis-modal">
+    <div class="crisis-modal-header">
+      <div class="crisis-modal-title">You reached out. That already took courage.</div>
+      <button class="crisis-modal-close" onclick="closeCrisis()" aria-label="Close">×</button>
+    </div>
+    <div class="crisis-modal-msg">
+      Whatever you are feeling right now — you do not have to carry it alone. 
+      Real people are ready to talk to you right now, for free, with no judgment.
+      <strong>You matter. Your life matters.</strong>
+    </div>
+    <div class="crisis-resources">
+
+      <a class="crisis-resource-card" href="tel:988" aria-label="Call or text 988 Suicide and Crisis Lifeline">
+        <div class="crisis-resource-icon cri-teal"><i class="ti ti-phone" aria-hidden="true"></i></div>
+        <div class="crisis-resource-info">
+          <div class="crisis-resource-name">988 Suicide & Crisis Lifeline</div>
+          <div class="crisis-resource-detail">Call or text 988 · Free · Confidential · 24/7 · En español también</div>
+        </div>
+        <div class="crisis-resource-action"><i class="ti ti-phone-call"></i> Call/Text</div>
+      </a>
+
+      <a class="crisis-resource-card" href="https://www.finesseourminds.com" target="_blank" rel="noopener" aria-label="Finesse Our Minds mental health community">
+        <div class="crisis-resource-icon cri-purple"><i class="ti ti-brain" aria-hidden="true"></i></div>
+        <div class="crisis-resource-info">
+          <div class="crisis-resource-name">Finesse Our Minds</div>
+          <div class="crisis-resource-detail">Mental health community, resources & support — for humans, by humans</div>
+        </div>
+        <div class="crisis-resource-action"><i class="ti ti-external-link"></i> Visit</div>
+      </a>
+
+      <a class="crisis-resource-card" href="https://www.thetrevorproject.org" target="_blank" rel="noopener" aria-label="The Trevor Project - LGBTQ+ crisis support">
+        <div class="crisis-resource-icon cri-orange"><i class="ti ti-heart" aria-hidden="true"></i></div>
+        <div class="crisis-resource-info">
+          <div class="crisis-resource-name">The Trevor Project</div>
+          <div class="crisis-resource-detail">Crisis support for LGBTQ+ young people · Call 1-866-488-7386 · Text START to 678-678</div>
+        </div>
+        <div class="crisis-resource-action"><i class="ti ti-external-link"></i> Visit</div>
+      </a>
+
+      <a class="crisis-resource-card" href="sms:741741&body=HELLO" aria-label="Crisis Text Line - text HOME to 741741">
+        <div class="crisis-resource-icon cri-blue"><i class="ti ti-message-circle" aria-hidden="true"></i></div>
+        <div class="crisis-resource-info">
+          <div class="crisis-resource-name">Crisis Text Line</div>
+          <div class="crisis-resource-detail">Text HOME to 741741 · Free · 24/7 · For when you can't speak out loud</div>
+        </div>
+        <div class="crisis-resource-action"><i class="ti ti-message"></i> Text</div>
+      </a>
+
+      <a class="crisis-resource-card" href="https://www.nami.org/help" target="_blank" rel="noopener" aria-label="NAMI National Alliance on Mental Illness helpline">
+        <div class="crisis-resource-icon cri-teal"><i class="ti ti-users" aria-hidden="true"></i></div>
+        <div class="crisis-resource-info">
+          <div class="crisis-resource-name">NAMI Helpline</div>
+          <div class="crisis-resource-detail">National Alliance on Mental Illness · 1-800-950-6264 · Mon–Fri 10am–10pm ET</div>
+        </div>
+        <div class="crisis-resource-action"><i class="ti ti-external-link"></i> Visit</div>
+      </a>
+
+    </div>
+    <p class="crisis-also">
+      If you are in immediate danger, please call <strong>911</strong>.<br>
+      When you are ready, <a onclick="closeCrisis()">MedCompanion AI is here</a> for any health questions.
+    </p>
+  </div>
+</div>
 
 <!-- ── Auth Modal ── -->
 <div class="auth-modal-overlay" id="authModal" role="dialog" aria-modal="true" aria-label="Sign in or create account">
@@ -1588,6 +1784,7 @@ window.addEventListener('load', function() {
             <span class="chip" onclick="fill(`My heart is racing, I can't catch my breath, my chest feels tight. I don't know if this is a panic attack or something is really wrong with me right now.`)">I think I'm having a panic attack</span>
             <span class="chip" onclick="fill(`I'm worried about someone I love. They've been acting different, mentioning health issues, and I don't know how to help them or even what questions to ask.`)">Worried about a loved one</span>
             <span class="chip" onclick="fill(`I've been struggling with my mental health — anxiety, depression, panic, or thoughts I'm scared to say out loud. I don't know what's wrong or where to start. I need help understanding what I'm feeling.`)">Struggling with my mental health</span>
+            <span class="crisis-chip" onclick="openCrisis()" role="button" aria-label="Get immediate support for thoughts of self-harm or suicide"><i class="ti ti-heart-handshake" aria-hidden="true"></i> I'm having thoughts of hurting myself or others</span>
             <span class="chip" onclick="fill(`I just lost someone I love and I'm trying to understand what they had, whether it could be genetic, and whether I or my family could be at risk. I'm grieving and scared at the same time.`)">I just lost someone I love</span>
             <span class="chip" onclick="fill(`Someone I love is dying and I don't know what to expect. I want to understand their condition, whether it runs in the family, and what I can do to support them and protect myself and my family.`)">My loved one is dying</span>
             <span class="chip" onclick="fill(`I'm young and I've been told my illness might not get better or that I may have a serious condition. I'm scared and I need someone to help me understand what this means for my life and my future.`)">I'm young and scared about my diagnosis</span>
@@ -1986,218 +2183,31 @@ window.addEventListener('load', function() {
 </footer>
 
 <script>
-
-function toggleMobileMenu() {
-  const menu = document.getElementById('mobileMenu');
-  const isOpen = menu.classList.toggle('open');
-  menu.setAttribute('aria-hidden', !isOpen);
-}
-
-
 /* ══════════════════════════════════════
-   AUTH STATE
+   MEDCOMPANION AI — MAIN SCRIPT
 ══════════════════════════════════════ */
+
+const API = '';
+let threadId = null;
 let currentUser = null;
 let authMode = 'signup';
-
-function openAuth(mode = 'signup') {
-  authMode = mode;
-  const modal = document.getElementById('authModal');
-  const title = document.getElementById('authTitle');
-  const sub = document.getElementById('authSub');
-  const btn = document.getElementById('authSubmit');
-  const toggle = document.getElementById('authToggle');
-  if (mode === 'signup') {
-    title.textContent = 'Save your health history';
-    sub.textContent = 'Create a free account to save your sessions, track symptoms over time, and build your health history.';
-    btn.textContent = 'Create Free Account';
-    toggle.innerHTML = 'Already have an account? <a onclick="toggleAuthMode()">Sign in</a>';
-  } else {
-    title.textContent = 'Welcome back';
-    sub.textContent = 'Sign in to access your health history and saved sessions.';
-    btn.textContent = 'Sign In';
-    toggle.innerHTML = "Don't have an account? <a onclick="toggleAuthMode()">Sign up free</a>";
-  }
-  modal.classList.add('show');
-  document.getElementById('authEmail').focus();
-}
-
-function closeAuth() { document.getElementById('authModal').classList.remove('show'); }
-function toggleAuthMode() { openAuth(authMode === 'signup' ? 'login' : 'signup'); }
-
-async function submitAuth() {
-  const email = document.getElementById('authEmail').value.trim();
-  const password = document.getElementById('authPassword').value;
-  const errEl = document.getElementById('authError');
-  errEl.classList.remove('show');
-
-  if (!email || !password) { errEl.textContent = 'Please fill in both fields.'; errEl.classList.add('show'); return; }
-
-  const endpoint = authMode === 'signup' ? '/auth/signup' : '/auth/login';
-  try {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ email, password })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Authentication failed');
-    currentUser = { email, user_id: data.user_id, token: data.access_token };
-    localStorage.setItem('mc_user', JSON.stringify(currentUser));
-    closeAuth();
-    showUserBar();
-    if (typeof posthog !== 'undefined') posthog.identify(data.user_id, { email });
-  } catch(err) {
-    errEl.textContent = err.message;
-    errEl.classList.add('show');
-  }
-}
-
-function showUserBar() {
-  if (!currentUser) return;
-  document.getElementById('userBar').classList.add('show');
-  document.getElementById('userBarEmail').textContent = currentUser.email;
-  document.getElementById('navAuthBtn').style.display = 'none';
-}
-
-function signOut() {
-  currentUser = null;
-  localStorage.removeItem('mc_user');
-  document.getElementById('userBar').classList.remove('show');
-  document.getElementById('navAuthBtn').style.display = '';
-}
-
-async function loadHistory() {
-  if (!currentUser?.user_id) return openAuth('login');
-  const res = await fetch(`/user/${currentUser.user_id}/history`);
-  const data = await res.json();
-  if (!data.history?.length) { alert('No history yet — complete a health briefing to save it here.'); return; }
-  const list = data.history.map(h =>
-    `${new Date(h.created_at).toLocaleDateString()}: ${h.condition_identified || 'Health question'}`
-  ).join('\n');
-  alert('Your health history:\n\n' + list + '\n\nFull history dashboard coming soon.');
-}
-
-// Restore auth on page load
-try {
-  const saved = localStorage.getItem('mc_user');
-  if (saved) { currentUser = JSON.parse(saved); showUserBar(); }
-} catch(e) {}
-
-/* ══════════════════════════════════════
-   VOICE INPUT
-══════════════════════════════════════ */
-let recognition = null;
-let isRecording = false;
-
-function toggleVoice() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    alert('Voice input is not supported in this browser. Please try Chrome or Edge.');
-    return;
-  }
-
-  if (isRecording) {
-    recognition?.stop();
-    return;
-  }
-
-  recognition = new SpeechRecognition();
-  recognition.continuous = true;
-  recognition.interimResults = true;
-  recognition.lang = navigator.language || 'en-US';
-
-  const btn = document.getElementById('voiceBtn');
-  const input = document.getElementById('patientInput');
-  const label = document.querySelector('.input-extra-label');
-  let finalTranscript = input.value;
-
-  recognition.onstart = () => {
-    isRecording = true;
-    btn.classList.add('recording');
-    btn.innerHTML = '<i class="ti ti-microphone-off"></i>';
-    label.textContent = '🔴 Listening... tap the mic again to stop';
-    if (typeof posthog !== 'undefined') posthog.capture('voice_input_started');
-  };
-
-  recognition.onresult = (e) => {
-    let interim = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      e.results[i].isFinal ? finalTranscript += e.results[i][0].transcript + ' ' : interim += e.results[i][0].transcript;
-    }
-    input.value = finalTranscript + interim;
-  };
-
-  recognition.onend = () => {
-    isRecording = false;
-    btn.classList.remove('recording');
-    btn.innerHTML = '<i class="ti ti-microphone"></i>';
-    label.textContent = '🎤 Speak your symptoms | 📷 Upload a lab result or photo';
-    input.value = finalTranscript.trim();
-  };
-
-  recognition.onerror = (e) => {
-    isRecording = false;
-    btn.classList.remove('recording');
-    btn.innerHTML = '<i class="ti ti-microphone"></i>';
-    if (e.error !== 'aborted') label.textContent = 'Voice input error — please try typing instead.';
-  };
-
-  recognition.start();
-}
-
-/* ══════════════════════════════════════
-   IMAGE UPLOAD
-══════════════════════════════════════ */
 let uploadedImageData = null;
 let uploadedMediaType = null;
 
-function handleImageUpload(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  if (!file.type.startsWith('image/')) { alert('Please upload an image file.'); return; }
-  if (file.size > 5 * 1024 * 1024) { alert('Please upload an image under 5MB.'); return; }
-
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    const base64 = ev.target.result.split(',')[1];
-    uploadedImageData = base64;
-    uploadedMediaType = file.type;
-    document.getElementById('imagePreviewImg').src = ev.target.result;
-    document.getElementById('imagePreview').classList.add('show');
-    if (!document.getElementById('patientInput').value) {
-      document.getElementById('patientInput').value = 'Please help me understand this image.';
-    }
-    if (typeof posthog !== 'undefined') posthog.capture('image_uploaded', { type: file.type });
-  };
-  reader.readAsDataURL(file);
-}
-
-function removeImage() {
-  uploadedImageData = null;
-  uploadedMediaType = null;
-  document.getElementById('imagePreview').classList.remove('show');
-  document.getElementById('imageInput').value = '';
-}
-
-/* ── State ── */
-const API = '';
-let threadId = null;
-
 const empathyLines = [
   "That sounds like a lot to carry. Looking this up is one of the best things you can do.",
-  "It takes real courage to ask questions about your health. I'm glad you did.",
-  "Whatever you're going through, knowing more about it is always a good first step.",
-  "You should never have to figure this out alone. That's exactly what I'm here for.",
-  "Many people feel exactly the way you're feeling right now. You are not alone in this."
+  "It takes real courage to ask questions about your health. I am glad you did.",
+  "Whatever you are going through, knowing more about it is always a good first step.",
+  "You should never have to figure this out alone. That is exactly what I am here for.",
+  "Many people feel exactly the way you are feeling right now. You are not alone in this."
 ];
 
 /* ── Greeting ── */
 const hr = new Date().getHours();
 document.getElementById('greeting').textContent =
-  hr < 12 ? "Good morning. Take your time — I'm here." :
-  hr < 18 ? "Good afternoon. I'm glad you reached out." :
-             "Good evening. I'm here whenever you're ready.";
+  hr < 12 ? "Good morning. Take your time — I am here." :
+  hr < 18 ? "Good afternoon. I am glad you reached out." :
+             "Good evening. I am here whenever you are ready.";
 
 /* ── Helpers ── */
 function fill(t) {
@@ -2215,9 +2225,14 @@ function clean(s) {
 function out(h) { document.getElementById('output').insertAdjacentHTML('beforeend', h); }
 
 function step(n, s) {
-  document.getElementById('pc'+n).className = 'pt-c ' + (s||'');
-  document.getElementById('pt'+n).className = 'pt-t ' + (s||'');
-  if (s === 'done' && n < 3) document.getElementById('pl'+n).className = 'pt-line done';
+  var pc = document.getElementById('pc'+n);
+  var pt = document.getElementById('pt'+n);
+  if (pc) pc.className = 'pt-c ' + (s||'');
+  if (pt) pt.className = 'pt-t ' + (s||'');
+  if (s === 'done' && n < 3) {
+    var pl = document.getElementById('pl'+n);
+    if (pl) pl.className = 'pt-line done';
+  }
 }
 
 function phBadge(p) {
@@ -2235,42 +2250,255 @@ function reset() {
   document.getElementById('patientInput').value = '';
   document.getElementById('patientInput').focus();
   threadId = null;
-  [0,1,2,3].forEach(n => step(n, ''));
+  [0,1,2,3].forEach(function(n) { step(n, ''); });
   window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
 /* ── FAQ toggle ── */
 function toggleFaq(btn) {
-  const body = btn.nextElementSibling;
-  const isOpen = body.classList.toggle('open');
+  var body = btn.nextElementSibling;
+  var isOpen = body.classList.toggle('open');
   btn.classList.toggle('open', isOpen);
   btn.setAttribute('aria-expanded', isOpen);
 }
 
 /* ── Holistic toggle ── */
 function toggleHolistic() {
-  const body = document.getElementById('holisticBody');
-  const btn = document.getElementById('holisticBtn');
-  const isOpen = body.classList.toggle('show');
+  var body = document.getElementById('holisticBody');
+  var btn = document.getElementById('holisticBtn');
+  if (!body || !btn) return;
+  var isOpen = body.classList.toggle('show');
   btn.innerHTML = isOpen
-    ? `<i class="ti ti-chevron-up"></i> Hide holistic & alternative options`
-    : `<i class="ti ti-leaf"></i> Would you also like holistic & alternative options?`;
+    ? '<i class="ti ti-chevron-up"></i> Hide holistic & alternative options'
+    : '<i class="ti ti-leaf"></i> Would you also like holistic & alternative options?';
+}
+
+/* ── Crisis Modal ── */
+function openCrisis() {
+  var el = document.getElementById('crisisModal');
+  if (el) el.classList.add('show');
+}
+function closeCrisis() {
+  var el = document.getElementById('crisisModal');
+  if (el) el.classList.remove('show');
+}
+
+/* ── Auth Modal ── */
+function openAuth(mode) {
+  authMode = mode || 'signup';
+  var modal = document.getElementById('authModal');
+  var title = document.getElementById('authTitle');
+  var sub = document.getElementById('authSub');
+  var btn = document.getElementById('authSubmit');
+  var toggle = document.getElementById('authToggle');
+  if (!modal) return;
+  if (authMode === 'signup') {
+    if (title) title.textContent = 'Save your health history';
+    if (sub) sub.textContent = 'Create a free account to save your sessions and track symptoms over time.';
+    if (btn) btn.textContent = 'Create Free Account';
+    if (toggle) toggle.innerHTML = 'Already have an account? <a onclick="toggleAuthMode()">Sign in</a>';
+  } else {
+    if (title) title.textContent = 'Welcome back';
+    if (sub) sub.textContent = 'Sign in to access your health history.';
+    if (btn) btn.textContent = 'Sign In';
+    if (toggle) toggle.innerHTML = "Don't have an account? <a onclick="toggleAuthMode()">Sign up free</a>";
+  }
+  modal.classList.add('show');
+  var emailEl = document.getElementById('authEmail');
+  if (emailEl) emailEl.focus();
+}
+
+function closeAuth() {
+  var el = document.getElementById('authModal');
+  if (el) el.classList.remove('show');
+}
+
+function toggleAuthMode() {
+  openAuth(authMode === 'signup' ? 'login' : 'signup');
+}
+
+async function submitAuth() {
+  var email = document.getElementById('authEmail').value.trim();
+  var password = document.getElementById('authPassword').value;
+  var errEl = document.getElementById('authError');
+  if (errEl) errEl.classList.remove('show');
+  if (!email || !password) {
+    if (errEl) { errEl.textContent = 'Please fill in both fields.'; errEl.classList.add('show'); }
+    return;
+  }
+  var endpoint = authMode === 'signup' ? '/auth/signup' : '/auth/login';
+  try {
+    var res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ email: email, password: password })
+    });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Authentication failed');
+    currentUser = { email: email, user_id: data.user_id, token: data.access_token };
+    localStorage.setItem('mc_user', JSON.stringify(currentUser));
+    closeAuth();
+    showUserBar();
+  } catch(err) {
+    if (errEl) { errEl.textContent = err.message; errEl.classList.add('show'); }
+  }
+}
+
+function showUserBar() {
+  if (!currentUser) return;
+  var bar = document.getElementById('userBar');
+  var email = document.getElementById('userBarEmail');
+  var navBtn = document.getElementById('navAuthBtn');
+  if (bar) bar.classList.add('show');
+  if (email) email.textContent = currentUser.email;
+  if (navBtn) navBtn.style.display = 'none';
+}
+
+function signOut() {
+  currentUser = null;
+  localStorage.removeItem('mc_user');
+  var bar = document.getElementById('userBar');
+  var navBtn = document.getElementById('navAuthBtn');
+  if (bar) bar.classList.remove('show');
+  if (navBtn) navBtn.style.display = '';
+}
+
+async function loadHistory() {
+  if (!currentUser || !currentUser.user_id) { openAuth('login'); return; }
+  var res = await fetch('/user/' + currentUser.user_id + '/history');
+  var data = await res.json();
+  if (!data.history || !data.history.length) {
+    alert('No history yet — complete a health briefing to save it here.');
+    return;
+  }
+  var list = data.history.map(function(h) {
+    return new Date(h.created_at).toLocaleDateString() + ': ' + (h.condition_identified || 'Health question');
+  }).join('
+');
+  alert('Your health history:
+
+' + list + '
+
+Full dashboard coming soon.');
+}
+
+/* ── Restore auth on load ── */
+try {
+  var saved = localStorage.getItem('mc_user');
+  if (saved) { currentUser = JSON.parse(saved); showUserBar(); }
+} catch(e) {}
+
+/* ── Keyboard shortcuts ── */
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { closeCrisis(); closeAuth(); }
+});
+
+/* ── Voice Input ── */
+var recognition = null;
+var isRecording = false;
+
+function toggleVoice() {
+  var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRec) {
+    alert('Voice input is not supported in this browser. Please try Chrome or Edge.');
+    return;
+  }
+  if (isRecording) { if (recognition) recognition.stop(); return; }
+
+  recognition = new SpeechRec();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = navigator.language || 'en-US';
+
+  var btn = document.getElementById('voiceBtn');
+  var input = document.getElementById('patientInput');
+  var label = document.querySelector('.input-extra-label');
+  var finalTranscript = input ? input.value : '';
+
+  recognition.onstart = function() {
+    isRecording = true;
+    if (btn) { btn.classList.add('recording'); btn.innerHTML = '<i class="ti ti-microphone-off"></i>'; }
+    if (label) label.textContent = '🔴 Listening... tap the mic again to stop';
+  };
+
+  recognition.onresult = function(e) {
+    var interim = '';
+    for (var i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) finalTranscript += e.results[i][0].transcript + ' ';
+      else interim += e.results[i][0].transcript;
+    }
+    if (input) input.value = finalTranscript + interim;
+  };
+
+  recognition.onend = function() {
+    isRecording = false;
+    if (btn) { btn.classList.remove('recording'); btn.innerHTML = '<i class="ti ti-microphone"></i>'; }
+    if (label) label.textContent = '🎤 Speak your symptoms | 📷 Upload a lab result or photo';
+    if (input) input.value = finalTranscript.trim();
+  };
+
+  recognition.onerror = function(e) {
+    isRecording = false;
+    if (btn) { btn.classList.remove('recording'); btn.innerHTML = '<i class="ti ti-microphone"></i>'; }
+    if (e.error !== 'aborted' && label) label.textContent = 'Voice input error — please try typing instead.';
+  };
+
+  recognition.start();
+}
+
+/* ── Image Upload ── */
+function handleImageUpload(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { alert('Please upload an image file.'); return; }
+  if (file.size > 5 * 1024 * 1024) { alert('Please upload an image under 5MB.'); return; }
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    var base64 = ev.target.result.split(',')[1];
+    uploadedImageData = base64;
+    uploadedMediaType = file.type;
+    var previewImg = document.getElementById('imagePreviewImg');
+    var preview = document.getElementById('imagePreview');
+    if (previewImg) previewImg.src = ev.target.result;
+    if (preview) preview.classList.add('show');
+    var input = document.getElementById('patientInput');
+    if (input && !input.value) input.value = 'Please help me understand this image.';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeImage() {
+  uploadedImageData = null;
+  uploadedMediaType = null;
+  var preview = document.getElementById('imagePreview');
+  var fileInput = document.getElementById('imageInput');
+  if (preview) preview.classList.remove('show');
+  if (fileInput) fileInput.value = '';
 }
 
 /* ── Event listeners ── */
-document.getElementById('patientInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); startPipeline(); }
+document.addEventListener('DOMContentLoaded', function() {
+  var textarea = document.getElementById('patientInput');
+  var goBtn = document.getElementById('goBtn');
+  if (textarea) {
+    textarea.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); startPipeline(); }
+    });
+  }
+  if (goBtn) goBtn.addEventListener('click', startPipeline);
+
+  /* Close modals on overlay click */
+  var crisisOverlay = document.getElementById('crisisModal');
+  var authOverlay = document.getElementById('authModal');
+  if (crisisOverlay) crisisOverlay.addEventListener('click', function(e) { if (e.target === this) closeCrisis(); });
+  if (authOverlay) authOverlay.addEventListener('click', function(e) { if (e.target === this) closeAuth(); });
 });
-document.getElementById('goBtn').addEventListener('click', startPipeline);
 
-// PostHog page view
-if (typeof posthog !== 'undefined') posthog.capture('app_opened');
-
-/* ════════════════════════════════════════
+/* ══════════════════════════════════════
    PIPELINE
-════════════════════════════════════════ */
+══════════════════════════════════════ */
 async function startPipeline() {
-  const raw = document.getElementById('patientInput').value.trim();
+  var raw = document.getElementById('patientInput').value.trim();
   if (!raw) return;
 
   document.getElementById('goBtn').disabled = true;
@@ -2281,32 +2509,32 @@ async function startPipeline() {
   step(0,'run'); step(1,''); step(2,''); step(3,'');
 
   try {
-    const res = await fetch(`${API}/session/start`, {
+    var res = await fetch(API + '/session/start', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ raw_input: raw, image_data: uploadedImageData, image_media_type: uploadedMediaType, user_id: currentUser?.user_id || null })
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        raw_input: raw,
+        image_data: uploadedImageData,
+        image_media_type: uploadedMediaType,
+        user_id: currentUser ? currentUser.user_id : null
+      })
     });
-    const data = await res.json();
+    var data = await res.json();
 
-    /* ── Guardrail blocked ── */
     if (['emergency','crisis','off_topic','invalid'].includes(data.status)) {
       step(0,'done');
-      const isEmg = data.status === 'emergency';
-      const isCrisis = data.status === 'crisis';
-      out(`<div class="guardrail-card ${isEmg?'guard-emergency':isCrisis?'guard-crisis':''}">
-        <div class="card-header">
-          <div class="card-icon ${isEmg?'ci-red':isCrisis?'ci-teal':'ci-sage'}">
-            <i class="ti ${isEmg?'ti-urgent':'ti-heart-handshake'}"></i>
-          </div>
-          <div class="card-title">${isEmg?'Please get help right away':isCrisis?'You matter — help is here':'A quick note'}</div>
-        </div>
-        <p class="guard-text">${clean(data.guardrail_message)}</p>
-        ${isEmg?`<div class="guard-resource res-emergency"><i class="ti ti-phone"></i> Call 911 now or go to your nearest Emergency Room</div>`:''}
-        ${isCrisis?`<div class="guard-resource res-crisis"><i class="ti ti-phone"></i> Call or text <strong>988</strong> — Suicide & Crisis Lifeline, available 24 hours a day, 7 days a week</div>`:''}
-      </div>
-      <div class="reset-row">
-        <button class="reset-btn" onclick="reset()"><i class="ti ti-refresh"></i> Search something different</button>
-      </div>`);
+      var isEmg = data.status === 'emergency';
+      var isCrisis = data.status === 'crisis';
+      out('<div class="guardrail-card ' + (isEmg ? 'guard-emergency' : isCrisis ? 'guard-crisis' : '') + '">' +
+        '<div class="card-header">' +
+          '<div class="card-icon ' + (isEmg ? 'ci-red' : 'ci-teal') + '"><i class="ti ' + (isEmg ? 'ti-urgent' : 'ti-heart-handshake') + '"></i></div>' +
+          '<div class="card-title">' + (isEmg ? 'Please get help right away' : isCrisis ? 'You matter — help is here' : 'A quick note') + '</div>' +
+        '</div>' +
+        '<p class="guard-text">' + clean(data.guardrail_message) + '</p>' +
+        (isEmg ? '<div class="guard-resource res-emergency"><i class="ti ti-phone"></i> Call 911 now or go to your nearest Emergency Room</div>' : '') +
+        (isCrisis ? '<div class="guard-resource res-crisis"><i class="ti ti-phone"></i> Call or text <strong>988</strong> — Suicide & Crisis Lifeline, 24/7</div>' : '') +
+      '</div>' +
+      '<div class="reset-row"><button class="reset-btn" onclick="reset()"><i class="ti ti-refresh"></i> Search something different</button></div>');
       document.getElementById('goBtn').disabled = false;
       return;
     }
@@ -2320,291 +2548,258 @@ async function startPipeline() {
     renderNormalization(data.normalization);
 
   } catch(err) {
-    out(`<div class="err-box"><strong>Something went wrong:</strong> ${clean(err.message)}</div>
-    <div class="reset-row"><button class="reset-btn" onclick="reset()"><i class="ti ti-refresh"></i> Try again</button></div>`);
-    [0,1,2,3].forEach(n => step(n,''));
+    out('<div class="err-box"><strong>Something went wrong:</strong> ' + clean(err.message) + '</div>' +
+        '<div class="reset-row"><button class="reset-btn" onclick="reset()"><i class="ti ti-refresh"></i> Try again</button></div>');
+    [0,1,2,3].forEach(function(n) { step(n,''); });
   }
   document.getElementById('goBtn').disabled = false;
 }
 
-
 /* ── Image Analysis card ── */
 function renderImageAnalysis(analysis) {
   if (!analysis || analysis.image_type === 'not_medical') return;
-  const flagClass = (f) => f === 'high' ? 'lab-high' : f === 'low' ? 'lab-low' : f === 'normal' ? 'lab-normal' : 'lab-unknown';
-  const labRows = (analysis.key_values || []).map(v =>
-    `<div class="lab-row">
-      <span class="lab-name">${clean(v.name)}</span>
-      <span class="lab-val ${flagClass(v.flag)}">${clean(v.value)} ${v.flag !== 'unknown' ? '(' + v.flag + ')' : ''}</span>
-    </div>`
-  ).join('');
-
-  out(`<div class="image-analysis-card">
-    <div class="image-analysis-title"><i class="ti ti-photo-scan"></i> Here's what I see in your image</div>
-    <p class="image-finding">${clean(analysis.findings)}</p>
-    ${labRows ? `<div class="lab-values">${labRows}</div>` : ''}
-    ${analysis.important_notes ? `<p style="font-size:13.5px;color:var(--text-soft);margin-top:.75rem;font-style:italic">${clean(analysis.important_notes)}</p>` : ''}
-    <p style="font-size:12px;color:var(--text-soft);margin-top:.75rem">${clean(analysis.disclaimer)}</p>
-  </div>`);
+  var flagClass = function(f) { return f === 'high' ? 'lab-high' : f === 'low' ? 'lab-low' : f === 'normal' ? 'lab-normal' : 'lab-unknown'; };
+  var labRows = (analysis.key_values || []).map(function(v) {
+    return '<div class="lab-row"><span class="lab-name">' + clean(v.name) + '</span><span class="lab-val ' + flagClass(v.flag) + '">' + clean(v.value) + '</span></div>';
+  }).join('');
+  out('<div class="image-analysis-card">' +
+    '<div class="image-analysis-title"><i class="ti ti-photo-scan"></i> Here's what I see in your image</div>' +
+    '<p class="image-finding">' + clean(analysis.findings) + '</p>' +
+    (labRows ? '<div class="lab-values">' + labRows + '</div>' : '') +
+    (analysis.important_notes ? '<p style="font-size:13.5px;color:var(--text-soft);margin-top:.75rem;font-style:italic">' + clean(analysis.important_notes) + '</p>' : '') +
+    '<p style="font-size:12px;color:var(--text-soft);margin-top:.75rem">' + clean(analysis.disclaimer) + '</p>' +
+  '</div>');
 }
 
 /* ── Extraction card ── */
 function renderExtraction(raw, ex) {
-  const group = (label, items, cls) => {
-    if (!items?.length) return '';
-    return `<div class="entity-group">
-      <div class="entity-label">${label}</div>
-      <div class="pill-row">${items.map(i=>`<span class="pill ${cls}">${clean(i)}</span>`).join('')}</div>
-    </div>`;
+  var group = function(label, items, cls) {
+    if (!items || !items.length) return '';
+    return '<div class="entity-group"><div class="entity-label">' + label + '</div>' +
+      '<div class="pill-row">' + items.map(function(i) { return '<span class="pill ' + cls + '">' + clean(i) + '</span>'; }).join('') + '</div></div>';
   };
-  out(`<div class="card">
-    <div class="card-header">
-      <div class="card-icon ci-teal"><i class="ti ti-ear"></i></div>
-      <div class="card-title">Here's what I heard you say</div>
-      <div class="card-status ok"><i class="ti ti-check"></i> Got it</div>
-    </div>
-    <div class="raw-quote">"${clean(raw.length>240?raw.slice(0,240)+'…':raw)}"</div>
-    <p class="heard-intro">I picked up on <strong>${(ex.symptoms?.length||0)+(ex.body_parts?.length||0)} things</strong> you shared with me:</p>
-    ${group('What you described feeling', ex.symptoms, 'pill-teal')}
-    ${group('Body areas you mentioned', ex.body_parts, 'pill-sage')}
-    ${group("How long it's been going on", ex.duration, 'pill-slate')}
-    ${group('How intense it has been', ex.severity, 'pill-slate')}
-    ${group('Medications or treatments mentioned', ex.medications, 'pill-teal')}
-    ${group('How you are feeling about all of this', ex.emotional_context, 'pill-sage')}
-    <div class="empathy-note"><i class="ti ti-quote"></i> ${clean(empathyLines[Math.floor(Math.random()*empathyLines.length)])}</div>
-  </div>`);
+  var total = (ex.symptoms ? ex.symptoms.length : 0) + (ex.body_parts ? ex.body_parts.length : 0);
+  out('<div class="card">' +
+    '<div class="card-header"><div class="card-icon ci-teal"><i class="ti ti-ear"></i></div>' +
+    '<div class="card-title">Here's what I heard you say</div>' +
+    '<div class="card-status ok"><i class="ti ti-check"></i> Got it</div></div>' +
+    '<div class="raw-quote">"' + clean(raw.length > 240 ? raw.slice(0,240) + '…' : raw) + '"</div>' +
+    '<p class="heard-intro">I picked up on <strong>' + total + ' things</strong> you shared with me:</p>' +
+    group('What you described feeling', ex.symptoms, 'pill-teal') +
+    group('Body areas you mentioned', ex.body_parts, 'pill-sage') +
+    group("How long it's been going on", ex.duration, 'pill-slate') +
+    group('How intense it has been', ex.severity, 'pill-slate') +
+    group('Medications or treatments mentioned', ex.medications, 'pill-teal') +
+    group('How you are feeling about all of this', ex.emotional_context, 'pill-sage') +
+    '<div class="empathy-note"><i class="ti ti-quote"></i> ' + clean(empathyLines[Math.floor(Math.random()*empathyLines.length)]) + '</div>' +
+  '</div>');
 }
 
 /* ── Normalization card ── */
 function renderNormalization(norm) {
-  const rows = (norm.term_mappings||[]).map(m => `
-    <div class="map-row">
-      <div class="map-their-words">"${clean(m.patient_said)}"</div>
-      <div class="map-arrow">→</div>
-      <div>
-        <div class="map-medical">${clean(m.doctors_call_it)}</div>
-        ${m.simple_meaning?`<div class="map-meaning">${clean(m.simple_meaning)}</div>`:''}
-      </div>
-    </div>`).join('');
-
-  const alts = (norm.alternate_conditions||[]).slice(0,3).join(', ');
-
-  out(`<div class="card">
-    <div class="card-header">
-      <div class="card-icon ci-sage"><i class="ti ti-arrows-exchange"></i></div>
-      <div class="card-title">Let me make sure I've got this right</div>
-      <div class="card-status ok"><i class="ti ti-check"></i> Understood</div>
-    </div>
-    <p style="font-size:15px;color:var(--text-body);line-height:1.7;margin:.75rem 0 .25rem">You don't need to know medical words — that's my job. Here's how doctors would describe what you shared, and what it actually means in plain language:</p>
-    <div class="map-table">${rows}</div>
-    <div class="confirm-box">
-      <div class="confirm-eyebrow">Based on what you shared, this sounds like it could be:</div>
-      <div class="confirm-name">${clean(norm.plain_condition_name||norm.primary_condition)}</div>
-      <p class="confirm-reason">${clean(norm.plain_reason)}</p>
-      ${alts?`<p class="confirm-alts">Could also be related to: ${clean(alts)}</p>`:''}
-      <p class="confirm-q">Does this feel close to what you've been experiencing?</p>
-      <div class="btn-group">
-        <button class="btn-yes" onclick="confirmCondition(true)"><i class="ti ti-thumb-up"></i> Yes, that sounds right</button>
-        <button class="btn-no" onclick="showOverride()">That's not quite it</button>
-      </div>
-      <div class="override-wrap" id="overrideWrap">
-        <p class="override-hint">No worries at all — what would you like me to look into instead? Even a rough description or a word your doctor used works perfectly.</p>
-        <input class="override-input" id="overrideInput" placeholder="e.g. Crohn's disease, high blood pressure, anxiety…" />
-        <button class="btn-yes" onclick="confirmCondition(false)"><i class="ti ti-search"></i> Look this up</button>
-      </div>
-    </div>
-  </div>`);
+  var rows = (norm.term_mappings || []).map(function(m) {
+    return '<div class="map-row">' +
+      '<div class="map-their-words">"' + clean(m.patient_said) + '"</div>' +
+      '<div class="map-arrow">→</div>' +
+      '<div><div class="map-medical">' + clean(m.doctors_call_it) + '</div>' +
+      (m.simple_meaning ? '<div class="map-meaning">' + clean(m.simple_meaning) + '</div>' : '') +
+      '</div></div>';
+  }).join('');
+  var alts = (norm.alternate_conditions || []).slice(0,3).join(', ');
+  out('<div class="card">' +
+    '<div class="card-header"><div class="card-icon ci-sage"><i class="ti ti-arrows-exchange"></i></div>' +
+    '<div class="card-title">Let me make sure I've got this right</div>' +
+    '<div class="card-status ok"><i class="ti ti-check"></i> Understood</div></div>' +
+    '<p style="font-size:15px;color:var(--text-body);line-height:1.7;margin:.75rem 0 .25rem">You don't need to know medical words — that's my job. Here's what your words mean in plain language:</p>' +
+    '<div class="map-table">' + rows + '</div>' +
+    '<div class="confirm-box">' +
+      '<div class="confirm-eyebrow">Based on what you shared, this sounds like it could be:</div>' +
+      '<div class="confirm-name">' + clean(norm.plain_condition_name || norm.primary_condition) + '</div>' +
+      '<p class="confirm-reason">' + clean(norm.plain_reason) + '</p>' +
+      (alts ? '<p class="confirm-alts">Could also be related to: ' + clean(alts) + '</p>' : '') +
+      '<p class="confirm-q">Does this feel close to what you've been experiencing?</p>' +
+      '<div class="btn-group">' +
+        '<button class="btn-yes" onclick="confirmCondition(true)"><i class="ti ti-thumb-up"></i> Yes, that sounds right</button>' +
+        '<button class="btn-no" onclick="showOverride()">That's not quite it</button>' +
+      '</div>' +
+      '<div class="override-wrap" id="overrideWrap">' +
+        '<p class="override-hint">No worries — what would you like me to look into instead?</p>' +
+        '<input class="override-input" id="overrideInput" placeholder="e.g. Crohn's disease, high blood pressure…" />' +
+        '<button class="btn-yes" onclick="confirmCondition(false)"><i class="ti ti-search"></i> Look this up</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>');
 }
 
 function showOverride() {
-  document.getElementById('overrideWrap').classList.add('show');
-  document.getElementById('overrideInput').focus();
+  var wrap = document.getElementById('overrideWrap');
+  var input = document.getElementById('overrideInput');
+  if (wrap) wrap.classList.add('show');
+  if (input) input.focus();
 }
 
-/* ── Confirm and generate briefing ── */
 async function confirmCondition(useAI) {
-  document.querySelectorAll('.btn-yes,.btn-no').forEach(b => b.disabled = true);
+  document.querySelectorAll('.btn-yes,.btn-no').forEach(function(b) { b.disabled = true; });
   step(3,'run');
-  const override = useAI ? '' : (document.getElementById('overrideInput')?.value?.trim()||'');
-  document.getElementById('briefingCard')?.remove();
+  var override = useAI ? '' : (document.getElementById('overrideInput') ? document.getElementById('overrideInput').value.trim() : '');
+  var old = document.getElementById('briefingCard');
+  if (old) old.remove();
 
-  out(`<div class="card" id="briefingCard">
-    <div class="card-header">
-      <div class="card-icon ci-warm"><i class="ti ti-book-2"></i></div>
-      <div class="card-title">Here's what I found out for you</div>
-      <div class="card-status running-lbl"><div class="spin"></div> Looking through trusted sources…</div>
-    </div>
-    <div id="briefingBody" style="font-size:15px;color:var(--text-soft);padding:.5rem 0">
-      Researching the latest information — this usually takes about 15 seconds…
-    </div>
-  </div>`);
+  out('<div class="card" id="briefingCard">' +
+    '<div class="card-header"><div class="card-icon ci-warm"><i class="ti ti-book-2"></i></div>' +
+    '<div class="card-title">Here's what I found out for you</div>' +
+    '<div class="card-status running-lbl"><div class="spin"></div> Looking through trusted sources…</div></div>' +
+    '<div id="briefingBody" style="font-size:15px;color:var(--text-soft);padding:.5rem 0">Researching — this usually takes about 15 seconds…</div>' +
+  '</div>');
 
   try {
-    const res = await fetch(`${API}/session/${threadId}/confirm`, {
+    var res = await fetch(API + '/session/' + threadId + '/confirm', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ confirmed: useAI, override: override||null })
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ confirmed: useAI, override: override || null, user_id: currentUser ? currentUser.user_id : null })
     });
-    const data = await res.json();
+    var data = await res.json();
     if (data.status === 'error') throw new Error(data.error);
     renderBriefing(data.briefing);
-    document.querySelector('#briefingCard .card-status').innerHTML = `<span class="ok"><i class="ti ti-check"></i> All done</span>`;
+    var statusEl = document.querySelector('#briefingCard .card-status');
+    if (statusEl) statusEl.innerHTML = '<span class="ok"><i class="ti ti-check"></i> All done</span>';
     step(3,'done');
   } catch(err) {
-    document.getElementById('briefingBody').innerHTML = `<div class="err-box"><strong>Couldn't load the information:</strong> ${clean(err.message)}</div>`;
+    var bodyEl = document.getElementById('briefingBody');
+    if (bodyEl) bodyEl.innerHTML = '<div class="err-box"><strong>Couldn't load the information:</strong> ' + clean(err.message) + '</div>';
     step(3,'');
   }
-  document.querySelectorAll('.btn-yes,.btn-no').forEach(b => b.disabled = false);
+  document.querySelectorAll('.btn-yes,.btn-no').forEach(function(b) { b.disabled = false; });
 }
 
 /* ── Briefing render ── */
 function renderBriefing(b) {
-  const soc = b.standard_of_care||{};
+  var soc = b.standard_of_care || {};
 
-  const txRows = (soc.treatments||[]).map(t=>`
-    <div class="tx-item">
-      <div class="tx-name">${clean(t.name)}</div>
-      <span class="tx-badge ${phBadge(t.phase)}">${clean(t.phase)}</span>
-      <p class="tx-desc">${clean(t.plain_description)}</p>
-      ${t.what_this_means_for_you?`<div class="tx-you">💚 For you: ${clean(t.what_this_means_for_you)}</div>`:''}
-    </div>`).join('');
+  var txRows = (soc.treatments || []).map(function(t) {
+    return '<div class="tx-item">' +
+      '<div class="tx-name">' + clean(t.name) + '</div>' +
+      '<span class="tx-badge ' + phBadge(t.phase) + '">' + clean(t.phase) + '</span>' +
+      '<p class="tx-desc">' + clean(t.plain_description) + '</p>' +
+      (t.what_this_means_for_you ? '<div class="tx-you">💚 For you: ' + clean(t.what_this_means_for_you) + '</div>' : '') +
+    '</div>';
+  }).join('');
 
-  const emRows = (b.emerging||[]).map(t=>`
-    <div class="tx-item">
-      <div class="tx-name">${clean(t.name)}</div>
-      <span class="tx-badge ${phBadge(t.phase)}">${clean(t.phase)}</span>
-      <p class="tx-desc">${clean(t.plain_description)}</p>
-    </div>`).join('');
+  var emRows = (b.emerging || []).map(function(t) {
+    return '<div class="tx-item">' +
+      '<div class="tx-name">' + clean(t.name) + '</div>' +
+      '<span class="tx-badge ' + phBadge(t.phase) + '">' + clean(t.phase) + '</span>' +
+      '<p class="tx-desc">' + clean(t.plain_description) + '</p>' +
+    '</div>';
+  }).join('');
 
-  const holistic = b.holistic||{};
-  const hRows = (holistic.options||[]).map(h=>`
-    <div class="h-item">
-      <div class="h-name">${clean(h.name)}</div>
-      <span class="h-type">${clean(h.type||'Complementary')}</span>
-      <p class="h-desc">${clean(h.plain_description)}</p>
-      ${h.note?`<p class="h-note">📌 ${clean(h.note)}</p>`:''}
-    </div>`).join('');
+  var holistic = b.holistic || {};
+  var hRows = (holistic.options || []).map(function(h) {
+    return '<div class="h-item">' +
+      '<div class="h-name">' + clean(h.name) + '</div>' +
+      '<span class="h-type">' + clean(h.type || 'Complementary') + '</span>' +
+      '<p class="h-desc">' + clean(h.plain_description) + '</p>' +
+      (h.note ? '<p class="h-note">📌 ' + clean(h.note) + '</p>' : '') +
+    '</div>';
+  }).join('');
 
-  const coCards = (b.companies||[]).map(c=>`
-    <div class="co-card">
-      <div class="co-name">${clean(c.name)}</div>
-      <div class="co-type">${clean(c.type)}</div>
-      <div class="co-focus">${clean(c.focus)}</div>
-    </div>`).join('');
+  var coCards = (b.companies || []).map(function(c) {
+    return '<div class="co-card"><div class="co-name">' + clean(c.name) + '</div>' +
+      '<div class="co-type">' + clean(c.type) + '</div>' +
+      '<div class="co-focus">' + clean(c.focus) + '</div></div>';
+  }).join('');
 
-  const srcRows = (b.sources||[]).map((s,i)=>`
-    <div class="src-item">
-      <div class="src-num">${i+1}</div>
-      <div>
-        <div class="src-name">${clean(s.title)}</div>
-        <div class="src-url" onclick="window.open('${clean(s.url)}','_blank')" role="link" tabindex="0">${clean(s.url)}</div>
-      </div>
-    </div>`).join('');
+  var srcRows = (b.sources || []).map(function(s, i) {
+    return '<div class="src-item"><div class="src-num">' + (i+1) + '</div>' +
+      '<div><div class="src-name">' + clean(s.title) + '</div>' +
+      '<div class="src-url" onclick="window.open('' + clean(s.url) + '','_blank')">' + clean(s.url) + '</div></div></div>';
+  }).join('');
 
-  document.getElementById('briefingBody').innerHTML = `
-    <div class="brief-condition">${clean(b.plain_name||b.condition_name)}</div>
-    <div class="brief-meta">${clean(b.condition_name)} · ${(b.sources||[]).length} trusted sources reviewed</div>
-    <div class="brief-opening">${clean(b.opening)}</div>
+  var bodyEl = document.getElementById('briefingBody');
+  if (!bodyEl) return;
+  bodyEl.innerHTML =
+    '<div class="brief-condition">' + clean(b.plain_name || b.condition_name) + '</div>' +
+    '<div class="brief-meta">' + clean(b.condition_name) + ' · ' + (b.sources ? b.sources.length : 0) + ' trusted sources reviewed</div>' +
+    '<div class="brief-opening">' + clean(b.opening) + '</div>' +
 
-    <div class="card" style="margin-bottom:.85rem">
-      <div class="card-header"><div class="card-icon ci-teal"><i class="ti ti-stethoscope"></i></div><div class="card-title">What doctors usually recommend</div></div>
-      <p style="font-size:15px;color:var(--text-body);line-height:1.75;margin:.5rem 0 ${txRows?'1rem':'0'}">${clean(soc.plain_summary)}</p>
-      ${txRows}
-    </div>
+    '<div class="card" style="margin-bottom:.85rem">' +
+      '<div class="card-header"><div class="card-icon ci-teal"><i class="ti ti-stethoscope"></i></div>' +
+      '<div class="card-title">What doctors usually recommend</div></div>' +
+      '<p style="font-size:15px;color:var(--text-body);line-height:1.75;margin:.5rem 0 ' + (txRows ? '1rem' : '0') + '">' + clean(soc.plain_summary) + '</p>' +
+      txRows +
+    '</div>' +
 
-    <div class="card" style="margin-bottom:.85rem">
-      <div class="card-header"><div class="card-icon ci-sage"><i class="ti ti-flask"></i></div><div class="card-title">What's coming that could also help</div></div>
-      <p style="font-size:15px;color:var(--text-body);line-height:1.75;margin:.5rem 0 ${emRows?'1rem':'0'}">Researchers around the world are actively working on new options. These aren't available to everyone yet — but they're worth knowing about and asking your doctor about:</p>
-      ${emRows||'<p style="font-size:14px;color:var(--text-soft)">No specific emerging treatments found right now.</p>'}
-    </div>
+    '<div class="card" style="margin-bottom:.85rem">' +
+      '<div class="card-header"><div class="card-icon ci-sage"><i class="ti ti-flask"></i></div>' +
+      '<div class="card-title">What's coming that could also help</div></div>' +
+      '<p style="font-size:15px;color:var(--text-body);line-height:1.75;margin:.5rem 0 ' + (emRows ? '1rem' : '0') + '">Researchers around the world are actively working on new options:</p>' +
+      (emRows || '<p style="font-size:14px;color:var(--text-soft)">No specific emerging treatments found right now.</p>') +
+    '</div>' +
 
-    <button class="holistic-btn" id="holisticBtn" onclick="toggleHolistic()">
-      <i class="ti ti-leaf"></i> Would you also like holistic & alternative options?
-    </button>
-    <div class="holistic-body" id="holisticBody">
-      <div class="card" style="margin-bottom:.85rem">
-        <div class="card-header"><div class="card-icon ci-sage"><i class="ti ti-plant"></i></div><div class="card-title">Holistic & alternative approaches</div></div>
-        ${holistic.intro?`<p style="font-size:15px;color:var(--text-body);line-height:1.75;margin:.5rem 0 1rem;padding:12px 16px;background:var(--lsage);border-radius:12px;border-left:3px solid var(--sage)">${clean(holistic.intro)}</p>`:''}
-        ${hRows||'<p style="font-size:14px;color:var(--text-soft)">No holistic options found right now.</p>'}
-        ${holistic.reminder?`<div class="holistic-reminder"><i class="ti ti-info-circle"></i> ${clean(holistic.reminder)}</div>`:''}
-      </div>
-    </div>
+    '<button class="holistic-btn" id="holisticBtn" onclick="toggleHolistic()">' +
+      '<i class="ti ti-leaf"></i> Would you also like holistic & alternative options?' +
+    '</button>' +
+    '<div class="holistic-body" id="holisticBody">' +
+      '<div class="card" style="margin-top:.75rem;margin-bottom:.85rem">' +
+        '<div class="card-header"><div class="card-icon ci-sage"><i class="ti ti-plant"></i></div>' +
+        '<div class="card-title">Holistic & alternative approaches</div></div>' +
+        (holistic.intro ? '<p style="font-size:15px;color:var(--text-body);line-height:1.75;margin:.5rem 0 1rem;padding:12px 16px;background:var(--lsage);border-radius:12px;border-left:3px solid var(--sage)">' + clean(holistic.intro) + '</p>' : '') +
+        (hRows || '<p style="font-size:14px;color:var(--text-soft)">No holistic options found right now.</p>') +
+        (holistic.reminder ? '<div class="holistic-reminder"><i class="ti ti-info-circle"></i> ' + clean(holistic.reminder) + '</div>' : '') +
+      '</div>' +
+    '</div>' +
 
-    <div class="card" style="margin-bottom:.85rem">
-      <div class="card-header"><div class="card-icon ci-slate"><i class="ti ti-building-hospital"></i></div><div class="card-title">Who is actively working on this</div></div>
-      <p style="font-size:14px;color:var(--text-soft);margin:.5rem 0 .85rem">These organisations are doing some of the most important work around this condition right now:</p>
-      <div class="co-grid">${coCards}</div>
-    </div>
+    '<div class="card" style="margin-top:.85rem;margin-bottom:.85rem">' +
+      '<div class="card-header"><div class="card-icon ci-slate"><i class="ti ti-building-hospital"></i></div>' +
+      '<div class="card-title">Who is actively working on this</div></div>' +
+      '<p style="font-size:14px;color:var(--text-soft);margin:.5rem 0 .85rem">These organisations are doing some of the most important work around this condition right now:</p>' +
+      '<div class="co-grid">' + coCards + '</div>' +
+    '</div>' +
 
-    <div class="card" style="margin-bottom:.85rem">
-      <div class="card-header"><div class="card-icon ci-teal"><i class="ti ti-certificate"></i></div><div class="card-title">Where this comes from — so you can verify it yourself</div></div>
-      <p style="font-size:14px;color:var(--text-soft);margin:.5rem 0 .85rem">Everything here is based on trusted sources. Click any link to read the original:</p>
-      ${srcRows}
-    </div>
+    '<div class="card" style="margin-bottom:.85rem">' +
+      '<div class="card-header"><div class="card-icon ci-teal"><i class="ti ti-certificate"></i></div>' +
+      '<div class="card-title">Where this comes from — so you can verify it yourself</div></div>' +
+      '<p style="font-size:14px;color:var(--text-soft);margin:.5rem 0 .85rem">Everything here is based on trusted sources. Click any link to read the original:</p>' +
+      srcRows +
+    '</div>' +
 
-    <div class="closing-card">${clean(b.closing)}</div>
+    '<div class="closing-card">' + clean(b.closing) + '</div>' +
 
-    <div class="disclaimer">
-      <i class="ti ti-alert-circle"></i>
-      <div class="disclaimer-text">
-        <strong>Important — Please Read</strong>
-        MedCompanion AI provides general health information for educational purposes only. It is NOT a substitute for professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider before making any decisions about your health. In a medical emergency, call 911 immediately. — finessehumxn · © 2026
-      </div>
-    </div>
+    '<div class="disclaimer">' +
+      '<i class="ti ti-alert-circle"></i>' +
+      '<div class="disclaimer-text">' +
+        '<strong>Important — Please Read</strong>' +
+        'MedCompanion AI provides general health information for educational purposes only. It is NOT a substitute for professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider. In a medical emergency, call 911. — finessehumxn © 2026' +
+      '</div>' +
+    '</div>' +
 
-    <div class="reset-row">
-      <span class="reset-hint">Want to look up something else?</span>
-      <button class="reset-btn" onclick="reset()"><i class="ti ti-refresh"></i> Search something different</button>
-    </div>`;
+    '<div class="reset-row">' +
+      '<span class="reset-hint">Want to look up something else?</span>' +
+      '<button class="reset-btn" onclick="reset()"><i class="ti ti-refresh"></i> Search something different</button>' +
+    '</div>';
 }
 
-
-
-
-/* ── Stat Counter ── */
-window.addEventListener('load', function() {
+/* ── Stat Counter — runs 1s after page load ── */
+setTimeout(function() {
   var els = document.querySelectorAll('.count-num');
   if (!els.length) return;
-
-  function runCounters() {
-    els.forEach(function(el) {
-      var target = parseInt(el.getAttribute('data-target'), 10);
-      if (isNaN(target)) return;
-      var start = 0;
-      var duration = 1500;
-      var startTime = null;
-      function step(timestamp) {
-        if (!startTime) startTime = timestamp;
-        var elapsed = timestamp - startTime;
-        var progress = Math.min(elapsed / duration, 1);
-        var eased = 1 - Math.pow(1 - progress, 3);
-        el.textContent = Math.round(eased * target);
-        if (progress < 1) requestAnimationFrame(step);
-        else el.textContent = target;
-      }
-      requestAnimationFrame(step);
-    });
-  }
-
-  // Try IntersectionObserver first
-  var banner = document.querySelector('.banner-stats');
-  if (banner && 'IntersectionObserver' in window) {
-    var fired = false;
-    var obs = new IntersectionObserver(function(entries) {
-      if (entries[0].isIntersecting && !fired) {
-        fired = true;
-        runCounters();
-        obs.disconnect();
-      }
-    }, { threshold: 0 });
-    obs.observe(banner);
-    // Hard fallback: if user doesn't scroll, fire after 3s
-    setTimeout(function() { if (!fired) { fired = true; runCounters(); } }, 3000);
-  } else {
-    // No IntersectionObserver support - just run it
-    runCounters();
-  }
-});
+  els.forEach(function(el) {
+    var target = parseInt(el.getAttribute('data-target'), 10);
+    if (isNaN(target)) return;
+    var duration = 2000;
+    var startTime = null;
+    function tick(now) {
+      if (!startTime) startTime = now;
+      var elapsed = now - startTime;
+      var progress = Math.min(elapsed / duration, 1);
+      var eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.round(eased * target);
+      if (progress < 1) requestAnimationFrame(tick);
+      else el.textContent = target;
+    }
+    requestAnimationFrame(tick);
+  });
+}, 1000);
 
 </script>
 </body>
