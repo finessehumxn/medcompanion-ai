@@ -1621,6 +1621,49 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
   .chip { font-size: 12px; padding: 5px 11px; }
 }
 
+
+/* ── Approach Preference ── */
+.approach-box {
+  margin-top: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--lsage);
+  border-radius: 16px;
+  border: 2px solid var(--border);
+}
+.approach-q {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: .35rem;
+}
+.approach-sub {
+  font-size: 13.5px;
+  color: var(--text-soft);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+.approach-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: .6rem;
+  margin-bottom: 1rem;
+}
+.approach-opt {
+  background: var(--white);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: .75rem .9rem;
+  cursor: pointer;
+  transition: all .2s;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+}
+.approach-opt:hover { border-color: var(--sage); background: var(--white); }
+.approach-opt.selected { border-color: var(--teal); background: var(--lteal); }
+.approach-opt-icon { font-size: 22px; margin-bottom: 4px; }
+.approach-opt-label { font-size: 12.5px; font-weight: 600; color: var(--text-dark); }
+.approach-opt-desc { font-size: 11px; color: var(--text-soft); margin-top: 2px; line-height: 1.3; }
+
 /* ════════════════════════════════════════
    RESPONSIVE
 ════════════════════════════════════════ */
@@ -1638,6 +1681,44 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
 
 !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+" (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
 posthog.init('POSTHOG_API_KEY_REPLACE_ME', {api_host:'https://us.i.posthog.com', person_profiles:'identified_only'});
+
+
+/* ── Approach preference ── */
+var selectedApproaches = [];
+var pendingUseAI = true;
+
+function showApproach(useAI) {
+  pendingUseAI = useAI;
+  var box = document.getElementById('approachBox');
+  var btnGroup = document.querySelector('.btn-group');
+  if (box) box.style.display = 'block';
+  if (btnGroup) btnGroup.style.display = 'none';
+  // Scroll to approach box
+  if (box) box.scrollIntoView({behavior: 'smooth', block: 'center'});
+}
+
+function toggleApproach(el, val) {
+  el.classList.toggle('selected');
+  var idx = selectedApproaches.indexOf(val);
+  if (idx >= 0) selectedApproaches.splice(idx, 1);
+  else selectedApproaches.push(val);
+  // If "open to all" selected, select all others too
+  if (val === 'open') {
+    var all = ['medical','holistic','spiritual','traditional','mental'];
+    document.querySelectorAll('.approach-opt').forEach(function(opt) {
+      opt.classList.add('selected');
+    });
+    selectedApproaches = all.concat(['open']);
+  }
+}
+
+function confirmWithApproach() {
+  // If nothing selected, default to all
+  if (!selectedApproaches.length) selectedApproaches = ['medical','holistic','spiritual','traditional','mental','open'];
+  // Store preference globally so briefing node can use it
+  window.userApproaches = selectedApproaches;
+  confirmCondition(pendingUseAI);
+}
 
 /* ── Chip toggle ── */
 var chipsExpanded = false;
@@ -2717,13 +2798,50 @@ function renderNormalization(norm) {
       (alts ? '<p class="confirm-alts">Could also be related to: ' + clean(alts) + '</p>' : '') +
       '<p class="confirm-q">Does this feel close to what you\'ve been experiencing?</p>' +
       '<div class="btn-group">' +
-        '<button class="btn-yes" onclick="confirmCondition(true)"><i class="ti ti-thumb-up"></i> Yes, that sounds right</button>' +
+        '<button class="btn-yes" id="btnYes" onclick="showApproach(true)"><i class="ti ti-thumb-up"></i> Yes, that sounds right</button>' +
         '<button class="btn-no" onclick="showOverride()">That\'s not quite it</button>' +
       '</div>' +
       '<div class="override-wrap" id="overrideWrap">' +
         '<p class="override-hint">No worries — what would you like me to look into instead?</p>' +
         '<input class="override-input" id="overrideInput" placeholder="e.g. Crohn\'s disease, high blood pressure…" />' +
-        '<button class="btn-yes" onclick="confirmCondition(false)"><i class="ti ti-search"></i> Look this up</button>' +
+        '<button class="btn-yes" onclick="showApproach(false)"><i class="ti ti-search"></i> Look this up</button>' +
+      '</div>' +
+      '<div class="approach-box" id="approachBox" style="display:none">' +
+        '<div class="approach-q">Before I look this up — help me understand you a little better 💚</div>' +
+        '<div class="approach-sub">This has nothing to do with advice. I just want to make sure what I show you actually feels like it was made for you — not some generic answer. Pick anything that feels like you.</div>' +
+        '<div class="approach-options">' +
+          '<div class="approach-opt" onclick="toggleApproach(this, \'medical\')">' +
+            '<div class="approach-opt-icon">🏥</div>' +
+            '<div class="approach-opt-label">I see doctors regularly</div>' +
+            '<div class="approach-opt-desc">I work with medical professionals</div>' +
+          '</div>' +
+          '<div class="approach-opt" onclick="toggleApproach(this, \'holistic\')">' +
+            '<div class="approach-opt-icon">🌿</div>' +
+            '<div class="approach-opt-label">I like natural options</div>' +
+            '<div class="approach-opt-desc">Herbs, supplements, natural remedies matter to me</div>' +
+          '</div>' +
+          '<div class="approach-opt" onclick="toggleApproach(this, \'spiritual\')">' +
+            '<div class="approach-opt-icon">🙏</div>' +
+            '<div class="approach-opt-label">My faith is part of my health</div>' +
+            '<div class="approach-opt-desc">Prayer, spiritual practice, or religious belief guides me</div>' +
+          '</div>' +
+          '<div class="approach-opt" onclick="toggleApproach(this, \'traditional\')">' +
+            '<div class="approach-opt-icon">🌍</div>' +
+            '<div class="approach-opt-label">My culture matters to me</div>' +
+            '<div class="approach-opt-desc">Indigenous practices, Ayurveda, TCM, or cultural healing</div>' +
+          '</div>' +
+          '<div class="approach-opt" onclick="toggleApproach(this, \'mental\')">' +
+            '<div class="approach-opt-icon">🧠</div>' +
+            '<div class="approach-opt-label">Mind and body are connected</div>' +
+            '<div class="approach-opt-desc">Therapy, meditation, mindfulness are part of my life</div>' +
+          '</div>' +
+          '<div class="approach-opt" onclick="toggleApproach(this, \'open\')">' +
+            '<div class="approach-opt-icon">✨</div>' +
+            '<div class="approach-opt-label">Just show me everything</div>' +
+            '<div class="approach-opt-desc">I want all options — I\'ll decide what fits</div>' +
+          '</div>' +
+        '</div>' +
+        '<button class="btn-yes" onclick="confirmWithApproach()" style="width:100%"><i class="ti ti-arrow-right"></i> Got it — now look it up for me</button>' +
       '</div>' +
     '</div>' +
   '</div>');
@@ -2908,6 +3026,44 @@ function renderBriefing(b) {
     setTimeout(runCounters, 2000);
   }
 })();
+
+
+/* ── Approach preference ── */
+var selectedApproaches = [];
+var pendingUseAI = true;
+
+function showApproach(useAI) {
+  pendingUseAI = useAI;
+  var box = document.getElementById('approachBox');
+  var btnGroup = document.querySelector('.btn-group');
+  if (box) box.style.display = 'block';
+  if (btnGroup) btnGroup.style.display = 'none';
+  // Scroll to approach box
+  if (box) box.scrollIntoView({behavior: 'smooth', block: 'center'});
+}
+
+function toggleApproach(el, val) {
+  el.classList.toggle('selected');
+  var idx = selectedApproaches.indexOf(val);
+  if (idx >= 0) selectedApproaches.splice(idx, 1);
+  else selectedApproaches.push(val);
+  // If "open to all" selected, select all others too
+  if (val === 'open') {
+    var all = ['medical','holistic','spiritual','traditional','mental'];
+    document.querySelectorAll('.approach-opt').forEach(function(opt) {
+      opt.classList.add('selected');
+    });
+    selectedApproaches = all.concat(['open']);
+  }
+}
+
+function confirmWithApproach() {
+  // If nothing selected, default to all
+  if (!selectedApproaches.length) selectedApproaches = ['medical','holistic','spiritual','traditional','mental','open'];
+  // Store preference globally so briefing node can use it
+  window.userApproaches = selectedApproaches;
+  confirmCondition(pendingUseAI);
+}
 
 /* ── Chip toggle ── */
 var chipsExpanded = false;
