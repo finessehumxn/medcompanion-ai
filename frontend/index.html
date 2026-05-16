@@ -1665,174 +1665,25 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
 .approach-opt-desc { font-size: 11px; color: var(--text-soft); margin-top: 2px; line-height: 1.3; }
 
 
-/* ── Fun loading screen ── */
-.loading-fun {
-  padding: 1.25rem;
-  text-align: center;
-  animation: fadeInUp .4s ease;
-}
-.loading-spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid var(--border);
-  border-top-color: var(--teal);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 1rem;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.loading-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--teal);
-  text-transform: uppercase;
-  letter-spacing: .06em;
-  margin-bottom: 1.25rem;
-}
-.loading-fact {
-  background: var(--lteal);
-  border-radius: 14px;
-  padding: 1rem 1.25rem;
-  margin-bottom: .75rem;
-  font-size: 14px;
-  color: var(--text-body);
-  line-height: 1.65;
-  border-left: 3px solid var(--teal);
-  text-align: left;
-  min-height: 70px;
-  transition: opacity .4s ease;
-}
-.loading-fact-emoji { font-size: 20px; margin-bottom: .4rem; }
-.loading-fact-text { color: var(--text-body); }
-.loading-sources {
-  font-size: 12px;
-  color: var(--text-soft);
-  margin-top: .5rem;
-}
-
-
-
-
 /* ── Snake Game ── */
-.snake-wrap {
-  padding: 1rem 1.25rem 1.25rem;
-}
-.snake-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: .6rem;
-}
-.snake-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-dark);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.snake-meta {
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-}
-.snake-score-lbl {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--teal);
-}
-.snake-searching {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  background: var(--lteal);
-  border-radius: 20px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--teal);
-}
-.snake-dot {
-  width: 5px; height: 5px;
-  border-radius: 50%;
-  background: var(--teal);
-  animation: pulse 1.2s ease-in-out infinite;
-}
-.snake-dot:nth-child(2) { animation-delay:.2s; }
-.snake-dot:nth-child(3) { animation-delay:.4s; }
-.snake-canvas-wrap {
-  position: relative;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 2px solid var(--border);
-  background: #0D1F0D;
-  touch-action: none;
-}
-#snakeCanvas {
-  display: block;
-  width: 100%;
-  height: auto;
-  image-rendering: pixelated;
-}
-.snake-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: rgba(13,31,13,.88);
-  color: #fff;
-  cursor: pointer;
-}
-.snake-overlay-title {
-  font-family: monospace;
-  font-size: 22px;
-  font-weight: 700;
-  color: #4ADE80;
-  margin-bottom: .35rem;
-  letter-spacing: .05em;
-}
-.snake-overlay-sub {
-  font-size: 13px;
-  color: rgba(255,255,255,.6);
-  margin-bottom: 1rem;
-}
-.snake-play-btn {
-  background: #4ADE80;
-  color: #0D1F0D;
-  border: none;
-  font-family: monospace;
-  font-size: 14px;
-  font-weight: 700;
-  padding: 8px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  letter-spacing: .05em;
-}
-.snake-controls {
-  display: grid;
-  grid-template-columns: repeat(3, 44px);
-  gap: 4px;
-  margin: .6rem auto 0;
-  width: fit-content;
-}
-.snake-ctrl-btn {
-  width: 44px;
-  height: 44px;
-  background: var(--soft);
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  font-size: 18px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background .1s;
-  -webkit-tap-highlight-color: transparent;
-}
-.snake-ctrl-btn:active { background: var(--lteal); border-color: var(--teal); }
-.snake-ctrl-spacer { width: 44px; height: 44px; }
+.snake-wrap { padding: 1rem 1.25rem 1.25rem; }
+.snake-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:.6rem; }
+.snake-title { font-size:13px; font-weight:700; color:var(--text-dark); display:flex; align-items:center; gap:6px; }
+.snake-meta { display:flex; align-items:center; gap:.75rem; }
+.snake-score-lbl { font-size:12.5px; font-weight:700; color:var(--teal); }
+.snake-searching { display:flex; align-items:center; gap:5px; padding:4px 10px; background:var(--lteal); border-radius:20px; font-size:11.5px; font-weight:600; color:var(--teal); }
+.sn-dot { width:5px; height:5px; border-radius:50%; background:var(--teal); animation:pulse 1.2s ease-in-out infinite; }
+.sn-dot:nth-child(2){animation-delay:.2s} .sn-dot:nth-child(3){animation-delay:.4s}
+.snake-canvas-wrap { position:relative; border-radius:14px; overflow:hidden; border:2px solid var(--border); background:#0D1F0D; touch-action:none; }
+#snakeCanvas { display:block; width:100%; height:auto; image-rendering:pixelated; }
+.snake-overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(13,31,13,.88); color:#fff; cursor:pointer; }
+.snake-overlay-title { font-family:monospace; font-size:22px; font-weight:700; color:#4ADE80; margin-bottom:.35rem; letter-spacing:.05em; }
+.snake-overlay-sub { font-size:13px; color:rgba(255,255,255,.6); margin-bottom:1rem; }
+.snake-play-btn { background:#4ADE80; color:#0D1F0D; border:none; font-family:monospace; font-size:14px; font-weight:700; padding:8px 24px; border-radius:8px; cursor:pointer; }
+.snake-controls { display:grid; grid-template-columns:repeat(3,44px); gap:4px; margin:.6rem auto 0; width:fit-content; }
+.snake-ctrl-btn { width:44px; height:44px; background:var(--soft); border:1.5px solid var(--border); border-radius:10px; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .1s; -webkit-tap-highlight-color:transparent; }
+.snake-ctrl-btn:active { background:var(--lteal); border-color:var(--teal); }
+.snake-ctrl-spacer { width:44px; height:44px; }
 
 /* ════════════════════════════════════════
    RESPONSIVE
@@ -1867,17 +1718,18 @@ function showApproach(useAI) {
   if (box) box.scrollIntoView({behavior: 'smooth', block: 'center'});
 }
 
-function toggleApproach(el) {
-  var val = el.getAttribute('data-val');
+function toggleApproach(el, val) {
   el.classList.toggle('selected');
   var idx = selectedApproaches.indexOf(val);
   if (idx >= 0) selectedApproaches.splice(idx, 1);
   else selectedApproaches.push(val);
+  // If "open to all" selected, select all others too
   if (val === 'open') {
+    var all = ['medical','holistic','spiritual','traditional','mental'];
     document.querySelectorAll('.approach-opt').forEach(function(opt) {
       opt.classList.add('selected');
     });
-    selectedApproaches = ['medical','holistic','spiritual','traditional','mental','open'];
+    selectedApproaches = all.concat(['open']);
   }
 }
 
@@ -1888,6 +1740,101 @@ function confirmWithApproach() {
   window.userApproaches = selectedApproaches;
   confirmCondition(pendingUseAI);
 }
+
+
+/* ── Snake Game (global) ── */
+var _snake, _dir, _nextDir, _food, _snakeScore, _snakeLoop, _snakeRunning;
+var SCOLS = 20, SROWS = 14, SCELL = 16;
+
+function initSnake() {
+  var c = document.getElementById('snakeCanvas');
+  if (!c) return;
+  c.width = SCOLS * SCELL;
+  c.height = SROWS * SCELL;
+}
+
+function startSnake() {
+  var c = document.getElementById('snakeCanvas');
+  if (!c) return;
+  c.width = SCOLS * SCELL; c.height = SROWS * SCELL;
+  var ctx = c.getContext('2d');
+  _snake = [{x:10,y:7},{x:9,y:7},{x:8,y:7}];
+  _dir = {x:1,y:0}; _nextDir = {x:1,y:0};
+  _snakeScore = 0; _snakeRunning = true;
+  var o = document.getElementById('snakeOverlay');
+  if (o) o.style.display = 'none';
+  placeSnakeFood(ctx);
+  clearInterval(_snakeLoop);
+  _snakeLoop = setInterval(function(){tickSnake(ctx);}, 130);
+  updateSnakeScore();
+}
+
+function placeSnakeFood(ctx) {
+  var empty = [];
+  for (var x=0;x<SCOLS;x++) for (var y=0;y<SROWS;y++) {
+    if (!_snake.some(function(s){return s.x===x&&s.y===y;})) empty.push({x:x,y:y});
+  }
+  _food = empty[Math.floor(Math.random()*empty.length)];
+}
+
+function tickSnake(ctx) {
+  _dir = _nextDir;
+  var h = {x:_snake[0].x+_dir.x, y:_snake[0].y+_dir.y};
+  if (h.x<0||h.x>=SCOLS||h.y<0||h.y>=SROWS||_snake.some(function(s){return s.x===h.x&&s.y===h.y;})) {
+    _snakeRunning = false; clearInterval(_snakeLoop); drawSnake(ctx); gameOverSnake(); return;
+  }
+  _snake.unshift(h);
+  if (h.x===_food.x&&h.y===_food.y) { _snakeScore++; updateSnakeScore(); placeSnakeFood(ctx); }
+  else _snake.pop();
+  drawSnake(ctx);
+}
+
+function drawSnake(ctx) {
+  var c = document.getElementById('snakeCanvas');
+  if (!c||!ctx) return;
+  ctx.fillStyle='#0D1F0D'; ctx.fillRect(0,0,c.width,c.height);
+  ctx.fillStyle='rgba(74,222,128,.08)';
+  for (var x=0;x<SCOLS;x++) for (var y=0;y<SROWS;y++) ctx.fillRect(x*SCELL+7,y*SCELL+7,2,2);
+  ctx.fillStyle='#F87171';
+  ctx.beginPath(); ctx.arc(_food.x*SCELL+SCELL/2,_food.y*SCELL+SCELL/2,SCELL/2-2,0,Math.PI*2); ctx.fill();
+  _snake.forEach(function(s,i){
+    ctx.fillStyle=i===0?'#4ADE80':'#16A34A';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(s.x*SCELL+1,s.y*SCELL+1,SCELL-2,SCELL-2,i===0?5:3);
+    else ctx.rect(s.x*SCELL+1,s.y*SCELL+1,SCELL-2,SCELL-2);
+    ctx.fill();
+  });
+}
+
+function updateSnakeScore() {
+  var el = document.getElementById('snakeScoreLbl');
+  if (el) el.textContent = 'Score: ' + _snakeScore;
+}
+
+function gameOverSnake() {
+  var o = document.getElementById('snakeOverlay');
+  if (!o) return;
+  o.style.display = 'flex';
+  o.innerHTML = '<div class="snake-overlay-title">GAME OVER</div>' +
+    '<div class="snake-overlay-sub">Score: ' + _snakeScore + '</div>' +
+    '<button class="snake-play-btn" onclick="startSnake()">PLAY AGAIN</button>';
+}
+
+function snakeDir(dx, dy) {
+  if (!_snakeRunning) return;
+  if (dx===1&&_dir.x===-1||dx===-1&&_dir.x===1) return;
+  if (dy===1&&_dir.y===-1||dy===-1&&_dir.y===1) return;
+  _nextDir = {x:dx,y:dy};
+}
+
+document.addEventListener('keydown', function(e) {
+  if (!_snakeRunning) return;
+  if (e.key==='ArrowUp') {e.preventDefault();snakeDir(0,-1);}
+  if (e.key==='ArrowDown') {e.preventDefault();snakeDir(0,1);}
+  if (e.key==='ArrowLeft') {e.preventDefault();snakeDir(-1,0);}
+  if (e.key==='ArrowRight') {e.preventDefault();snakeDir(1,0);}
+});
+
 
 /* ── Chip toggle ── */
 var chipsExpanded = false;
@@ -2978,36 +2925,36 @@ function renderNormalization(norm) {
       '<div class="approach-box" id="approachBox" style="display:none">' +
         '<div class="approach-q">Before I look this up — help me understand you a little better 💚</div>' +
         '<div class="approach-sub">This has nothing to do with advice. I just want to make sure what I show you actually feels like it was made for you — not some generic answer. Pick anything that feels like you.</div>' +
-                '<div class="approach-options">' +
-          '<div class="approach-opt" data-val="medical" onclick="toggleApproach(this)">' +
+        '<div class="approach-options">' +
+          '<div class="approach-opt" onclick="toggleApproach(this, \'medical\')">' +
             '<div class="approach-opt-icon">🏥</div>' +
             '<div class="approach-opt-label">I see doctors regularly</div>' +
             '<div class="approach-opt-desc">I work with medical professionals</div>' +
           '</div>' +
-          '<div class="approach-opt" data-val="holistic" onclick="toggleApproach(this)">' +
+          '<div class="approach-opt" onclick="toggleApproach(this, \'holistic\')">' +
             '<div class="approach-opt-icon">🌿</div>' +
             '<div class="approach-opt-label">I like natural options</div>' +
             '<div class="approach-opt-desc">Herbs, supplements, natural remedies matter to me</div>' +
           '</div>' +
-          '<div class="approach-opt" data-val="spiritual" onclick="toggleApproach(this)">' +
+          '<div class="approach-opt" onclick="toggleApproach(this, \'spiritual\')">' +
             '<div class="approach-opt-icon">🙏</div>' +
             '<div class="approach-opt-label">My faith is part of my health</div>' +
             '<div class="approach-opt-desc">Prayer, spiritual practice, or religious belief guides me</div>' +
           '</div>' +
-          '<div class="approach-opt" data-val="traditional" onclick="toggleApproach(this)">' +
+          '<div class="approach-opt" onclick="toggleApproach(this, \'traditional\')">' +
             '<div class="approach-opt-icon">🌍</div>' +
             '<div class="approach-opt-label">My culture matters to me</div>' +
             '<div class="approach-opt-desc">Indigenous practices, Ayurveda, TCM, or cultural healing</div>' +
           '</div>' +
-          '<div class="approach-opt" data-val="mental" onclick="toggleApproach(this)">' +
+          '<div class="approach-opt" onclick="toggleApproach(this, \'mental\')">' +
             '<div class="approach-opt-icon">🧠</div>' +
             '<div class="approach-opt-label">Mind and body are connected</div>' +
             '<div class="approach-opt-desc">Therapy, meditation, mindfulness are part of my life</div>' +
           '</div>' +
-          '<div class="approach-opt" data-val="open" onclick="toggleApproach(this)">' +
+          '<div class="approach-opt" onclick="toggleApproach(this, \'open\')">' +
             '<div class="approach-opt-icon">✨</div>' +
             '<div class="approach-opt-label">Just show me everything</div>' +
-            "<div class='approach-opt-desc'>I want all options — I will decide what fits</div>" +
+            '<div class="approach-opt-desc">I want all options — I\'ll decide what fits</div>' +
           '</div>' +
         '</div>' +
         '<button class="btn-yes" onclick="confirmWithApproach()" style="width:100%"><i class="ti ti-arrow-right"></i> Got it — now look it up for me</button>' +
@@ -3030,128 +2977,6 @@ async function confirmCondition(useAI) {
   var old = document.getElementById('briefingCard');
   if (old) old.remove();
 
-      /* ── Snake Game ── */
-  var snakeGame = (function() {
-    var COLS = 20, ROWS = 15, CELL = 16;
-    var canvas, ctx, snake, dir, nextDir, food, score, gameLoop, running, dead;
-
-    function init() {
-      canvas = document.getElementById('snakeCanvas');
-      if (!canvas) return;
-      canvas.width = COLS * CELL;
-      canvas.height = ROWS * CELL;
-      ctx = canvas.getContext('2d');
-    }
-
-    function start() {
-      snake = [{x:10, y:7},{x:9,y:7},{x:8,y:7}];
-      dir = {x:1,y:0};
-      nextDir = {x:1,y:0};
-      score = 0;
-      dead = false;
-      running = true;
-      placeFood();
-      var overlay = document.getElementById('snakeOverlay');
-      if (overlay) overlay.style.display = 'none';
-      clearInterval(gameLoop);
-      gameLoop = setInterval(tick, 130);
-      updateScore();
-    }
-
-    function placeFood() {
-      var empty = [];
-      for (var x=0;x<COLS;x++) for (var y=0;y<ROWS;y++) {
-        if (!snake.some(function(s){return s.x===x&&s.y===y;})) empty.push({x:x,y:y});
-      }
-      food = empty[Math.floor(Math.random()*empty.length)];
-    }
-
-    function tick() {
-      dir = nextDir;
-      var head = {x: snake[0].x+dir.x, y: snake[0].y+dir.y};
-      if (head.x<0||head.x>=COLS||head.y<0||head.y>=ROWS||snake.some(function(s){return s.x===head.x&&s.y===head.y;})) {
-        dead = true; running = false; clearInterval(gameLoop); draw(); showDead(); return;
-      }
-      snake.unshift(head);
-      if (head.x===food.x&&head.y===food.y) { score++; updateScore(); placeFood(); }
-      else snake.pop();
-      draw();
-    }
-
-    function draw() {
-      if (!ctx) return;
-      ctx.fillStyle = '#0D1F0D'; ctx.fillRect(0,0,canvas.width,canvas.height);
-      // Grid dots
-      ctx.fillStyle = 'rgba(74,222,128,.08)';
-      for (var x=0;x<COLS;x++) for (var y=0;y<ROWS;y++) ctx.fillRect(x*CELL+7,y*CELL+7,2,2);
-      // Food
-      ctx.fillStyle = '#F87171';
-      ctx.beginPath();
-      ctx.arc(food.x*CELL+CELL/2, food.y*CELL+CELL/2, CELL/2-2, 0, Math.PI*2);
-      ctx.fill();
-      // Snake
-      snake.forEach(function(s,i) {
-        var g = ctx.createLinearGradient(s.x*CELL,s.y*CELL,s.x*CELL+CELL,s.y*CELL+CELL);
-        g.addColorStop(0, i===0?'#4ADE80':'#16A34A');
-        g.addColorStop(1, i===0?'#22C55E':'#15803D');
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.roundRect(s.x*CELL+1,s.y*CELL+1,CELL-2,CELL-2,i===0?5:3);
-        ctx.fill();
-        if (i===0) {
-          ctx.fillStyle = '#0D1F0D';
-          ctx.fillRect(s.x*CELL+4,s.y*CELL+4,3,3);
-          ctx.fillRect(s.x*CELL+9,s.y*CELL+4,3,3);
-        }
-      });
-    }
-
-    function updateScore() {
-      var el = document.getElementById('snakeScoreLbl');
-      if (el) el.textContent = 'Score: ' + score;
-    }
-
-    function showDead() {
-      var overlay = document.getElementById('snakeOverlay');
-      if (!overlay) return;
-      overlay.style.display = 'flex';
-      overlay.innerHTML = '<div class="snake-overlay-title">GAME OVER</div>' +
-        '<div class="snake-overlay-sub">Score: ' + score + ' 🐍</div>' +
-        '<button class="snake-play-btn" onclick="snakeGame.start()">PLAY AGAIN</button>';
-    }
-
-    function setDir(dx, dy) {
-      if (dx===1&&dir.x===-1||dx===-1&&dir.x===1) return;
-      if (dy===1&&dir.y===-1||dy===-1&&dir.y===1) return;
-      nextDir = {x:dx,y:dy};
-    }
-
-    document.addEventListener('keydown', function(e) {
-      if (!running) return;
-      if (e.key==='ArrowUp'||e.key==='w') {e.preventDefault();setDir(0,-1);}
-      if (e.key==='ArrowDown'||e.key==='s') {e.preventDefault();setDir(0,1);}
-      if (e.key==='ArrowLeft'||e.key==='a') {e.preventDefault();setDir(-1,0);}
-      if (e.key==='ArrowRight'||e.key==='d') {e.preventDefault();setDir(1,0);}
-    });
-
-    return { init:init, start:start, setDir:setDir };
-  })();
-
-  setTimeout(function() { snakeGame.init(); }, 200);
-
-  var factIdx = Math.floor(Math.random() * funFacts.length);
-  function nextFact() {
-    factIdx = (factIdx + 1) % funFacts.length;
-    var el = document.getElementById('loadingFact');
-    if (!el) return;
-    el.style.opacity = '0';
-    setTimeout(function() {
-      el.innerHTML = '<div class="loading-fact-emoji">' + funFacts[factIdx].e + '</div><div class="loading-fact-text">' + funFacts[factIdx].t + '</div>';
-      el.style.opacity = '1';
-    }, 400);
-  }
-  var factTimer = setInterval(nextFact, 4000);
-
   out('<div class="card" id="briefingCard">' +
     '<div class="card-header"><div class="card-icon ci-warm"><i class="ti ti-book-2"></i></div>' +
     '<div class="card-title">Here\'s what I found out for you</div>' +
@@ -3159,31 +2984,33 @@ async function confirmCondition(useAI) {
     '<div id="briefingBody">' +
       '<div class="snake-wrap">' +
         '<div class="snake-top">' +
-          '<div class="snake-title">🐍 Snake</div>' +
+          '<div class="snake-title">🐍 Play Snake while you wait</div>' +
           '<div class="snake-meta">' +
             '<span class="snake-score-lbl" id="snakeScoreLbl">Score: 0</span>' +
-            '<div class="snake-searching"><div class="snake-dot"></div><div class="snake-dot"></div><div class="snake-dot"></div> Researching</div>' +
+            '<div class="snake-searching"><div class="sn-dot"></div><div class="sn-dot"></div><div class="sn-dot"></div> Researching</div>' +
           '</div>' +
         '</div>' +
         '<div class="snake-canvas-wrap">' +
           '<canvas id="snakeCanvas"></canvas>' +
-          '<div class="snake-overlay" id="snakeOverlay" onclick="snakeGame.start()">' +
-            '<div class="snake-overlay-title">SNAKE</div>' +
+          '<div class="snake-overlay" id="snakeOverlay" onclick="startSnake()">' +
+            '<div class="snake-overlay-title">SNAKE 🐍</div>' +
             '<div class="snake-overlay-sub">tap to play while you wait</div>' +
             '<button class="snake-play-btn">START</button>' +
           '</div>' +
         '</div>' +
         '<div class="snake-controls">' +
           '<div class="snake-ctrl-spacer"></div>' +
-          '<button class="snake-ctrl-btn" onclick="snakeGame.setDir(0,-1)">▲</button>' +
+          '<button class="snake-ctrl-btn" onclick="snakeDir(0,-1)">▲</button>' +
           '<div class="snake-ctrl-spacer"></div>' +
-          '<button class="snake-ctrl-btn" onclick="snakeGame.setDir(-1,0)">◀</button>' +
-          '<button class="snake-ctrl-btn" onclick="snakeGame.setDir(0,1)">▼</button>' +
-          '<button class="snake-ctrl-btn" onclick="snakeGame.setDir(1,0)">▶</button>' +
+          '<button class="snake-ctrl-btn" onclick="snakeDir(-1,0)">◀</button>' +
+          '<button class="snake-ctrl-btn" onclick="snakeDir(0,1)">▼</button>' +
+          '<button class="snake-ctrl-btn" onclick="snakeDir(1,0)">▶</button>' +
         '</div>' +
       '</div>' +
     '</div>' +
   '</div>');
+  // Init snake after card is in DOM
+  setTimeout(initSnake, 100);
 
   try {
     var res = await fetch(API + '/session/' + threadId + '/confirm', {
@@ -3193,9 +3020,7 @@ async function confirmCondition(useAI) {
     });
     var data = await res.json();
     if (data.status === 'error') throw new Error(data.error);
-    if (!data.briefing) throw new Error('No briefing returned from server. Please try again.');
-    clearInterval(factTimer);
-    clearInterval(snakeGame && snakeGame.gameLoop);
+    clearInterval(_snakeLoop); _snakeRunning = false;
     renderBriefing(data.briefing);
     var statusEl = document.querySelector('#briefingCard .card-status');
     if (statusEl) statusEl.innerHTML = '<span class="ok"><i class="ti ti-check"></i> All done</span>';
@@ -3210,11 +3035,6 @@ async function confirmCondition(useAI) {
 
 /* ── Briefing render ── */
 function renderBriefing(b) {
-  if (!b) {
-    var bodyEl = document.getElementById('briefingBody');
-    if (bodyEl) bodyEl.innerHTML = '<div class="err-box">The briefing could not load. Please try again.</div>';
-    return;
-  }
   var soc = b.standard_of_care || {};
 
   var txRows = (soc.treatments || []).map(function(t) {
@@ -3367,17 +3187,18 @@ function showApproach(useAI) {
   if (box) box.scrollIntoView({behavior: 'smooth', block: 'center'});
 }
 
-function toggleApproach(el) {
-  var val = el.getAttribute('data-val');
+function toggleApproach(el, val) {
   el.classList.toggle('selected');
   var idx = selectedApproaches.indexOf(val);
   if (idx >= 0) selectedApproaches.splice(idx, 1);
   else selectedApproaches.push(val);
+  // If "open to all" selected, select all others too
   if (val === 'open') {
+    var all = ['medical','holistic','spiritual','traditional','mental'];
     document.querySelectorAll('.approach-opt').forEach(function(opt) {
       opt.classList.add('selected');
     });
-    selectedApproaches = ['medical','holistic','spiritual','traditional','mental','open'];
+    selectedApproaches = all.concat(['open']);
   }
 }
 
@@ -3388,6 +3209,101 @@ function confirmWithApproach() {
   window.userApproaches = selectedApproaches;
   confirmCondition(pendingUseAI);
 }
+
+
+/* ── Snake Game (global) ── */
+var _snake, _dir, _nextDir, _food, _snakeScore, _snakeLoop, _snakeRunning;
+var SCOLS = 20, SROWS = 14, SCELL = 16;
+
+function initSnake() {
+  var c = document.getElementById('snakeCanvas');
+  if (!c) return;
+  c.width = SCOLS * SCELL;
+  c.height = SROWS * SCELL;
+}
+
+function startSnake() {
+  var c = document.getElementById('snakeCanvas');
+  if (!c) return;
+  c.width = SCOLS * SCELL; c.height = SROWS * SCELL;
+  var ctx = c.getContext('2d');
+  _snake = [{x:10,y:7},{x:9,y:7},{x:8,y:7}];
+  _dir = {x:1,y:0}; _nextDir = {x:1,y:0};
+  _snakeScore = 0; _snakeRunning = true;
+  var o = document.getElementById('snakeOverlay');
+  if (o) o.style.display = 'none';
+  placeSnakeFood(ctx);
+  clearInterval(_snakeLoop);
+  _snakeLoop = setInterval(function(){tickSnake(ctx);}, 130);
+  updateSnakeScore();
+}
+
+function placeSnakeFood(ctx) {
+  var empty = [];
+  for (var x=0;x<SCOLS;x++) for (var y=0;y<SROWS;y++) {
+    if (!_snake.some(function(s){return s.x===x&&s.y===y;})) empty.push({x:x,y:y});
+  }
+  _food = empty[Math.floor(Math.random()*empty.length)];
+}
+
+function tickSnake(ctx) {
+  _dir = _nextDir;
+  var h = {x:_snake[0].x+_dir.x, y:_snake[0].y+_dir.y};
+  if (h.x<0||h.x>=SCOLS||h.y<0||h.y>=SROWS||_snake.some(function(s){return s.x===h.x&&s.y===h.y;})) {
+    _snakeRunning = false; clearInterval(_snakeLoop); drawSnake(ctx); gameOverSnake(); return;
+  }
+  _snake.unshift(h);
+  if (h.x===_food.x&&h.y===_food.y) { _snakeScore++; updateSnakeScore(); placeSnakeFood(ctx); }
+  else _snake.pop();
+  drawSnake(ctx);
+}
+
+function drawSnake(ctx) {
+  var c = document.getElementById('snakeCanvas');
+  if (!c||!ctx) return;
+  ctx.fillStyle='#0D1F0D'; ctx.fillRect(0,0,c.width,c.height);
+  ctx.fillStyle='rgba(74,222,128,.08)';
+  for (var x=0;x<SCOLS;x++) for (var y=0;y<SROWS;y++) ctx.fillRect(x*SCELL+7,y*SCELL+7,2,2);
+  ctx.fillStyle='#F87171';
+  ctx.beginPath(); ctx.arc(_food.x*SCELL+SCELL/2,_food.y*SCELL+SCELL/2,SCELL/2-2,0,Math.PI*2); ctx.fill();
+  _snake.forEach(function(s,i){
+    ctx.fillStyle=i===0?'#4ADE80':'#16A34A';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(s.x*SCELL+1,s.y*SCELL+1,SCELL-2,SCELL-2,i===0?5:3);
+    else ctx.rect(s.x*SCELL+1,s.y*SCELL+1,SCELL-2,SCELL-2);
+    ctx.fill();
+  });
+}
+
+function updateSnakeScore() {
+  var el = document.getElementById('snakeScoreLbl');
+  if (el) el.textContent = 'Score: ' + _snakeScore;
+}
+
+function gameOverSnake() {
+  var o = document.getElementById('snakeOverlay');
+  if (!o) return;
+  o.style.display = 'flex';
+  o.innerHTML = '<div class="snake-overlay-title">GAME OVER</div>' +
+    '<div class="snake-overlay-sub">Score: ' + _snakeScore + '</div>' +
+    '<button class="snake-play-btn" onclick="startSnake()">PLAY AGAIN</button>';
+}
+
+function snakeDir(dx, dy) {
+  if (!_snakeRunning) return;
+  if (dx===1&&_dir.x===-1||dx===-1&&_dir.x===1) return;
+  if (dy===1&&_dir.y===-1||dy===-1&&_dir.y===1) return;
+  _nextDir = {x:dx,y:dy};
+}
+
+document.addEventListener('keydown', function(e) {
+  if (!_snakeRunning) return;
+  if (e.key==='ArrowUp') {e.preventDefault();snakeDir(0,-1);}
+  if (e.key==='ArrowDown') {e.preventDefault();snakeDir(0,1);}
+  if (e.key==='ArrowLeft') {e.preventDefault();snakeDir(-1,0);}
+  if (e.key==='ArrowRight') {e.preventDefault();snakeDir(1,0);}
+});
+
 
 /* ── Chip toggle ── */
 var chipsExpanded = false;
