@@ -1697,18 +1697,17 @@ function showApproach(useAI) {
   if (box) box.scrollIntoView({behavior: 'smooth', block: 'center'});
 }
 
-function toggleApproach(el, val) {
+function toggleApproach(el) {
+  var val = el.getAttribute('data-val');
   el.classList.toggle('selected');
   var idx = selectedApproaches.indexOf(val);
   if (idx >= 0) selectedApproaches.splice(idx, 1);
   else selectedApproaches.push(val);
-  // If "open to all" selected, select all others too
   if (val === 'open') {
-    var all = ['medical','holistic','spiritual','traditional','mental'];
     document.querySelectorAll('.approach-opt').forEach(function(opt) {
       opt.classList.add('selected');
     });
-    selectedApproaches = all.concat(['open']);
+    selectedApproaches = ['medical','holistic','spiritual','traditional','mental','open'];
   }
 }
 
@@ -2809,36 +2808,36 @@ function renderNormalization(norm) {
       '<div class="approach-box" id="approachBox" style="display:none">' +
         '<div class="approach-q">Before I look this up — help me understand you a little better 💚</div>' +
         '<div class="approach-sub">This has nothing to do with advice. I just want to make sure what I show you actually feels like it was made for you — not some generic answer. Pick anything that feels like you.</div>' +
-        '<div class="approach-options">' +
-          '<div class="approach-opt" onclick="toggleApproach(this, \'medical\')">' +
+                '<div class="approach-options">' +
+          '<div class="approach-opt" data-val="medical" onclick="toggleApproach(this)">' +
             '<div class="approach-opt-icon">🏥</div>' +
             '<div class="approach-opt-label">I see doctors regularly</div>' +
             '<div class="approach-opt-desc">I work with medical professionals</div>' +
           '</div>' +
-          '<div class="approach-opt" onclick="toggleApproach(this, \'holistic\')">' +
+          '<div class="approach-opt" data-val="holistic" onclick="toggleApproach(this)">' +
             '<div class="approach-opt-icon">🌿</div>' +
             '<div class="approach-opt-label">I like natural options</div>' +
             '<div class="approach-opt-desc">Herbs, supplements, natural remedies matter to me</div>' +
           '</div>' +
-          '<div class="approach-opt" onclick="toggleApproach(this, \'spiritual\')">' +
+          '<div class="approach-opt" data-val="spiritual" onclick="toggleApproach(this)">' +
             '<div class="approach-opt-icon">🙏</div>' +
             '<div class="approach-opt-label">My faith is part of my health</div>' +
             '<div class="approach-opt-desc">Prayer, spiritual practice, or religious belief guides me</div>' +
           '</div>' +
-          '<div class="approach-opt" onclick="toggleApproach(this, \'traditional\')">' +
+          '<div class="approach-opt" data-val="traditional" onclick="toggleApproach(this)">' +
             '<div class="approach-opt-icon">🌍</div>' +
             '<div class="approach-opt-label">My culture matters to me</div>' +
             '<div class="approach-opt-desc">Indigenous practices, Ayurveda, TCM, or cultural healing</div>' +
           '</div>' +
-          '<div class="approach-opt" onclick="toggleApproach(this, \'mental\')">' +
+          '<div class="approach-opt" data-val="mental" onclick="toggleApproach(this)">' +
             '<div class="approach-opt-icon">🧠</div>' +
             '<div class="approach-opt-label">Mind and body are connected</div>' +
             '<div class="approach-opt-desc">Therapy, meditation, mindfulness are part of my life</div>' +
           '</div>' +
-          '<div class="approach-opt" onclick="toggleApproach(this, \'open\')">' +
+          '<div class="approach-opt" data-val="open" onclick="toggleApproach(this)">' +
             '<div class="approach-opt-icon">✨</div>' +
             '<div class="approach-opt-label">Just show me everything</div>' +
-            '<div class="approach-opt-desc">I want all options — I\'ll decide what fits</div>' +
+            "<div class='approach-opt-desc'>I want all options — I will decide what fits</div>" +
           '</div>' +
         '</div>' +
         '<button class="btn-yes" onclick="confirmWithApproach()" style="width:100%"><i class="ti ti-arrow-right"></i> Got it — now look it up for me</button>' +
@@ -3042,18 +3041,17 @@ function showApproach(useAI) {
   if (box) box.scrollIntoView({behavior: 'smooth', block: 'center'});
 }
 
-function toggleApproach(el, val) {
+function toggleApproach(el) {
+  var val = el.getAttribute('data-val');
   el.classList.toggle('selected');
   var idx = selectedApproaches.indexOf(val);
   if (idx >= 0) selectedApproaches.splice(idx, 1);
   else selectedApproaches.push(val);
-  // If "open to all" selected, select all others too
   if (val === 'open') {
-    var all = ['medical','holistic','spiritual','traditional','mental'];
     document.querySelectorAll('.approach-opt').forEach(function(opt) {
       opt.classList.add('selected');
     });
-    selectedApproaches = all.concat(['open']);
+    selectedApproaches = ['medical','holistic','spiritual','traditional','mental','open'];
   }
 }
 
