@@ -1566,39 +1566,9 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
 
 <!-- PostHog Analytics -->
 <script>
+
 !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+" (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
 posthog.init('POSTHOG_API_KEY_REPLACE_ME', {api_host:'https://us.i.posthog.com', person_profiles:'identified_only'});
-    }, { threshold: 0 });
-    obs.observe(banner);
-    // Hard fallback: if user doesn't scroll, fire after 3s
-    setTimeout(function() { if (!fired) { fired = true; runCounters(); } }, 3000);
-  } else {
-    // No IntersectionObserver support - just run it
-    runCounters();
-  }
-});
-
-
-/* ── Stat Counter ── */
-setTimeout(function() {
-  var els = document.querySelectorAll('.count-num');
-  els.forEach(function(el) {
-    var target = parseInt(el.getAttribute('data-target'), 10);
-    if (isNaN(target)) return;
-    var duration = 2000;
-    var startTime = performance.now();
-    function tick(now) {
-      var elapsed = now - startTime;
-      var progress = Math.min(elapsed / duration, 1);
-      var eased = 1 - Math.pow(1 - progress, 3);
-      el.textContent = Math.round(eased * target);
-      if (progress < 1) requestAnimationFrame(tick);
-      else el.textContent = target;
-    }
-    requestAnimationFrame(tick);
-  });
-}, 800);
-
 </script>
 
 </head>
@@ -1817,7 +1787,7 @@ setTimeout(function() {
     <div class="banner-stats">
       <div class="bstat">
         <div class="bstat-number">
-          <span class="count-num" data-target="1">0</span><span class="bstat-suffix"> in 3</span>
+          <span class="count-num" data-target="1">1</span><span class="bstat-suffix"> in 3</span>
         </div>
         <div class="bstat-label">
           <strong>Skip the doctor</strong>
@@ -1826,7 +1796,7 @@ setTimeout(function() {
       </div>
       <div class="bstat">
         <div class="bstat-number">
-          <span class="count-num" data-target="80">0</span><span class="bstat-suffix">%</span>
+          <span class="count-num" data-target="80">80</span><span class="bstat-suffix">%</span>
         </div>
         <div class="bstat-label">
           <strong>Google first</strong>
@@ -1835,7 +1805,7 @@ setTimeout(function() {
       </div>
       <div class="bstat">
         <div class="bstat-number">
-          <span class="count-num" data-target="7">0</span><span class="bstat-suffix"> in 10</span>
+          <span class="count-num" data-target="7">7</span><span class="bstat-suffix"> in 10</span>
         </div>
         <div class="bstat-label">
           <strong>Leave appointments</strong>
@@ -2296,12 +2266,12 @@ function openAuth(mode) {
     if (title) title.textContent = 'Save your health history';
     if (sub) sub.textContent = 'Create a free account to save your sessions and track symptoms over time.';
     if (btn) btn.textContent = 'Create Free Account';
-    if (toggle) toggle.innerHTML = 'Already have an account? <a onclick="toggleAuthMode()">Sign in</a>';
+    if (toggle) toggle.innerHTML = "Already have an account? <a onclick='toggleAuthMode()'>Sign in</a>";
   } else {
     if (title) title.textContent = 'Welcome back';
     if (sub) sub.textContent = 'Sign in to access your health history.';
     if (btn) btn.textContent = 'Sign In';
-    if (toggle) toggle.innerHTML = "Don't have an account? <a onclick="toggleAuthMode()">Sign up free</a>";
+    if (toggle) toggle.innerHTML = "Don't have an account? <a onclick='toggleAuthMode()'>Sign up free</a>";
   }
   modal.classList.add('show');
   var emailEl = document.getElementById('authEmail');
@@ -2373,13 +2343,8 @@ async function loadHistory() {
   }
   var list = data.history.map(function(h) {
     return new Date(h.created_at).toLocaleDateString() + ': ' + (h.condition_identified || 'Health question');
-  }).join('
-');
-  alert('Your health history:
-
-' + list + '
-
-Full dashboard coming soon.');
+  }).join('\n');
+  alert('Your health history:\n\n' + list + '\n\nFull dashboard coming soon.');
 }
 
 /* ── Restore auth on load ── */
@@ -2563,7 +2528,7 @@ function renderImageAnalysis(analysis) {
     return '<div class="lab-row"><span class="lab-name">' + clean(v.name) + '</span><span class="lab-val ' + flagClass(v.flag) + '">' + clean(v.value) + '</span></div>';
   }).join('');
   out('<div class="image-analysis-card">' +
-    '<div class="image-analysis-title"><i class="ti ti-photo-scan"></i> Here's what I see in your image</div>' +
+    '<div class="image-analysis-title"><i class="ti ti-photo-scan"></i> Here\'s what I see in your image</div>' +
     '<p class="image-finding">' + clean(analysis.findings) + '</p>' +
     (labRows ? '<div class="lab-values">' + labRows + '</div>' : '') +
     (analysis.important_notes ? '<p style="font-size:13.5px;color:var(--text-soft);margin-top:.75rem;font-style:italic">' + clean(analysis.important_notes) + '</p>' : '') +
@@ -2581,13 +2546,13 @@ function renderExtraction(raw, ex) {
   var total = (ex.symptoms ? ex.symptoms.length : 0) + (ex.body_parts ? ex.body_parts.length : 0);
   out('<div class="card">' +
     '<div class="card-header"><div class="card-icon ci-teal"><i class="ti ti-ear"></i></div>' +
-    '<div class="card-title">Here's what I heard you say</div>' +
+    '<div class="card-title">Here\'s what I heard you say</div>' +
     '<div class="card-status ok"><i class="ti ti-check"></i> Got it</div></div>' +
     '<div class="raw-quote">"' + clean(raw.length > 240 ? raw.slice(0,240) + '…' : raw) + '"</div>' +
     '<p class="heard-intro">I picked up on <strong>' + total + ' things</strong> you shared with me:</p>' +
     group('What you described feeling', ex.symptoms, 'pill-teal') +
     group('Body areas you mentioned', ex.body_parts, 'pill-sage') +
-    group("How long it's been going on", ex.duration, 'pill-slate') +
+    group("How long it\'s been going on", ex.duration, 'pill-slate') +
     group('How intense it has been', ex.severity, 'pill-slate') +
     group('Medications or treatments mentioned', ex.medications, 'pill-teal') +
     group('How you are feeling about all of this', ex.emotional_context, 'pill-sage') +
@@ -2608,23 +2573,23 @@ function renderNormalization(norm) {
   var alts = (norm.alternate_conditions || []).slice(0,3).join(', ');
   out('<div class="card">' +
     '<div class="card-header"><div class="card-icon ci-sage"><i class="ti ti-arrows-exchange"></i></div>' +
-    '<div class="card-title">Let me make sure I've got this right</div>' +
+    '<div class="card-title">Let me make sure I\'ve got this right</div>' +
     '<div class="card-status ok"><i class="ti ti-check"></i> Understood</div></div>' +
-    '<p style="font-size:15px;color:var(--text-body);line-height:1.7;margin:.75rem 0 .25rem">You don't need to know medical words — that's my job. Here's what your words mean in plain language:</p>' +
+    '<p style="font-size:15px;color:var(--text-body);line-height:1.7;margin:.75rem 0 .25rem">You don\'t need to know medical words — that\'s my job. Here\'s what your words mean in plain language:</p>' +
     '<div class="map-table">' + rows + '</div>' +
     '<div class="confirm-box">' +
       '<div class="confirm-eyebrow">Based on what you shared, this sounds like it could be:</div>' +
       '<div class="confirm-name">' + clean(norm.plain_condition_name || norm.primary_condition) + '</div>' +
       '<p class="confirm-reason">' + clean(norm.plain_reason) + '</p>' +
       (alts ? '<p class="confirm-alts">Could also be related to: ' + clean(alts) + '</p>' : '') +
-      '<p class="confirm-q">Does this feel close to what you've been experiencing?</p>' +
+      '<p class="confirm-q">Does this feel close to what you\'ve been experiencing?</p>' +
       '<div class="btn-group">' +
         '<button class="btn-yes" onclick="confirmCondition(true)"><i class="ti ti-thumb-up"></i> Yes, that sounds right</button>' +
-        '<button class="btn-no" onclick="showOverride()">That's not quite it</button>' +
+        '<button class="btn-no" onclick="showOverride()">That\'s not quite it</button>' +
       '</div>' +
       '<div class="override-wrap" id="overrideWrap">' +
         '<p class="override-hint">No worries — what would you like me to look into instead?</p>' +
-        '<input class="override-input" id="overrideInput" placeholder="e.g. Crohn's disease, high blood pressure…" />' +
+        '<input class="override-input" id="overrideInput" placeholder="e.g. Crohn\'s disease, high blood pressure…" />' +
         '<button class="btn-yes" onclick="confirmCondition(false)"><i class="ti ti-search"></i> Look this up</button>' +
       '</div>' +
     '</div>' +
@@ -2647,7 +2612,7 @@ async function confirmCondition(useAI) {
 
   out('<div class="card" id="briefingCard">' +
     '<div class="card-header"><div class="card-icon ci-warm"><i class="ti ti-book-2"></i></div>' +
-    '<div class="card-title">Here's what I found out for you</div>' +
+    '<div class="card-title">Here\'s what I found out for you</div>' +
     '<div class="card-status running-lbl"><div class="spin"></div> Looking through trusted sources…</div></div>' +
     '<div id="briefingBody" style="font-size:15px;color:var(--text-soft);padding:.5rem 0">Researching — this usually takes about 15 seconds…</div>' +
   '</div>');
@@ -2666,7 +2631,7 @@ async function confirmCondition(useAI) {
     step(3,'done');
   } catch(err) {
     var bodyEl = document.getElementById('briefingBody');
-    if (bodyEl) bodyEl.innerHTML = '<div class="err-box"><strong>Couldn't load the information:</strong> ' + clean(err.message) + '</div>';
+    if (bodyEl) bodyEl.innerHTML = '<div class="err-box"><strong>Couldn\'t load the information:</strong> ' + clean(err.message) + '</div>';
     step(3,'');
   }
   document.querySelectorAll('.btn-yes,.btn-no').forEach(function(b) { b.disabled = false; });
@@ -2712,7 +2677,7 @@ function renderBriefing(b) {
   var srcRows = (b.sources || []).map(function(s, i) {
     return '<div class="src-item"><div class="src-num">' + (i+1) + '</div>' +
       '<div><div class="src-name">' + clean(s.title) + '</div>' +
-      '<div class="src-url" onclick="window.open('' + clean(s.url) + '','_blank')">' + clean(s.url) + '</div></div></div>';
+      "<div class='src-url' onclick='window.open(\"" + clean(s.url) + "\",\"_blank\")'>" + clean(s.url) + "</div>";
   }).join('');
 
   var bodyEl = document.getElementById('briefingBody');
@@ -2731,7 +2696,7 @@ function renderBriefing(b) {
 
     '<div class="card" style="margin-bottom:.85rem">' +
       '<div class="card-header"><div class="card-icon ci-sage"><i class="ti ti-flask"></i></div>' +
-      '<div class="card-title">What's coming that could also help</div></div>' +
+      '<div class="card-title">What\'s coming that could also help</div></div>' +
       '<p style="font-size:15px;color:var(--text-body);line-height:1.75;margin:.5rem 0 ' + (emRows ? '1rem' : '0') + '">Researchers around the world are actively working on new options:</p>' +
       (emRows || '<p style="font-size:14px;color:var(--text-soft)">No specific emerging treatments found right now.</p>') +
     '</div>' +
@@ -2801,6 +2766,20 @@ setTimeout(function() {
   });
 }, 1000);
 
+
+/* ── Stat Counter ── */
+document.addEventListener('DOMContentLoaded', function() {
+  var els = document.querySelectorAll('.count-num');
+  els.forEach(function(el) {
+    var target = parseInt(el.getAttribute('data-target'), 10);
+    if (isNaN(target)) return;
+    var current = 0;
+    el.textContent = 0;
+    var timer = setInterval(function() {
+      current = Math.min(current + Math.ceil(target / 50), target);
+      el.textContent = current;
+      if (current >= target) clearInterval(timer);
+    }, 30);
+  });
+});
 </script>
-</body>
-</html>
