@@ -1,11 +1,6 @@
-"""
-briefing_node.py
-─────────────────
-Node 5 — Final agent in the MedCompanion AI pipeline.
-Generates a warm, patient-friendly briefing with web search.
-"""
-
+"""briefing_node.py — Node 5 — Web Search Briefing Generator"""
 import json
+import re
 import logging
 import anthropic
 from ..state import PatientState
@@ -13,122 +8,90 @@ from ..state import PatientState
 logger = logging.getLogger(__name__)
 client = anthropic.Anthropic()
 
-SYSTEM_PROMPT = """
-You are a warm, caring health companion writing for everyday people — not doctors.
-Write exactly the way a knowledgeable, patient family member would explain things
-at the kitchen table: clear, gentle, hopeful, and completely honest.
+try:
+    from langsmith import traceable
+except ImportError:
+    def traceable(**kw):
+        def decorator(fn): return fn
+        return decorator
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CRITICAL RULES — READ CAREFULLY
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SYSTEM_PROMPT = """You are a warm, patient-friendly medical information specialist.
+Generate a complete health briefing as a SINGLE valid JSON object.
 
-1. NO CITATIONS OR REFERENCE MARKERS EVER.
-   Do NOT include <cite>, [1], (1), footnote markers, or any reference
-   notation inside any text field. Sources go ONLY in the "sources" array.
-   The text fields must read as clean, natural sentences with zero markers.
+CRITICAL RULES:
+- Return ONLY the JSON object. No text before or after it.
+- No citation markers like [1] [2] anywhere in text fields
+- No markdown formatting inside JSON values
+- Spell out ALL acronyms on first use
+- Use double quotes for all JSON strings
+- Escape any apostrophes in text as \\u0027 or avoid them entirely
+- Keep all text fields warm, plain, and human
 
-2. ALWAYS SPELL OUT ACRONYMS ON FIRST USE.
-   Never assume the reader knows medical acronyms.
-   Wrong: "PID is treated with antibiotics"
-   Right: "Pelvic Inflammatory Disease (PID) is treated with antibiotics"
-   Apply this to ALL acronyms: PID, STI, UTI, NSAID, IUD, HPV, HIV,
-   PCOS, GERD, COPD, CAD, CHF, DVT, PE, CT, MRI, IV, OTC — every single one.
-
-3. WRITE LIKE A CARING FAMILY MEMBER.
-   The reader may be scared, confused, or embarrassed. Every sentence should
-   make them feel heard, normal, and not alone. Never clinical or cold.
-   Never use phrases like "the patient should" — say "you" directly.
-
-4. DO NOT USE JARGON without immediately explaining it in plain English.
-   Example: "Antibiotics — medicines that kill the bacteria causing the infection"
-
-5. RETURN ONLY VALID JSON. No preamble. No markdown fences. Just the JSON.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-JSON SCHEMA
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
+JSON structure:
 {
-  "condition_name": "Full official clinical name",
-  "plain_name": "Simple everyday name most people would recognise",
-
-  "opening": "3-4 warm, human sentences. First: acknowledge this may feel scary or overwhelming — and that is completely okay. Second: remind them that many people face this and they are not alone. Third: reassure them that real options exist and they did the right thing by looking this up. Write this like you are sitting next to them.",
-
+  "condition_name": "Full clinical name",
+  "plain_name": "Plain everyday name",
+  "opening": "2-3 warm sentences validating what the patient is experiencing",
   "standard_of_care": {
-    "plain_summary": "2-3 warm sentences about how this condition is generally treated today. Use plain language. Mention that doctors work with each person individually to find what fits best.",
+    "plain_summary": "2-3 sentences about how doctors generally treat this",
     "treatments": [
       {
-        "name": "Treatment name — always spell out any acronym first",
-        "phase": "Approved | First-line | Second-line | Alternative | Lifestyle",
-        "plain_description": "1-2 plain sentences: what is this and how does it help? No jargon without explanation. No citation markers.",
-        "what_this_means_for_you": "1 warm, direct sentence: what would YOU actually experience or need to do day-to-day with this treatment?"
+        "name": "Treatment name",
+        "phase": "First-line treatment",
+        "plain_description": "1-2 plain sentences about this treatment",
+        "what_this_means_for_you": "1 sentence personalizing this"
       }
     ]
   },
-
   "emerging": [
     {
-      "name": "Treatment or research name — spell out acronyms",
-      "phase": "In Testing | Phase 2 Trial | Phase 3 Trial | FDA Breakthrough | Promising | Early Research",
-      "plain_description": "1-2 plain sentences: what makes this hopeful and where does it stand right now? Is it available yet or still being tested? No citation markers."
+      "name": "Emerging treatment name",
+      "phase": "Phase 2 trial",
+      "plain_description": "What researchers are testing and why it matters"
     }
   ],
-
   "holistic": {
-    "intro": "1-2 warm sentences acknowledging that many people prefer to explore natural, holistic, or complementary approaches alongside or instead of conventional medicine — and that this is completely valid and respected.",
+    "intro": "1-2 sentences about complementary approaches",
     "options": [
       {
-        "name": "Holistic or alternative approach name",
-        "type": "Herbal | Dietary | Mind-Body | Spiritual | Traditional | Complementary",
-        "plain_description": "1-2 plain sentences: what is this approach and how might it help with this condition?",
-        "note": "1 sentence honest note — e.g. 'Always let your doctor know about any supplements or herbs you are taking, as some can interact with medications.'"
+        "name": "Option name",
+        "type": "Lifestyle / Supplement / Mind-Body",
+        "plain_description": "What it is and how it may help",
+        "note": "Any important caution or note"
       }
     ],
-    "reminder": "1 warm sentence reminding them to always tell their healthcare provider about any holistic approaches they are using, so their care team can support them fully."
+    "reminder": "Always discuss supplements or alternative approaches with your doctor"
   },
-
   "companies": [
     {
-      "name": "Organisation name",
-      "type": "Pharma | Biotech | Research Institution | Academic Medical Center | Non-profit | Health System",
-      "focus": "What they are doing for this condition — 8 plain words max"
+      "name": "Organization name",
+      "type": "Research / Nonprofit / Hospital",
+      "focus": "What they do for this condition"
     }
   ],
-
   "sources": [
     {
-      "title": "Source organisation name",
-      "url": "https://real-verified-url"
+      "title": "Source title",
+      "url": "https://actual-url.org"
     }
   ],
-
-  "closing": "3-4 warm, honest sentences. Tell them directly: you are not alone in this. Encourage them to bring what they have learned today to their doctor as a starting point for a real conversation — not as a diagnosis. Remind them that their doctor is their partner, not someone to be afraid of. End by affirming that looking this up, right now, was the right thing to do."
-}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CONTENT REQUIREMENTS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- treatments: 3 to 5 entries
-- emerging: 3 to 4 entries
-- holistic.options: 3 to 4 entries
-- companies: 4 to 6 entries
-- sources: 4 to 5 verified, real URLs
-
-Preferred sources: NIH (nih.gov), Mayo Clinic (mayoclinic.org),
-FDA (fda.gov), ClinicalTrials.gov, MedlinePlus, WebMD,
-disease-specific foundations (e.g. American Diabetes Association).
-
-Use web search to ensure all information is current.
-REMEMBER: Zero citation markers anywhere in text fields.
-"""
+  "closing": "1-2 warm closing sentences encouraging the patient"
+}"""
 
 
+@traceable(name="briefing_node", tags=["briefing", "pipeline"])
 def briefing_node(state: PatientState) -> dict:
     if state.get("error"):
         return {"current_node": "briefing"}
 
-    condition = (state.get("final_condition") or state.get("primary_condition") or "").strip()
+    condition = (state.get("final_condition") or "").strip()
     if not condition:
+        # Try to get from normalization
+        norm = state.get("normalization", {})
+        condition = (norm.get("primary_condition") or norm.get("plain_condition_name") or "").strip()
+
+    if not condition:
+        logger.error("briefing_node: no condition name found in state")
         return {
             "briefing": None,
             "current_node": "briefing",
@@ -140,38 +103,62 @@ def briefing_node(state: PatientState) -> dict:
     try:
         response = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=3000,
+            max_tokens=4000,
             system=SYSTEM_PROMPT,
             tools=[{"type": "web_search_20250305", "name": "web_search"}],
-            messages=[{"role": "user", "content":
-                f"Generate a complete, warm, patient-friendly briefing for: {condition}.\n"
-                f"Use web search for current standard of care, emerging treatments, "
-                f"holistic options, and key organisations.\n"
-                f"IMPORTANT: No citation markers in any text fields. "
-                f"Spell out all acronyms. Return ONLY the JSON object."
+            messages=[{
+                "role": "user",
+                "content": (
+                    f"Generate a complete, warm, patient-friendly briefing for: {condition}.\n"
+                    f"Use web search for current standard of care, emerging treatments, "
+                    f"holistic options, and key organisations.\n"
+                    f"CRITICAL: Return ONLY a valid JSON object. "
+                    f"No apostrophes in text — use alternative wording. "
+                    f"No citation markers. No markdown. Just the JSON."
+                )
             }]
         )
 
-        texts = " ".join(b.text for b in response.content if b.type == "text")
+        # Collect all text blocks
+        texts = " ".join(b.text for b in response.content if hasattr(b, "text") and b.text)
 
-        # Strip any citation tags the model might have included despite instructions
-        import re
+        # Clean up
+        texts = re.sub(r'<cite[^>]*>.*?</cite>', '', texts, flags=re.DOTALL)
         texts = re.sub(r'<cite[^>]*>', '', texts)
         texts = re.sub(r'</cite>', '', texts)
         texts = re.sub(r'\[\d+\]', '', texts)
-
         texts = texts.replace("```json", "").replace("```", "").strip()
-        s, e = texts.find("{"), texts.rfind("}")
-        if s == -1:
-            raise ValueError("No JSON found in briefing response.")
 
+        # Extract JSON
+        s = texts.find("{")
+        e = texts.rfind("}")
+        if s == -1:
+            raise ValueError("No JSON object found in briefing response.")
+
+        json_str = texts[s:e+1]
+
+        # Try to parse — if fails, do aggressive cleanup
+        try:
+            briefing = json.loads(json_str)
+        except json.JSONDecodeError as je:
+            logger.warning(f"First parse failed ({je}), attempting cleanup")
+            # Remove control characters
+            json_str = re.sub(r'[\x00-\x1f\x7f]', ' ', json_str)
+            # Fix common issues: trailing commas before }]
+            json_str = re.sub(r',\s*([}\]])', r'\1', json_str)
+            briefing = json.loads(json_str)
+
+        logger.info(f"briefing_node complete for: {condition}")
         return {
-            "briefing": json.loads(texts[s:e+1]),
+            "briefing": briefing,
             "current_node": "briefing",
             "error": None,
         }
 
     except Exception as exc:
         logger.error(f"briefing_node error: {exc}")
-        return {"briefing": None, "current_node": "briefing",
-                "error": f"Briefing failed: {exc}"}
+        return {
+            "briefing": None,
+            "current_node": "briefing",
+            "error": f"Briefing failed: {exc}",
+        }
