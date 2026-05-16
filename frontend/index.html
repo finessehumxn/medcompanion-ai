@@ -15,6 +15,168 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <style>
 
+
+/* ── Nav improvements ── */
+.nav-brand { text-decoration: none; color: inherit; }
+.nav-link { display: inline-flex; align-items: center; gap: 6px; }
+.nav-link i { font-size: 15px; }
+.nav-link-crisis {
+  background: rgba(255,255,255,.15);
+  padding: 6px 14px;
+  border-radius: 20px;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,.25);
+  font-weight: 600;
+}
+.nav-link-crisis:hover { background: rgba(255,255,255,.25); }
+
+.nav-menu-btn {
+  display: none;
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.2);
+  color: #fff;
+  font-size: 20px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.mobile-menu {
+  display: none;
+  position: fixed;
+  top: 64px;
+  left: 0;
+  right: 0;
+  background: var(--teal);
+  padding: 1rem 1.5rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,.2);
+  z-index: 99;
+  flex-direction: column;
+  gap: .25rem;
+}
+.mobile-menu.open { display: flex; }
+.mobile-link {
+  font-size: 15px;
+  color: #fff;
+  text-decoration: none;
+  padding: 14px 16px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+  min-height: 48px;
+  transition: background .15s;
+}
+.mobile-link:hover { background: rgba(255,255,255,.1); }
+.mobile-link-crisis {
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.2);
+}
+.mobile-link-sub {
+  font-size: 13px;
+  color: rgba(255,255,255,.5);
+  padding-top: 18px;
+  border-top: 1px solid rgba(255,255,255,.1);
+  margin-top: .5rem;
+}
+
+@media (max-width: 720px) {
+  .nav-links { display: none; }
+  .nav-menu-btn { display: flex; align-items: center; justify-content: center; }
+}
+
+.crisis-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.crisis-content { flex: 1; min-width: 220px; }
+.crisis-title {
+  font-family: 'Lora', serif;
+  font-size: 1.05rem;
+  color: #fff;
+  font-weight: 600;
+  margin-bottom: .25rem;
+}
+.crisis-text {
+  font-size: 13.5px;
+  color: rgba(255,255,255,.75);
+  line-height: 1.6;
+}
+.crisis-text strong { color: #fff; }
+.crisis-cta {
+  background: #C9B8E0;
+  color: #2A1B47;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  transition: all .2s;
+  min-height: 44px;
+}
+.crisis-cta:hover { background: #fff; transform: translateY(-1px); }
+
+/* ── How it works strip ── */
+.how-strip {
+  background: var(--off-white);
+  padding: 2.5rem 1.5rem;
+  border-top: 2px solid var(--lteal);
+}
+.how-inner { max-width: 720px; margin: 0 auto; }
+.how-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--lteal);
+  color: var(--teal);
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  margin-bottom: .85rem;
+}
+.how-title { font-size: 1.6rem; color: var(--text-dark); font-weight: 700; margin-bottom: 1.5rem; }
+.how-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; }
+.how-step {
+  background: #fff;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  position: relative;
+}
+.how-step-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--teal);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: .65rem;
+}
+.how-step-title { font-size: 14.5px; color: var(--text-dark); font-weight: 600; margin-bottom: 3px; }
+.how-step-desc { font-size: 13px; color: var(--text-soft); line-height: 1.55; }
+
+/* ── Increase chip readability ── */
+.chip { font-size: 13px; font-weight: 500; padding: 8px 16px; line-height: 1.4; }
+
 /* ════════════════════════════════════════
    ACCESSIBILITY
 ════════════════════════════════════════ */
@@ -172,15 +334,35 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
   align-items: center;
   gap: 1.5rem;
 }
-.nav-link {
+
+.nav-pill-btn {
+  background: rgba(255,255,255,.15);
+  color: #fff;
+  text-decoration: none;
+  padding: 7px 16px;
+  border-radius: 20px;
   font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background .2s;
+  border: 1px solid rgba(255,255,255,.25);
+}
+.nav-pill-btn:hover { background: rgba(255,255,255,.25); }
+.nav-link { font-size: 13px; color: rgba(255,255,255,.65); text-decoration: none; font-weight: 500; transition: color .15s; display: inline-flex; align-items: center; gap: 5px; }
+.nav-link:hover { color: #fff; }
+.nav-by { display: none; }
+@media(max-width:520px) { .nav-link-text { display: none; } .nav-links { gap: .75rem; } }
+
+/* old nav-link - replaced */ 
+/* .nav-link-old {
   color: rgba(255,255,255,.65);
   text-decoration: none;
   font-weight: 500;
   transition: color .15s;
 }
-.nav-link:hover { color: #fff; }
-.nav-by { font-size: 11px; color: rgba(255,255,255,.3); }
+} */
 
 /* ════════════════════════════════════════
    HERO
@@ -845,6 +1027,7 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
 
 .err-box { background: #FDE8E8; border: 2px solid #F4C8B8; border-radius: 14px; padding: 1.1rem 1.25rem; font-size: 14px; color: #7A2010; }
 
+
 /* ════════════════════════════════════════
    FAQ SECTION
 ════════════════════════════════════════ */
@@ -990,6 +1173,238 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
 }
 .footer-copy { font-size: 11px; color: rgba(255,255,255,.2); margin-top: .75rem; max-width: 700px; margin-left: auto; margin-right: auto; }
 
+
+/* ── Voice + Image input additions ── */
+.input-extras {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px 10px;
+}
+.input-extra-btn {
+  background: var(--soft);
+  border: 1.5px solid var(--border);
+  color: var(--text-soft);
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all .2s;
+  flex-shrink: 0;
+}
+.input-extra-btn:hover { background: var(--lteal); border-color: var(--teal); color: var(--teal); }
+.input-extra-btn.recording { background: #FDE8E8; border-color: #E87878; color: #C02020; animation: recPulse 1s ease-in-out infinite; }
+@keyframes recPulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+.input-extra-label { font-size: 11.5px; color: var(--text-soft); flex: 1; }
+.image-preview {
+  position: relative;
+  margin: 0 14px 10px;
+  display: none;
+}
+.image-preview.show { display: block; }
+.image-preview img { width: 100%; max-height: 180px; object-fit: cover; border-radius: 10px; border: 1.5px solid var(--border); }
+.image-preview-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(0,0,0,.5);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+.image-analysis-card {
+  background: var(--lsage);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  margin-bottom: .85rem;
+  animation: riseUp .35s ease;
+}
+.image-analysis-title { font-size: 14px; font-weight: 700; color: var(--text-dark); margin-bottom: .5rem; display: flex; align-items: center; gap: 7px; }
+.image-finding { font-size: 14px; color: var(--text-body); line-height: 1.7; margin-bottom: .75rem; }
+.lab-values { display: flex; flex-direction: column; gap: 6px; }
+.lab-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: var(--white); border-radius: 8px; border: 1px solid var(--border); }
+.lab-name { font-size: 13px; font-weight: 500; color: var(--text-dark); }
+.lab-val { font-size: 13px; font-weight: 700; }
+.lab-normal { color: #2A7A50; }
+.lab-high { color: #C05020; }
+.lab-low { color: #2050A0; }
+.lab-unknown { color: var(--text-soft); }
+
+/* ── Auth modal ── */
+.auth-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 999;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.auth-modal-overlay.show { display: flex; }
+.auth-modal {
+  background: var(--white);
+  border-radius: 20px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.2);
+  animation: riseUp .3s ease;
+}
+.auth-modal-title { font-family: 'Lora', serif; font-size: 1.4rem; color: var(--text-dark); font-weight: 700; margin-bottom: .35rem; }
+.auth-modal-sub { font-size: 14px; color: var(--text-soft); margin-bottom: 1.5rem; line-height: 1.6; }
+.auth-field { margin-bottom: 1rem; }
+.auth-label { font-size: 12px; font-weight: 600; color: var(--text-soft); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .35rem; display: block; }
+.auth-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 2px solid var(--border);
+  border-radius: 11px;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  color: var(--text-dark);
+  outline: none;
+  transition: border-color .2s;
+}
+.auth-input:focus { border-color: var(--teal); }
+.auth-submit {
+  width: 100%;
+  background: var(--teal);
+  color: #fff;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: 11px;
+  cursor: pointer;
+  transition: background .2s;
+  margin-top: .5rem;
+}
+.auth-submit:hover { background: var(--slate); }
+.auth-toggle { font-size: 13.5px; color: var(--text-soft); text-align: center; margin-top: .85rem; }
+.auth-toggle a { color: var(--teal); cursor: pointer; font-weight: 500; }
+.auth-close { float: right; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-soft); margin-top: -5px; }
+.auth-error { font-size: 13px; color: #C02020; margin-top: .5rem; display: none; }
+.auth-error.show { display: block; }
+
+/* ── User account bar ── */
+.user-bar {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  background: var(--lteal);
+  border-bottom: 1.5px solid var(--border);
+  padding: .6rem 1.5rem;
+  font-size: 13px;
+  color: var(--teal);
+  font-weight: 500;
+}
+.user-bar.show { display: flex; }
+.user-bar-email { flex: 1; }
+.user-bar-link { color: var(--teal); cursor: pointer; text-decoration: underline; font-size: 12.5px; }
+
+/* ── History sidebar ── */
+.history-btn {
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--text-soft);
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all .2s;
+}
+.history-btn:hover { border-color: var(--teal); color: var(--teal); }
+
+/* ── Pricing section ── */
+.pricing-section {
+  background: var(--cream);
+  border-top: 2px solid var(--border);
+  padding: 4rem 1.5rem;
+}
+.pricing-inner { max-width: 700px; margin: 0 auto; }
+.pricing-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--lteal);
+  color: var(--teal);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 20px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  margin-bottom: .85rem;
+}
+.pricing-title { font-family: 'Lora', serif; font-size: 1.8rem; color: var(--text-dark); font-weight: 700; margin-bottom: .5rem; }
+.pricing-sub { font-size: 15px; color: var(--text-soft); margin-bottom: 2.5rem; line-height: 1.7; }
+.pricing-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+.pricing-card {
+  background: var(--white);
+  border: 2px solid var(--border);
+  border-radius: 20px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+.pricing-card.featured { border-color: var(--teal); position: relative; }
+.pricing-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--teal);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.pricing-tier { font-size: 12px; font-weight: 700; color: var(--text-soft); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .35rem; }
+.pricing-price { font-family: 'Lora', serif; font-size: 2rem; color: var(--text-dark); font-weight: 700; margin-bottom: .25rem; line-height: 1; }
+.pricing-price span { font-size: .9rem; font-weight: 400; color: var(--text-soft); font-family: 'Inter', sans-serif; }
+.pricing-desc { font-size: 13px; color: var(--text-soft); margin-bottom: 1rem; line-height: 1.5; flex: 1; }
+.pricing-features { list-style: none; display: flex; flex-direction: column; gap: 6px; margin-bottom: 1.25rem; }
+.pricing-features li { font-size: 13px; color: var(--text-body); display: flex; align-items: flex-start; gap: 7px; line-height: 1.45; }
+.pricing-features li::before { content: '✓'; color: var(--sage); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+.pricing-cta {
+  background: var(--soft);
+  border: 1.5px solid var(--border);
+  color: var(--text-dark);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: 11px;
+  cursor: pointer;
+  text-align: center;
+  transition: all .2s;
+  text-decoration: none;
+  display: block;
+}
+.pricing-cta:hover { background: var(--lteal); border-color: var(--teal); }
+.pricing-card.featured .pricing-cta { background: var(--teal); color: #fff; border-color: var(--teal); }
+.pricing-card.featured .pricing-cta:hover { background: var(--slate); }
+
 /* ════════════════════════════════════════
    RESPONSIVE
 ════════════════════════════════════════ */
@@ -1001,25 +1416,74 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
   .footer-inner { flex-direction: column; }
 }
 </style>
+
+<!-- PostHog Analytics -->
+<script>
+!function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+" (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+posthog.init('POSTHOG_API_KEY_REPLACE_ME', {api_host:'https://us.i.posthog.com', person_profiles:'identified_only'});
+</script>
+
 </head>
 <body>
 
 <!-- ═══ NAV ═══ -->
 <a href="#main-content" class="skip-link">Skip to main content</a>
+
+<!-- ── Auth Modal ── -->
+<div class="auth-modal-overlay" id="authModal" role="dialog" aria-modal="true" aria-label="Sign in or create account">
+  <div class="auth-modal">
+    <button class="auth-close" onclick="closeAuth()" aria-label="Close">&times;</button>
+    <div id="authTitle" class="auth-modal-title">Save your health history</div>
+    <p class="auth-modal-sub" id="authSub">Create a free account to save your sessions, track symptoms over time, and build your health history.</p>
+    <div class="auth-field">
+      <label class="auth-label" for="authEmail">Email</label>
+      <input class="auth-input" type="email" id="authEmail" placeholder="you@email.com" autocomplete="email" />
+    </div>
+    <div class="auth-field">
+      <label class="auth-label" for="authPassword">Password</label>
+      <input class="auth-input" type="password" id="authPassword" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+    <div class="auth-error" id="authError"></div>
+    <button class="auth-submit" id="authSubmit" onclick="submitAuth()">Create Free Account</button>
+    <div class="auth-toggle" id="authToggle">
+      Already have an account? <a onclick="toggleAuthMode()">Sign in</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── User bar (shown when logged in) ── -->
+<div class="user-bar" id="userBar">
+  <i class="ti ti-user-circle"></i>
+  <span class="user-bar-email" id="userBarEmail"></span>
+  <button class="history-btn" onclick="loadHistory()"><i class="ti ti-history"></i> My History</button>
+  <a class="user-bar-link" onclick="signOut()">Sign out</a>
+</div>
+
 <nav class="nav" role="navigation" aria-label="Main navigation">
-  <div class="nav-brand">
+  <a href="#top" class="nav-brand" aria-label="MedCompanion AI home">
     <div class="nav-icon"><i class="ti ti-heart-rate-monitor" aria-hidden="true"></i></div>
     <span class="nav-name">MedCompanion <em>AI</em></span>
-  </div>
+  </a>
   <div class="nav-links">
-    <a href="#questions" class="nav-link">Q&A</a>
-    <a href="https://github.com/finessehumxn/medcompanion-ai" target="_blank" class="nav-link" rel="noopener">GitHub</a>
+    <a href="#start" class="nav-link"><i class="ti ti-message-circle-heart" aria-hidden="true"></i> Talk to me</a>
+    <a href="#crisis-help" class="nav-link nav-link-crisis"><i class="ti ti-life-buoy" aria-hidden="true"></i> Need help now</a>
+    <a href="#questions" class="nav-link"><i class="ti ti-help-circle" aria-hidden="true"></i> Common questions</a>
   </div>
-  <span class="nav-by">by finessehumxn</span>
+  <button class="nav-menu-btn" aria-label="Open menu" onclick="toggleMobileMenu()">
+    <i class="ti ti-menu-2" aria-hidden="true"></i>
+  </button>
 </nav>
 
+<!-- Mobile menu (hidden by default) -->
+<div class="mobile-menu" id="mobileMenu" role="navigation" aria-label="Mobile navigation" aria-hidden="true">
+  <a href="#start" class="mobile-link" onclick="toggleMobileMenu()"><i class="ti ti-message-circle-heart"></i> Talk to me</a>
+  <a href="#crisis-help" class="mobile-link mobile-link-crisis" onclick="toggleMobileMenu()"><i class="ti ti-life-buoy"></i> Need help right now</a>
+  <a href="#questions" class="mobile-link" onclick="toggleMobileMenu()"><i class="ti ti-help-circle"></i> Common questions</a>
+  <a href="https://github.com/finessehumxn/medcompanion-ai" target="_blank" class="mobile-link mobile-link-sub" rel="noopener"><i class="ti ti-brand-github"></i> See the code</a>
+</div>
+
 <!-- ═══ HERO ═══ -->
-<header class="hero" role="banner">
+<header class="hero" role="banner" id="top">
   <div class="hero-inner">
     <div class="hero-copy">
       <div class="hero-greeting">
@@ -1031,7 +1495,7 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
         I'm not a doctor. I'm not ChatGPT. I'm not WebMD.<br>
         I'm something different — like that <strong>close friend, neighbor, or family member</strong> you call when something feels off. Someone who listens, helps you make sense of it, and makes sure you don't walk into that doctor's office feeling lost.
       </p>
-      <div class="input-wrap">
+      <div class="input-wrap" id="start">
         <div class="input-label">What's been going on with you?</div>
         <div class="input-card">
           <textarea
@@ -1042,6 +1506,20 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
             aria-describedby="inputHint"
             placeholder="Talk to me. Anything goes — symptoms, questions too embarrassing to say out loud, something your body is doing that confuses you, something your doctor said, something you're scared of. Type in any language. No judgment here, ever."
           ></textarea>
+          <div class="image-preview" id="imagePreview">
+            <img id="imagePreviewImg" src="" alt="Uploaded image preview" />
+            <button class="image-preview-remove" onclick="removeImage()" aria-label="Remove image">&times;</button>
+          </div>
+          <div class="input-extras">
+            <button class="input-extra-btn" id="voiceBtn" onclick="toggleVoice()" title="Voice input — speak your symptoms" aria-label="Start voice input">
+              <i class="ti ti-microphone"></i>
+            </button>
+            <label class="input-extra-btn" for="imageInput" title="Upload a lab result, prescription, or photo" aria-label="Upload medical image" style="cursor:pointer">
+              <i class="ti ti-photo-scan"></i>
+              <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="handleImageUpload(event)" />
+            </label>
+            <span class="input-extra-label">🎤 Speak your symptoms &nbsp;|&nbsp; 📷 Upload a lab result or photo</span>
+          </div>
           <div class="input-foot">
             <span class="input-hint" id="inputHint"><i class="ti ti-lock" aria-hidden="true"></i> Just between us — no judgment, ever</span>
             <button class="go-btn" id="goBtn" aria-label="Get help now">
@@ -1057,8 +1535,13 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
             <span class="chip" onclick="fill(`I can't afford a doctor right now but something feels wrong. I just need to understand what might be happening.`)">Can't afford care right now</span>
             <span class="chip" onclick="fill(`My body is going through changes and I don't know what's normal or what's happening to me. I'm embarrassed to ask anyone.`)">My body is changing</span>
             <span class="chip" onclick="fill(`I have a question about sex or my sexual health that I'm too embarrassed to ask my doctor or anyone I know.`)">A question I'm embarrassed to ask</span>
-            <span class="chip" onclick="fill(`I've been struggling with my mental health and I don't know what's wrong or what to do. I feel like no one would understand.`)">Struggling mentally</span>
-            <span class="chip" onclick="fill(`My family member was just diagnosed with something and I don't understand what it means for them.`)">Helping a loved one</span>
+            <span class="chip" onclick="fill(`My heart is racing, I can't catch my breath, my chest feels tight. I don't know if this is a panic attack or something is really wrong with me right now.`)">I think I'm having a panic attack</span>
+            <span class="chip" onclick="fill(`I'm worried about someone I love. They've been acting different, mentioning health issues, and I don't know how to help them or even what questions to ask.`)">Worried about a loved one</span>
+            <span class="chip" onclick="fill(`I've been struggling with my mental health — anxiety, depression, panic, or thoughts I'm scared to say out loud. I don't know what's wrong or where to start. I need help understanding what I'm feeling.`)">Struggling with my mental health</span>
+            <span class="chip" onclick="fill(`I just lost someone I love and I'm trying to understand what they had, whether it could be genetic, and whether I or my family could be at risk. I'm grieving and scared at the same time.`)">I just lost someone I love</span>
+            <span class="chip" onclick="fill(`Someone I love is dying and I don't know what to expect. I want to understand their condition, whether it runs in the family, and what I can do to support them and protect myself and my family.`)">My loved one is dying</span>
+            <span class="chip" onclick="fill(`I'm young and I've been told my illness might not get better or that I may have a serious condition. I'm scared and I need someone to help me understand what this means for my life and my future.`)">I'm young and scared about my diagnosis</span>
+            <span class="chip" onclick="fill(`I found out my parent or sibling has a serious health condition and I'm terrified I could have it too. I need to understand what it means, whether it's genetic, and what I should do next.`)">Could I have what my family member has?</span>
           </div>
         </div>
         <div class="lang-tag">
@@ -1073,6 +1556,7 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
     </div>
   </div>
 </header>
+
 
 <!-- ═══ IMPACT BANNER ═══ -->
 <section class="banner" aria-label="Why this exists">
@@ -1113,6 +1597,37 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
   </div>
 </section>
 
+
+<!-- ═══ HOW IT WORKS — simple, no jargon ═══ -->
+<section class="how-strip" aria-label="How MedCompanion AI works">
+  <div class="how-inner">
+    <span class="how-eyebrow"><i class="ti ti-sparkles" aria-hidden="true"></i> How this works</span>
+    <h2 class="how-title">Four simple steps. No medical degree needed.</h2>
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="how-step-num">1</div>
+        <div class="how-step-title">Tell me anything</div>
+        <div class="how-step-desc">In your own words. Any language. No medical terms required.</div>
+      </div>
+      <div class="how-step">
+        <div class="how-step-num">2</div>
+        <div class="how-step-title">I listen</div>
+        <div class="how-step-desc">I pick up on what you said and check back with you to make sure I got it right.</div>
+      </div>
+      <div class="how-step">
+        <div class="how-step-num">3</div>
+        <div class="how-step-title">I look it up</div>
+        <div class="how-step-desc">From trusted sources — NIH, Mayo Clinic, FDA — with every link shown.</div>
+      </div>
+      <div class="how-step">
+        <div class="how-step-num">4</div>
+        <div class="how-step-title">You get answers</div>
+        <div class="how-step-desc">In plain language. With options. So you can talk to your doctor feeling ready.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ═══ MAIN CONTENT ═══ -->
 <main class="main" role="main" id="main-content">
   <div id="progress" style="display:none" class="progress" aria-label="Progress tracker">
@@ -1143,6 +1658,68 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
 </main>
 
 <!-- ═══ FAQ ═══ -->
+
+
+<!-- ═══ PRICING ═══ -->
+<section class="pricing-section" id="pricing" aria-label="Pricing plans">
+  <div class="pricing-inner">
+    <div class="pricing-kicker"><i class="ti ti-currency-dollar"></i> Simple, honest pricing</div>
+    <h2 class="pricing-title">Free for everyone. More for those who need more.</h2>
+    <p class="pricing-sub">MedCompanion AI will always be free for everyday health questions. We grow by serving health systems, employers, and organizations that want to bring this to their communities at scale.</p>
+    <div class="pricing-grid">
+
+      <div class="pricing-card">
+        <div class="pricing-tier">Free</div>
+        <div class="pricing-price">$0<span>/mo</span></div>
+        <div class="pricing-desc">For any human with a health question</div>
+        <ul class="pricing-features">
+          <li>Unlimited health briefings</li>
+          <li>Voice input</li>
+          <li>Image analysis (lab results, rashes)</li>
+          <li>All languages</li>
+          <li>Holistic + medical options</li>
+          <li>Sourced from NIH, Mayo Clinic, FDA</li>
+        </ul>
+        <a class="pricing-cta" href="#main-content">Get Started Free</a>
+      </div>
+
+      <div class="pricing-card featured">
+        <div class="pricing-badge">Most popular</div>
+        <div class="pricing-tier">Personal</div>
+        <div class="pricing-price">$9<span>/mo</span></div>
+        <div class="pricing-desc">For people serious about their health journey</div>
+        <ul class="pricing-features">
+          <li>Everything in Free</li>
+          <li>Health history saved forever</li>
+          <li>Symptom tracker with patterns</li>
+          <li>Medication tracker + reminders</li>
+          <li>Family profiles (up to 6)</li>
+          <li>Appointment prep sheets</li>
+          <li>Priority response speed</li>
+        </ul>
+        <button class="pricing-cta" onclick="openAuth('signup')">Start Free Trial</button>
+      </div>
+
+      <div class="pricing-card">
+        <div class="pricing-tier">Enterprise</div>
+        <div class="pricing-price">Custom</div>
+        <div class="pricing-desc">For health systems, insurers, and employers</div>
+        <ul class="pricing-features">
+          <li>White-label deployment</li>
+          <li>EHR / FHIR integration</li>
+          <li>HIPAA Business Associate Agreement</li>
+          <li>Custom AI pipeline configuration</li>
+          <li>Analytics dashboard</li>
+          <li>API access</li>
+          <li>Dedicated support</li>
+        </ul>
+        <a class="pricing-cta" href="mailto:finessehumxn@gmail.com">Contact Us</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
 <section class="faq-section" id="questions" aria-label="Frequently asked questions">
   <div class="faq-inner">
     <div class="faq-kicker"><i class="ti ti-message-circle-heart" aria-hidden="true"></i> Real questions. Straight answers.</div>
@@ -1326,7 +1903,7 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
   <div class="footer-inner">
     <div>
       <div class="footer-brand-name">MedCompanion <em>AI</em></div>
-      <div class="footer-tagline">Patient-friendly health information powered by multi-agent AI. For every human being.</div>
+      <div class="footer-tagline">For every human being. Every question. Every situation. No judgment. Ever.</div>
     </div>
     <div class="footer-links">
       <a href="https://github.com/finessehumxn/medcompanion-ai" target="_blank" class="footer-link" rel="noopener"><i class="ti ti-brand-github" aria-hidden="true"></i> github.com/finessehumxn</a>
@@ -1347,6 +1924,200 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
 </footer>
 
 <script>
+
+function toggleMobileMenu() {
+  const menu = document.getElementById('mobileMenu');
+  const isOpen = menu.classList.toggle('open');
+  menu.setAttribute('aria-hidden', !isOpen);
+}
+
+
+/* ══════════════════════════════════════
+   AUTH STATE
+══════════════════════════════════════ */
+let currentUser = null;
+let authMode = 'signup';
+
+function openAuth(mode = 'signup') {
+  authMode = mode;
+  const modal = document.getElementById('authModal');
+  const title = document.getElementById('authTitle');
+  const sub = document.getElementById('authSub');
+  const btn = document.getElementById('authSubmit');
+  const toggle = document.getElementById('authToggle');
+  if (mode === 'signup') {
+    title.textContent = 'Save your health history';
+    sub.textContent = 'Create a free account to save your sessions, track symptoms over time, and build your health history.';
+    btn.textContent = 'Create Free Account';
+    toggle.innerHTML = 'Already have an account? <a onclick="toggleAuthMode()">Sign in</a>';
+  } else {
+    title.textContent = 'Welcome back';
+    sub.textContent = 'Sign in to access your health history and saved sessions.';
+    btn.textContent = 'Sign In';
+    toggle.innerHTML = "Don't have an account? <a onclick="toggleAuthMode()">Sign up free</a>";
+  }
+  modal.classList.add('show');
+  document.getElementById('authEmail').focus();
+}
+
+function closeAuth() { document.getElementById('authModal').classList.remove('show'); }
+function toggleAuthMode() { openAuth(authMode === 'signup' ? 'login' : 'signup'); }
+
+async function submitAuth() {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errEl = document.getElementById('authError');
+  errEl.classList.remove('show');
+
+  if (!email || !password) { errEl.textContent = 'Please fill in both fields.'; errEl.classList.add('show'); return; }
+
+  const endpoint = authMode === 'signup' ? '/auth/signup' : '/auth/login';
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Authentication failed');
+    currentUser = { email, user_id: data.user_id, token: data.access_token };
+    localStorage.setItem('mc_user', JSON.stringify(currentUser));
+    closeAuth();
+    showUserBar();
+    if (typeof posthog !== 'undefined') posthog.identify(data.user_id, { email });
+  } catch(err) {
+    errEl.textContent = err.message;
+    errEl.classList.add('show');
+  }
+}
+
+function showUserBar() {
+  if (!currentUser) return;
+  document.getElementById('userBar').classList.add('show');
+  document.getElementById('userBarEmail').textContent = currentUser.email;
+  document.getElementById('navAuthBtn').style.display = 'none';
+}
+
+function signOut() {
+  currentUser = null;
+  localStorage.removeItem('mc_user');
+  document.getElementById('userBar').classList.remove('show');
+  document.getElementById('navAuthBtn').style.display = '';
+}
+
+async function loadHistory() {
+  if (!currentUser?.user_id) return openAuth('login');
+  const res = await fetch(`/user/${currentUser.user_id}/history`);
+  const data = await res.json();
+  if (!data.history?.length) { alert('No history yet — complete a health briefing to save it here.'); return; }
+  const list = data.history.map(h =>
+    `${new Date(h.created_at).toLocaleDateString()}: ${h.condition_identified || 'Health question'}`
+  ).join('\n');
+  alert('Your health history:\n\n' + list + '\n\nFull history dashboard coming soon.');
+}
+
+// Restore auth on page load
+try {
+  const saved = localStorage.getItem('mc_user');
+  if (saved) { currentUser = JSON.parse(saved); showUserBar(); }
+} catch(e) {}
+
+/* ══════════════════════════════════════
+   VOICE INPUT
+══════════════════════════════════════ */
+let recognition = null;
+let isRecording = false;
+
+function toggleVoice() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert('Voice input is not supported in this browser. Please try Chrome or Edge.');
+    return;
+  }
+
+  if (isRecording) {
+    recognition?.stop();
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = navigator.language || 'en-US';
+
+  const btn = document.getElementById('voiceBtn');
+  const input = document.getElementById('patientInput');
+  const label = document.querySelector('.input-extra-label');
+  let finalTranscript = input.value;
+
+  recognition.onstart = () => {
+    isRecording = true;
+    btn.classList.add('recording');
+    btn.innerHTML = '<i class="ti ti-microphone-off"></i>';
+    label.textContent = '🔴 Listening... tap the mic again to stop';
+    if (typeof posthog !== 'undefined') posthog.capture('voice_input_started');
+  };
+
+  recognition.onresult = (e) => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      e.results[i].isFinal ? finalTranscript += e.results[i][0].transcript + ' ' : interim += e.results[i][0].transcript;
+    }
+    input.value = finalTranscript + interim;
+  };
+
+  recognition.onend = () => {
+    isRecording = false;
+    btn.classList.remove('recording');
+    btn.innerHTML = '<i class="ti ti-microphone"></i>';
+    label.textContent = '🎤 Speak your symptoms | 📷 Upload a lab result or photo';
+    input.value = finalTranscript.trim();
+  };
+
+  recognition.onerror = (e) => {
+    isRecording = false;
+    btn.classList.remove('recording');
+    btn.innerHTML = '<i class="ti ti-microphone"></i>';
+    if (e.error !== 'aborted') label.textContent = 'Voice input error — please try typing instead.';
+  };
+
+  recognition.start();
+}
+
+/* ══════════════════════════════════════
+   IMAGE UPLOAD
+══════════════════════════════════════ */
+let uploadedImageData = null;
+let uploadedMediaType = null;
+
+function handleImageUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { alert('Please upload an image file.'); return; }
+  if (file.size > 5 * 1024 * 1024) { alert('Please upload an image under 5MB.'); return; }
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const base64 = ev.target.result.split(',')[1];
+    uploadedImageData = base64;
+    uploadedMediaType = file.type;
+    document.getElementById('imagePreviewImg').src = ev.target.result;
+    document.getElementById('imagePreview').classList.add('show');
+    if (!document.getElementById('patientInput').value) {
+      document.getElementById('patientInput').value = 'Please help me understand this image.';
+    }
+    if (typeof posthog !== 'undefined') posthog.capture('image_uploaded', { type: file.type });
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeImage() {
+  uploadedImageData = null;
+  uploadedMediaType = null;
+  document.getElementById('imagePreview').classList.remove('show');
+  document.getElementById('imageInput').value = '';
+}
+
 /* ── State ── */
 const API = '';
 let threadId = null;
@@ -1430,6 +2201,9 @@ document.getElementById('patientInput').addEventListener('keydown', e => {
 });
 document.getElementById('goBtn').addEventListener('click', startPipeline);
 
+// PostHog page view
+if (typeof posthog !== 'undefined') posthog.capture('app_opened');
+
 /* ════════════════════════════════════════
    PIPELINE
 ════════════════════════════════════════ */
@@ -1448,7 +2222,7 @@ async function startPipeline() {
     const res = await fetch(`${API}/session/start`, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ raw_input: raw })
+      body: JSON.stringify({ raw_input: raw, image_data: uploadedImageData, image_media_type: uploadedMediaType, user_id: currentUser?.user_id || null })
     });
     const data = await res.json();
 
@@ -1479,6 +2253,7 @@ async function startPipeline() {
 
     step(0,'done'); step(1,'done'); step(2,'done');
     threadId = data.thread_id;
+    if (data.image_analysis) renderImageAnalysis(data.image_analysis);
     renderExtraction(raw, data.extraction);
     renderNormalization(data.normalization);
 
@@ -1488,6 +2263,27 @@ async function startPipeline() {
     [0,1,2,3].forEach(n => step(n,''));
   }
   document.getElementById('goBtn').disabled = false;
+}
+
+
+/* ── Image Analysis card ── */
+function renderImageAnalysis(analysis) {
+  if (!analysis || analysis.image_type === 'not_medical') return;
+  const flagClass = (f) => f === 'high' ? 'lab-high' : f === 'low' ? 'lab-low' : f === 'normal' ? 'lab-normal' : 'lab-unknown';
+  const labRows = (analysis.key_values || []).map(v =>
+    `<div class="lab-row">
+      <span class="lab-name">${clean(v.name)}</span>
+      <span class="lab-val ${flagClass(v.flag)}">${clean(v.value)} ${v.flag !== 'unknown' ? '(' + v.flag + ')' : ''}</span>
+    </div>`
+  ).join('');
+
+  out(`<div class="image-analysis-card">
+    <div class="image-analysis-title"><i class="ti ti-photo-scan"></i> Here's what I see in your image</div>
+    <p class="image-finding">${clean(analysis.findings)}</p>
+    ${labRows ? `<div class="lab-values">${labRows}</div>` : ''}
+    ${analysis.important_notes ? `<p style="font-size:13.5px;color:var(--text-soft);margin-top:.75rem;font-style:italic">${clean(analysis.important_notes)}</p>` : ''}
+    <p style="font-size:12px;color:var(--text-soft);margin-top:.75rem">${clean(analysis.disclaimer)}</p>
+  </div>`);
 }
 
 /* ── Extraction card ── */

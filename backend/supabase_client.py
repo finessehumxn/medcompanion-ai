@@ -1,0 +1,171 @@
+"""
+supabase_client.py
+──────────────────
+Supabase client for MedCompanion AI.
+Handles auth, session persistence, health history, and user profiles.
+
+Supabase SQL to run in your project dashboard:
+─────────────────────────────────────────────
+
+-- User health profiles
+CREATE TABLE public.health_profiles (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT,
+  date_of_birth DATE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Health sessions (conversation history)
+CREATE TABLE public.health_sessions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  profile_id UUID REFERENCES public.health_profiles(id),
+  raw_input TEXT NOT NULL,
+  condition_identified TEXT,
+  briefing JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Symptom logs
+CREATE TABLE public.symptom_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  symptom TEXT NOT NULL,
+  severity INTEGER CHECK (severity BETWEEN 1 AND 10),
+  notes TEXT,
+  logged_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Medication tracker
+CREATE TABLE public.medications (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  dosage TEXT,
+  frequency TEXT,
+  start_date DATE,
+  active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS (Row Level Security)
+ALTER TABLE public.health_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.health_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.symptom_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.medications ENABLE ROW LEVEL SECURITY;
+
+-- RLS policies: users only see their own data
+CREATE POLICY "Users own their profiles" ON public.health_profiles FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users own their sessions" ON public.health_sessions FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users own their symptoms" ON public.symptom_logs FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users own their medications" ON public.medications FOR ALL USING (auth.uid() = user_id);
+"""
+
+import os
+import logging
+from typing import Optional
+from supabase import create_client, Client
+
+logger = logging.getLogger(__name__)
+
+_supabase: Optional[Client] = None
+
+
+def get_supabase() -> Optional[Client]:
+    """Get or create Supabase client. Returns None if not configured."""
+    global _supabase
+    if _supabase is not None:
+        return _supabase
+
+    url = os.getenv("SUPABASE_URL")
+    key = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_ANON_KEY")
+
+    if not url or not key:
+        logger.warning("Supabase not configured — running without persistence")
+        return None
+
+    try:
+        _supabase = create_client(url, key)
+        logger.info("Supabase client initialized")
+        return _supabase
+    except Exception as e:
+        logger.error(f"Supabase init failed: {e}")
+        return None
+
+
+async def save_session(
+    user_id: str,
+    raw_input: str,
+    condition: str,
+    briefing: dict,
+) -> Optional[str]:
+    """Save a completed health session to Supabase."""
+    sb = get_supabase()
+    if not sb:
+        return None
+    try:
+        result = sb.table("health_sessions").insert({
+            "user_id": user_id,
+            "raw_input": raw_input,
+            "condition_identified": condition,
+            "briefing": briefing,
+        }).execute()
+        return result.data[0]["id"] if result.data else None
+    except Exception as e:
+        logger.error(f"save_session error: {e}")
+        return None
+
+
+async def get_user_history(user_id: str, limit: int = 20) -> list:
+    """Fetch a user's health session history."""
+    sb = get_supabase()
+    if not sb:
+        return []
+    try:
+        result = sb.table("health_sessions") \
+            .select("id, raw_input, condition_identified, created_at") \
+            .eq("user_id", user_id) \
+            .order("created_at", desc=True) \
+            .limit(limit) \
+            .execute()
+        return result.data or []
+    except Exception as e:
+        logger.error(f"get_user_history error: {e}")
+        return []
+
+
+async def log_symptom(user_id: str, symptom: str, severity: int, notes: str = "") -> bool:
+    """Log a symptom entry."""
+    sb = get_supabase()
+    if not sb:
+        return False
+    try:
+        sb.table("symptom_logs").insert({
+            "user_id": user_id,
+            "symptom": symptom,
+            "severity": severity,
+            "notes": notes,
+        }).execute()
+        return True
+    except Exception as e:
+        logger.error(f"log_symptom error: {e}")
+        return False
+
+
+async def get_symptom_history(user_id: str, limit: int = 50) -> list:
+    """Get a user's symptom history for pattern detection."""
+    sb = get_supabase()
+    if not sb:
+        return []
+    try:
+        result = sb.table("symptom_logs") \
+            .select("*") \
+            .eq("user_id", user_id) \
+            .order("logged_at", desc=True) \
+            .limit(limit) \
+            .execute()
+        return result.data or []
+    except Exception as e:
+        logger.error(f"get_symptom_history error: {e}")
+        return []

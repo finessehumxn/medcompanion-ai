@@ -1,274 +1,248 @@
+"""
+server.py — MedCompanion AI FastAPI Server
+Includes: LangSmith tracing, Supabase auth, vision endpoint, health history API
+"""
+import os
+import base64
+import logging
+import uuid
+from typing import Optional
 from dotenv import load_dotenv
 load_dotenv()
-"""
-server.py
-──────────
-FastAPI application exposing the MedBrief LangGraph pipeline via REST.
 
-Endpoints
-─────────
-POST /session/start
-    Accepts raw patient input. Runs guardrail → extraction → normalization.
-    If guardrail blocks, returns immediately with the guardrail message.
-    If guardrail passes, graph runs until the interrupt checkpoint and returns
-    the extraction + normalization results for the frontend confirmation card.
+# ── LangSmith must be configured before any LangChain/LangGraph imports ──
+if os.getenv("LANGCHAIN_API_KEY"):
+    os.environ.setdefault("LANGCHAIN_TRACING_V2", "true")
+    os.environ.setdefault("LANGCHAIN_PROJECT", "medcompanion-ai")
+    logging.getLogger(__name__).info("LangSmith tracing enabled")
 
-POST /session/{thread_id}/confirm
-    Resumes the paused graph after the patient confirms or overrides the
-    identified condition. Runs the briefing node and returns the full briefing.
+from fastapi import FastAPI, HTTPException, Header, Request
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
+from langgraph.checkpoint.memory import MemorySaver
 
-GET  /session/{thread_id}/state
-    Debug endpoint. Returns the raw LangGraph state snapshot for a thread.
-    Useful during development to inspect exactly what each node wrote.
-
-GET  /health
-    Simple health check. Returns {"status": "ok"}.
-
-GET  /app (static)
-    Serves the frontend index.html from the /frontend directory.
-
-How the human-in-the-loop cycle works
-──────────────────────────────────────
-1. POST /session/start → graph runs → hits interrupt → returns state snapshot
-2. Frontend renders confirmation card from state["normalization"]
-3. Patient taps "Yes" or types their own condition
-4. POST /session/{thread_id}/confirm → graph resumes → briefing generated
-5. Frontend renders full briefing from response["briefing"]
-"""
-
-import uuid
-import logging
-import os
-from fastapi                     import FastAPI, HTTPException
-from fastapi.middleware.cors     import CORSMiddleware
-from fastapi.staticfiles         import StaticFiles
-from pydantic                    import BaseModel
-from typing                      import Optional
-from langgraph.types             import Command
-
-from .graph import graph
+from .graph import build_graph
+from .supabase_client import get_supabase, save_session, get_user_history, log_symptom, get_symptom_history
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="MedBrief API", version="1.0.0", description="Patient health briefing pipeline")
+app = FastAPI(title="MedCompanion AI", version="2.0.0")
+memory = MemorySaver()
+graph = build_graph(memory)
 
-# ── CORS ──────────────────────────────────────────────────────────────────
-# Allow all origins during development.
-# In production, replace "*" with your actual frontend domain.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# ── Static frontend ───────────────────────────────────────────────────────
+# ── Static files ──
 frontend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frontend")
-if os.path.isdir(frontend_dir):
-    app.mount("/app", StaticFiles(directory=frontend_dir, html=True), name="frontend")
+app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
 
+@app.get("/app")
+async def serve_app():
+    return FileResponse(os.path.join(frontend_dir, "index.html"))
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# REQUEST / RESPONSE MODELS
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+@app.get("/health")
+async def health():
+    return {
+        "status": "ok",
+        "version": "2.0.0",
+        "langsmith": bool(os.getenv("LANGCHAIN_API_KEY")),
+        "supabase": bool(os.getenv("SUPABASE_URL")),
+    }
+
+# ══════════════════════════════════════
+# REQUEST MODELS
+# ══════════════════════════════════════
 
 class StartRequest(BaseModel):
-    raw_input: str                       # The patient's free-text input
-
+    raw_input: str
+    image_data: Optional[str] = None        # base64 encoded
+    image_media_type: Optional[str] = None  # e.g. "image/jpeg"
+    user_id: Optional[str] = None
 
 class ConfirmRequest(BaseModel):
-    confirmed: bool = True               # True = use AI-identified condition
-    override: Optional[str] = None       # Non-null = patient's own condition name
+    confirmed: bool
+    override: Optional[str] = None
+    user_id: Optional[str] = None
 
+class SymptomLogRequest(BaseModel):
+    user_id: str
+    symptom: str
+    severity: int
+    notes: Optional[str] = ""
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# HELPER: BUILD LANGGRAPH CONFIG
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+class AuthRequest(BaseModel):
+    email: str
+    password: str
 
-def _config(thread_id: str) -> dict:
-    """Produce the LangGraph invocation config for a given thread."""
-    return {"configurable": {"thread_id": thread_id}}
+# ══════════════════════════════════════
+# AUTH ENDPOINTS (Supabase)
+# ══════════════════════════════════════
 
+@app.post("/auth/signup")
+async def signup(req: AuthRequest):
+    sb = get_supabase()
+    if not sb:
+        raise HTTPException(503, "Auth service not configured")
+    try:
+        result = sb.auth.sign_up({"email": req.email, "password": req.password})
+        return {"status": "success", "user_id": result.user.id if result.user else None}
+    except Exception as e:
+        raise HTTPException(400, str(e))
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# HELPER: SHAPE THE API RESPONSE
-# Translates raw LangGraph state into the structured dict the frontend expects.
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-def _shape_response(state: dict, thread_id: str) -> dict:
-    """
-    Determines the response shape based on the current graph state.
-
-    Possible statuses returned to the frontend:
-      "emergency"             — guardrail detected active medical emergency
-      "crisis"                — guardrail detected crisis / self-harm signals
-      "off_topic"             — guardrail detected non-health content
-      "invalid"               — guardrail detected unreadable/too-short input
-      "error"                 — a pipeline node encountered an unrecoverable error
-      "awaiting_confirmation" — graph paused, normalization done, waiting for user
-      "complete"              — briefing generated, pipeline finished
-    """
-
-    # ── Guardrail blocked the request ────────────────────────────────────
-    guardrail_status = state.get("guardrail_status", "pass")
-    if guardrail_status in ("emergency", "crisis", "off_topic", "invalid"):
+@app.post("/auth/login")
+async def login(req: AuthRequest):
+    sb = get_supabase()
+    if not sb:
+        raise HTTPException(503, "Auth service not configured")
+    try:
+        result = sb.auth.sign_in_with_password({"email": req.email, "password": req.password})
         return {
-            "thread_id":         thread_id,
-            "status":            guardrail_status,
-            "guardrail_message": state.get("guardrail_message", ""),
+            "status": "success",
+            "access_token": result.session.access_token if result.session else None,
+            "user_id": result.user.id if result.user else None,
         }
+    except Exception as e:
+        raise HTTPException(401, "Invalid credentials")
 
-    # ── Pipeline error ────────────────────────────────────────────────────
-    if state.get("error"):
-        return {
-            "thread_id": thread_id,
-            "status":    "error",
-            "error":     state.get("error", "An unexpected error occurred."),
-        }
-
-    # ── Extraction result block (shared between awaiting and complete) ────
-    extraction_block = {
-        "symptoms":          state.get("symptoms",          []),
-        "duration":          state.get("duration",          []),
-        "severity":          state.get("severity",          []),
-        "medications":       state.get("medications",       []),
-        "body_parts":        state.get("body_parts",        []),
-        "emotional_context": state.get("emotional_context", []),
-    }
-
-    # ── Normalization result block (shared between awaiting and complete) ─
-    normalization_block = {
-        "term_mappings":        state.get("term_mappings",        []),
-        "primary_condition":    state.get("primary_condition",    ""),
-        "plain_condition_name": state.get("plain_condition_name", ""),
-        "icd_code":             state.get("icd_code",             ""),
-        "confidence":           state.get("confidence",           ""),
-        "plain_reason":         state.get("plain_reason",         ""),
-        "alternate_conditions": state.get("alternate_conditions", []),
-    }
-
-    # ── Complete — briefing is ready ──────────────────────────────────────
-    if state.get("briefing"):
-        return {
-            "thread_id":      thread_id,
-            "status":         "complete",
-            "extraction":     extraction_block,
-            "normalization":  normalization_block,
-            "final_condition": state.get("final_condition", ""),
-            "briefing":       state.get("briefing"),
-        }
-
-    # ── Awaiting confirmation — graph paused at interrupt ─────────────────
-    return {
-        "thread_id":     thread_id,
-        "status":        "awaiting_confirmation",
-        "extraction":    extraction_block,
-        "normalization": normalization_block,
-    }
-
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# ENDPOINTS
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ══════════════════════════════════════
+# PIPELINE ENDPOINTS
+# ══════════════════════════════════════
 
 @app.post("/session/start")
-def start_session(body: StartRequest):
-    """
-    Start a new pipeline session.
-
-    Runs: guardrail → extraction → normalization → [interrupt]
-
-    Returns immediately with guardrail_message if guardrail blocks.
-    Otherwise returns extraction + normalization results and a thread_id
-    the frontend uses to resume after confirmation.
-    """
-    if not body.raw_input or not body.raw_input.strip():
-        raise HTTPException(status_code=400, detail="raw_input cannot be empty.")
+async def session_start(req: StartRequest):
+    if not req.raw_input.strip():
+        raise HTTPException(400, "Please share what's going on")
 
     thread_id = str(uuid.uuid4())
-    config    = _config(thread_id)
-
-    logger.info(f"Starting session {thread_id} | input_length={len(body.raw_input)}")
+    config = {"configurable": {"thread_id": thread_id}}
 
     initial_state = {
-        "raw_input":        body.raw_input.strip(),
-        "current_node":     "start",
-        "error":            None,
-        "thread_id":        thread_id,
-        # Pre-populate list fields so state is always valid
-        "symptoms":          [],
-        "duration":          [],
-        "severity":          [],
-        "medications":       [],
-        "body_parts":        [],
-        "emotional_context": [],
-        "term_mappings":     [],
-        "alternate_conditions": [],
+        "raw_input": req.raw_input,
+        "image_data": req.image_data,
+        "image_media_type": req.image_media_type or "image/jpeg",
+        "user_id": req.user_id,
     }
 
-    state = graph.invoke(initial_state, config=config)
-    return _shape_response(state, thread_id)
+    try:
+        result = graph.invoke(initial_state, config, interrupt_before=["confirmation"])
+
+        guardrail = result.get("guardrail_status", "pass")
+        if guardrail in ("emergency", "crisis", "off_topic", "invalid"):
+            return {
+                "status": guardrail,
+                "guardrail_message": result.get("guardrail_message", ""),
+            }
+        if result.get("error"):
+            return {"status": "error", "error": result["error"]}
+
+        response = {
+            "status": "awaiting_confirmation",
+            "thread_id": thread_id,
+            "extraction": result.get("extraction", {}),
+            "normalization": result.get("normalization", {}),
+        }
+
+        # Include image analysis if image was uploaded
+        if result.get("image_analysis"):
+            response["image_analysis"] = result["image_analysis"]
+
+        return response
+
+    except Exception as e:
+        logger.error(f"session_start error: {e}")
+        raise HTTPException(500, str(e))
 
 
 @app.post("/session/{thread_id}/confirm")
-def confirm_condition(thread_id: str, body: ConfirmRequest):
-    """
-    Resume a paused pipeline session after the patient confirms the condition.
+async def session_confirm(thread_id: str, req: ConfirmRequest):
+    config = {"configurable": {"thread_id": thread_id}}
 
-    Runs: confirmation_node → briefing_node → END
+    try:
+        state = graph.get_state(config)
+        if not state:
+            raise HTTPException(404, "Session not found")
 
-    The patient either confirmed the AI-identified condition (confirmed=True)
-    or provided their own correction (override="condition name").
+        updates = {"confirmed": req.confirmed}
+        if req.override:
+            updates["final_condition"] = req.override
+            updates["confirmed"] = True
 
-    Returns the full briefing on success.
-    """
-    config = _config(thread_id)
+        graph.update_state(config, updates, as_node="confirmation")
+        result = graph.invoke(None, config)
 
-    # Verify the session exists and is still paused
-    snapshot = graph.get_state(config)
-    if not snapshot or not snapshot.values:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Session '{thread_id}' not found or has already completed."
-        )
+        if result.get("error"):
+            return {"status": "error", "error": result["error"]}
 
-    logger.info(
-        f"Resuming session {thread_id} | "
-        f"confirmed={body.confirmed}, override='{body.override or ''}'"
-    )
+        briefing = result.get("briefing")
 
-    resume_payload = {
-        "confirmed": body.confirmed,
-        "override":  (body.override or "").strip(),
+        # ── Save to Supabase if user is logged in ──
+        if req.user_id and briefing:
+            norm = result.get("normalization", {})
+            await save_session(
+                user_id=req.user_id,
+                raw_input=result.get("raw_input", ""),
+                condition=norm.get("primary_condition", ""),
+                briefing=briefing,
+            )
+
+        return {"status": "complete", "briefing": briefing}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"session_confirm error: {e}")
+        raise HTTPException(500, str(e))
+
+
+# ══════════════════════════════════════
+# VISION ENDPOINT (standalone)
+# ══════════════════════════════════════
+
+@app.post("/analyze/image")
+async def analyze_image(req: StartRequest):
+    """Analyze a medical image without running the full pipeline."""
+    if not req.image_data:
+        raise HTTPException(400, "No image provided")
+
+    from .nodes.vision_node import vision_node
+    state = {
+        "raw_input": req.raw_input or "Please analyze this image",
+        "image_data": req.image_data,
+        "image_media_type": req.image_media_type or "image/jpeg",
     }
+    result = vision_node(state)
+    return {"status": "complete", "image_analysis": result.get("image_analysis")}
 
-    state = graph.invoke(Command(resume=resume_payload), config=config)
-    return _shape_response(state, thread_id)
 
+# ══════════════════════════════════════
+# USER DATA ENDPOINTS
+# ══════════════════════════════════════
+
+@app.get("/user/{user_id}/history")
+async def user_history(user_id: str):
+    history = await get_user_history(user_id)
+    return {"status": "ok", "history": history}
+
+@app.get("/user/{user_id}/symptoms")
+async def user_symptoms(user_id: str):
+    symptoms = await get_symptom_history(user_id)
+    return {"status": "ok", "symptoms": symptoms}
+
+@app.post("/user/symptoms/log")
+async def log_symptom_entry(req: SymptomLogRequest):
+    success = await log_symptom(req.user_id, req.symptom, req.severity, req.notes or "")
+    return {"status": "ok" if success else "error"}
+
+
+# ══════════════════════════════════════
+# SESSION STATE
+# ══════════════════════════════════════
 
 @app.get("/session/{thread_id}/state")
-def get_session_state(thread_id: str):
-    """
-    Debug endpoint. Returns the raw LangGraph state snapshot for a thread.
-    Use this during development to inspect what each node wrote to state.
-    """
-    config   = _config(thread_id)
-    snapshot = graph.get_state(config)
-
-    if not snapshot:
-        raise HTTPException(status_code=404, detail=f"Session '{thread_id}' not found.")
-
-    return {
-        "thread_id": thread_id,
-        "values":    snapshot.values,
-        "next":      list(snapshot.next),
-        "metadata":  snapshot.metadata,
-    }
-
-
-@app.get("/health")
-def health_check():
-    """Simple health check for load balancers and uptime monitors."""
-    return {"status": "ok", "service": "MedBrief API", "version": "1.0.0"}
+async def session_state(thread_id: str):
+    config = {"configurable": {"thread_id": thread_id}}
+    try:
+        state = graph.get_state(config)
+        return {"status": "ok", "state": state.values if state else {}}
+    except Exception as e:
+        raise HTTPException(500, str(e))
