@@ -1,4 +1,4 @@
-"""briefing_node.py — Node 5"""
+"""briefing_node.py — Node 5 — Final stable version"""
 import json, re, logging
 import anthropic
 from ..state import PatientState
@@ -13,102 +13,112 @@ except ImportError:
         def decorator(fn): return fn
         return decorator
 
-SYSTEM_PROMPT = """You are a warm, patient-friendly medical information specialist.
 
-Generate a complete health briefing as a SINGLE valid JSON object.
-
-ABSOLUTE JSON RULES — failure to follow these will break the system:
-- Return ONLY the JSON object. Zero text before or after it.
-- Use ONLY double quotes for ALL strings. Never use single quotes.
-- No apostrophes anywhere — write "does not" instead of "doesn't", "it is" instead of "it's"
-- No citation markers [1] [2] anywhere in any field
-- No markdown, no asterisks, no headers inside any field
-- No trailing commas after the last item in any array or object
-- Every string value must be on ONE line — no line breaks inside string values
-- Spell out ALL acronyms on first use
-
-JSON structure — every field is required:
-{
-  "condition_name": "Full clinical name",
-  "plain_name": "Everyday plain name",
-  "opening": "2-3 warm sentences. No apostrophes.",
-  "standard_of_care": {
-    "plain_summary": "2-3 sentences about treatment. No apostrophes.",
-    "treatments": [
-      {
-        "name": "Treatment name",
-        "phase": "First-line treatment",
-        "plain_description": "What this is and how it helps. No apostrophes.",
-        "what_this_means_for_you": "One personalizing sentence. No apostrophes."
-      }
-    ]
-  },
-  "emerging": [
-    {
-      "name": "Emerging treatment name",
-      "phase": "Phase 2 trial",
-      "plain_description": "What researchers are testing. No apostrophes."
-    }
-  ],
-  "holistic": {
-    "intro": "Brief intro to complementary approaches. No apostrophes.",
-    "options": [
-      {
-        "name": "Approach name",
-        "type": "Lifestyle",
-        "plain_description": "What it is and how it may help. No apostrophes.",
-        "note": "Any caution. No apostrophes."
-      }
-    ],
-    "reminder": "Always discuss with your doctor before starting anything new."
-  },
-  "companies": [
-    {
-      "name": "Organization name",
-      "type": "Research",
-      "focus": "What they do for this condition."
-    }
-  ],
-  "sources": [
-    {
-      "title": "Source title",
-      "url": "https://actual-url.org"
-    }
-  ],
-  "closing": "1-2 warm closing sentences. No apostrophes."
-}"""
+def clean_for_json(text: str) -> str:
+    """Remove characters that break JSON parsing."""
+    if not text:
+        return ""
+    # Replace curly apostrophes and quotes
+    text = text.replace('\u2018', '').replace('\u2019', '').replace('\u201c', '"').replace('\u201d', '"')
+    # Replace straight apostrophes in contractions
+    text = re.sub(r"(\w)'(\w)", r"\1\2", text)  # don't -> dont, it's -> its
+    # Remove remaining apostrophes
+    text = text.replace("'", "")
+    # Remove newlines and tabs inside what will be string values
+    text = text.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
+    # Collapse multiple spaces
+    text = re.sub(r' +', ' ', text).strip()
+    return text
 
 
-def repair_json(text: str) -> str:
-    """Aggressively repair common JSON issues from LLM output."""
-    # Remove code fences
+def safe_json_loads(text: str) -> dict:
+    """Try multiple strategies to parse JSON from LLM output."""
+    # Clean code fences
     text = text.replace("```json", "").replace("```", "").strip()
 
     # Extract JSON object
     s = text.find("{")
     e = text.rfind("}")
     if s == -1:
-        raise ValueError(f"No JSON object found. Preview: {text[:200]}")
-    text = text[s:e+1]
+        raise ValueError("No JSON object in response")
 
-    # Remove control characters (except \n \t which are valid in JSON)
-    text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
+    json_str = text[s:e+1]
 
-    # Fix trailing commas before } or ]
-    text = re.sub(r',\s*([}\]])', r'\1', text)
+    # Strategy 1: direct parse
+    try:
+        return json.loads(json_str)
+    except json.JSONDecodeError:
+        pass
 
-    # Fix unescaped newlines inside strings
-    # Find strings and replace literal newlines inside them
-    def fix_newlines_in_strings(m):
-        return m.group(0).replace('\n', ' ').replace('\r', ' ')
-    text = re.sub(r'"[^"\\]*(?:\\.[^"\\]*)*"', fix_newlines_in_strings, text, flags=re.DOTALL)
+    # Strategy 2: fix trailing commas
+    cleaned = re.sub(r',(\s*[}\]])', r'\1', json_str)
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        pass
 
-    # Fix single-quoted strings — convert to double-quoted
-    # Only do this if the text uses single quotes as string delimiters
-    if text.count('"') < text.count("'") // 2:
-        text = text.replace("'", '"')
+    # Strategy 3: remove all apostrophes and fix newlines in strings
+    def fix_string_values(m):
+        val = m.group(0)
+        val = re.sub(r"(?<=\w)'(?=\w)", '', val)  # contractions
+        val = val.replace("'", "")
+        val = val.replace('\n', ' ').replace('\r', ' ')
+        return val
 
-    return text
+    cleaned2 = re.sub(r'"[^"\\]*(?:\\.[^"\\]*)*"', fix_string_values, cleaned, flags=re.DOTALL)
+    try:
+        return json.loads(cleaned2)
+    except json.JSONDecodeError:
+        pass
+
+    # Strategy 4: remove ALL non-ASCII and control characters
+    cleaned3 = re.sub(r'[\x00-\x1f\x7f-\x9f]', ' ', cleaned2)
+    cleaned3 = re.sub(r',(\s*[}\]])', r'\1', cleaned3)
+    try:
+        return json.loads(cleaned3)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"All JSON repair strategies failed. Last error: {e}")
+
+
+SYSTEM_PROMPT = """You are a medical information specialist generating patient-friendly health briefings.
+
+CRITICAL: Return a single valid JSON object. Follow these rules exactly:
+- NO apostrophes anywhere. Write "does not" not "doesn't". Write "it is" not "it's".
+- NO line breaks inside string values. Each value must be on one continuous line.
+- NO citation markers like [1] or [2].
+- NO markdown inside values.
+- Use double quotes for all strings.
+- Include at least 2 items in every array.
+
+Return this exact structure:
+{
+  "condition_name": "clinical name here",
+  "plain_name": "everyday name here",
+  "opening": "warm 2-3 sentence opening without apostrophes",
+  "standard_of_care": {
+    "plain_summary": "how doctors treat this without apostrophes",
+    "treatments": [
+      {"name": "name", "phase": "First-line", "plain_description": "description without apostrophes", "what_this_means_for_you": "one sentence without apostrophes"}
+    ]
+  },
+  "emerging": [
+    {"name": "name", "phase": "phase", "plain_description": "description without apostrophes"}
+  ],
+  "holistic": {
+    "intro": "intro without apostrophes",
+    "options": [
+      {"name": "name", "type": "type", "plain_description": "description without apostrophes", "note": "note without apostrophes"}
+    ],
+    "reminder": "reminder without apostrophes"
+  },
+  "companies": [
+    {"name": "org name", "type": "type", "focus": "focus without apostrophes"}
+  ],
+  "sources": [
+    {"title": "title", "url": "https://url.org"}
+  ],
+  "closing": "warm closing without apostrophes"
+}"""
 
 
 @traceable(name="briefing_node", tags=["briefing", "pipeline"])
@@ -116,7 +126,6 @@ def briefing_node(state: PatientState) -> dict:
     if state.get("error"):
         return {"current_node": "briefing"}
 
-    # Condition from multiple fallbacks
     condition = (state.get("final_condition") or "").strip()
     if not condition:
         norm = state.get("normalization", {})
@@ -139,18 +148,19 @@ def briefing_node(state: PatientState) -> dict:
             messages=[{
                 "role": "user",
                 "content": (
-                    f"Generate a complete patient-friendly health briefing for: {condition}\n\n"
-                    f"Use web search. Prioritize NIH, Mayo Clinic, FDA, PubMed, OpenEvidence.\n"
-                    f"If multiple conditions are mentioned, cover their relationship.\n"
-                    f"Include at least 2-3 items in every array.\n\n"
-                    f"CRITICAL: Return ONLY valid JSON. "
-                    f"NO apostrophes in any text field — use full words instead. "
-                    f"NO citation markers. NO line breaks inside string values."
+                    f"Generate a complete patient briefing for: {condition}\n\n"
+                    f"Search for current information. Use NIH, Mayo Clinic, FDA, PubMed, OpenEvidence.\n"
+                    f"If multiple conditions mentioned, cover their relationship.\n\n"
+                    f"CRITICAL RULES:\n"
+                    f"1. NO apostrophes in any text. Use full words only.\n"
+                    f"2. NO line breaks inside string values.\n"
+                    f"3. NO citation markers.\n"
+                    f"4. At least 2 items in every array.\n"
+                    f"5. Return ONLY the JSON object."
                 )
             }]
         )
 
-        # Collect all text blocks
         texts = ""
         for block in response.content:
             if hasattr(block, "text") and block.text:
@@ -161,32 +171,12 @@ def briefing_node(state: PatientState) -> dict:
         texts = re.sub(r'</?cite[^>]*>', '', texts)
         texts = re.sub(r'\[\d+\]', '', texts)
 
-        # Try parsing with progressive repair
-        json_str = repair_json(texts)
-
-        try:
-            briefing = json.loads(json_str)
-        except json.JSONDecodeError as e1:
-            logger.warning(f"Parse attempt 1 failed: {e1}")
-            # More aggressive: escape problematic characters
-            # Find the position of the error and fix around it
-            err_pos = e1.pos if hasattr(e1, 'pos') else 0
-            logger.warning(f"Error near: {repr(json_str[max(0,err_pos-30):err_pos+30])}")
-
-            # Try replacing smart quotes
-            json_str2 = json_str.replace('\u2018', '').replace('\u2019', '').replace('\u201c', '"').replace('\u201d', '"')
-            # Remove any remaining problematic chars near the error
-            json_str2 = re.sub(r"(?<=: \")([^\"]*)'([^\"]*?)(?=\")", r'\1\2', json_str2)
-
-            try:
-                briefing = json.loads(json_str2)
-            except json.JSONDecodeError as e2:
-                logger.error(f"Parse attempt 2 failed: {e2}")
-                raise ValueError(f"JSON parsing failed: {e2}")
+        briefing = safe_json_loads(texts)
 
         logger.info(f"briefing_node complete: {condition}")
         return {"briefing": briefing, "current_node": "briefing", "error": None}
 
     except Exception as exc:
         logger.error(f"briefing_node error: {exc}")
-        return {"briefing": None, "current_node": "briefing", "error": f"Briefing failed: {exc}"}
+        return {"briefing": None, "current_node": "briefing",
+                "error": f"Briefing failed: {exc}"}
