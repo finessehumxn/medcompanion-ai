@@ -1760,6 +1760,72 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
 .snake-ctrl-btn:active { background:var(--lteal); border-color:var(--teal); }
 .snake-ctrl-spacer { width:44px; height:44px; }
 
+
+/* ── Red Flag Warning ── */
+.red-flag-box {
+  background: #FEF2F2;
+  border: 2px solid #FCA5A5;
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  margin-bottom: .85rem;
+  animation: riseUp .3s ease;
+}
+.red-flag-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #991B1B;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: .6rem;
+}
+.red-flag-item {
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+  padding: .5rem 0;
+  border-bottom: 1px solid #FECACA;
+  font-size: 13.5px;
+  color: #7F1D1D;
+  line-height: 1.5;
+}
+.red-flag-item:last-child { border-bottom: none; }
+.red-flag-symptom { font-weight: 600; color: #991B1B; }
+.red-flag-action {
+  display: inline-block;
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #FCA5A5;
+  color: #7F1D1D;
+}
+.urgency-bar {
+  border-radius: 10px;
+  padding: .75rem 1rem;
+  margin-bottom: .85rem;
+  font-size: 13.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.urgency-emergency { background: #FEF2F2; color: #991B1B; border: 1.5px solid #FCA5A5; }
+.urgency-today { background: #FFF7ED; color: #9A3412; border: 1.5px solid #FDBA74; }
+.urgency-soon { background: #FFFBEB; color: #92400E; border: 1.5px solid #FDE68A; }
+.urgency-monitor { background: #F0FDF4; color: #166534; border: 1.5px solid #86EFAC; }
+.confidence-note {
+  font-size: 12.5px;
+  color: var(--text-soft);
+  font-style: italic;
+  padding: .6rem .85rem;
+  background: var(--soft);
+  border-radius: 8px;
+  margin-top: .75rem;
+  line-height: 1.55;
+}
+
 /* ════════════════════════════════════════
    RESPONSIVE
 ════════════════════════════════════════ */
@@ -3050,7 +3116,31 @@ function renderNormalization(norm) {
       (m.simple_meaning ? '<div class="map-meaning">' + clean(m.simple_meaning) + '</div>' : '') +
       '</div></div>';
   }).join('');
-  var alts = (norm.alternate_conditions || []).slice(0,3).join(', ');
+  var alts = (norm.alternate_conditions || []).slice(0,5).join(', ');
+
+  // Build urgency bar
+  var urgency = norm.urgency || 'monitor';
+  var urgencyClass = urgency === 'emergency_now' ? 'urgency-emergency' :
+                     urgency === 'see_doctor_today' ? 'urgency-today' :
+                     urgency === 'see_doctor_soon' ? 'urgency-soon' : 'urgency-monitor';
+  var urgencyIcon = urgency === 'emergency_now' ? '🚨' :
+                    urgency === 'see_doctor_today' ? '⚠️' :
+                    urgency === 'see_doctor_soon' ? '📅' : '👁️';
+  var urgencyText = urgency === 'emergency_now' ? 'Seek emergency care now' :
+                    urgency === 'see_doctor_today' ? 'See a doctor today' :
+                    urgency === 'see_doctor_soon' ? 'See a doctor soon' : 'Monitor and follow up';
+  var urgencyHtml = norm.urgency_reason ?
+    '<div class="urgency-bar ' + urgencyClass + '">' + urgencyIcon + ' <strong>' + urgencyText + '</strong> — ' + clean(norm.urgency_reason) + '</div>' : '';
+
+  // Build red flag warnings
+  var redFlags = norm.red_flags || [];
+  var redFlagHtml = '';
+  if (redFlags.length > 0) {
+    var flagItems = redFlags.map(function(f) {
+      return '<div class="red-flag-item"><div><span class="red-flag-symptom">' + clean(f.symptom) + '</span> — ' + clean(f.concern) + '<br><span class="red-flag-action">' + clean(f.action) + '</span></div></div>';
+    }).join('');
+    redFlagHtml = '<div class="red-flag-box"><div class="red-flag-title">⚑ Important — these symptoms need evaluation regardless of the most likely cause</div>' + flagItems + '</div>';
+  }
   out('<div class="card">' +
     '<div class="card-header"><div class="card-icon ci-sage"><i class="ti ti-arrows-exchange"></i></div>' +
     '<div class="card-title">Let me make sure I\'ve got this right</div>' +
@@ -3061,7 +3151,8 @@ function renderNormalization(norm) {
       '<div class="confirm-eyebrow">Based on what you shared, this sounds like it could be:</div>' +
       '<div class="confirm-name">' + clean(norm.plain_condition_name || norm.primary_condition) + '</div>' +
       '<p class="confirm-reason">' + clean(norm.plain_reason) + '</p>' +
-      (alts ? '<p class="confirm-alts">Could also be related to: ' + clean(alts) + '</p>' : '') +
+      (alts ? '<p class="confirm-alts"><strong>Full differential — could also be:</strong> ' + clean(alts) + '</p>' : '') +
+      (norm.confidence_note ? '<p class="confidence-note">🔍 ' + clean(norm.confidence_note) + '</p>' : '') +
       '<p class="confirm-q">Does this feel close to what you\'ve been experiencing?</p>' +
       '<div class="btn-group">' +
         '<button class="btn-yes" id="btnYes" onclick="showApproach(true)"><i class="ti ti-thumb-up"></i> Yes, that sounds right</button>' +
