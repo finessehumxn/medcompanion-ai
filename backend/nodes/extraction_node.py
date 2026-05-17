@@ -1,6 +1,5 @@
 """extraction_node.py — Node 2"""
-import json
-import logging
+import json, logging
 import anthropic
 from ..state import PatientState
 
@@ -14,16 +13,24 @@ except ImportError:
         def decorator(fn): return fn
         return decorator
 
-SYSTEM = """Extract health entities from the patient message. Return ONLY valid JSON with no extra text:
+SYSTEM = """Extract health entities from the patient message. The message may be about the patient themselves OR about a family member or loved one.
+
+Return ONLY valid JSON with no extra text:
 {
-  "symptoms": ["list of symptoms the patient described"],
-  "body_parts": ["body areas they mentioned"],
-  "duration": ["any time expressions like 'for 3 days'"],
-  "severity": ["severity words like 'severe', 'mild', 'a lot of'"],
+  "symptoms": ["list of symptoms, conditions, or diagnoses mentioned"],
+  "body_parts": ["body areas mentioned"],
+  "duration": ["any time expressions"],
+  "severity": ["severity descriptors"],
   "medications": ["any medications mentioned"],
-  "emotional_context": ["emotional states like 'scared', 'worried', 'confused'"]
+  "emotional_context": ["emotional states like scared, worried, confused, terrified"],
+  "context_type": "self or caregiver or inquiry",
+  "conditions_mentioned": ["any specific medical conditions or diagnoses named"]
 }
-If a field has nothing, use an empty list []. Return ONLY the JSON object."""
+
+If the person is asking about a family member, still extract the conditions and emotional context.
+If a field has nothing, use an empty list [].
+Return ONLY the JSON object, nothing else."""
+
 
 @traceable(name="extraction_node", tags=["nlp"])
 def extraction_node(state: PatientState) -> dict:
@@ -32,7 +39,8 @@ def extraction_node(state: PatientState) -> dict:
     raw = state.get("raw_input", "")
     if not raw:
         return {"extraction": {}, "current_node": "extraction", "error": "No input"}
-    logger.info(f"extraction_node running for: {raw[:50]}")
+
+    logger.info(f"extraction_node: {raw[:60]}")
     try:
         resp = client.messages.create(
             model="claude-sonnet-4-6",
@@ -40,14 +48,18 @@ def extraction_node(state: PatientState) -> dict:
             system=SYSTEM,
             messages=[{"role": "user", "content": raw}]
         )
-        text = resp.content[0].text.strip()
-        text = text.replace("```json", "").replace("```", "").strip()
+        text = resp.content[0].text.strip().replace("```json","").replace("```","")
         start = text.find("{")
         end = text.rfind("}") + 1
         if start == -1:
-            raise ValueError(f"No JSON found in response: {text[:100]}")
+            raise ValueError(f"No JSON in response: {text[:100]}")
         extraction = json.loads(text[start:end])
-        logger.info(f"extraction_node done: {len(extraction.get('symptoms',[]))} symptoms")
+
+        # Merge conditions_mentioned into symptoms if symptoms is empty
+        if not extraction.get("symptoms") and extraction.get("conditions_mentioned"):
+            extraction["symptoms"] = extraction["conditions_mentioned"]
+
+        logger.info(f"extraction_node done: {len(extraction.get('symptoms',[]))} items")
         return {"extraction": extraction, "current_node": "extraction", "error": None}
     except Exception as e:
         logger.error(f"extraction_node error: {e}")
