@@ -3284,7 +3284,6 @@ async function confirmCondition(useAI) {
     if (data.status === 'error') throw new Error(data.error);
     clearInterval(_snakeLoop); _snakeRunning = false;
     window.lastBriefing = data.briefing;
-    window.lastBriefing = data.briefing;
     renderBriefing(data.briefing);
     var statusEl = document.querySelector('#briefingCard .card-status');
     if (statusEl) statusEl.innerHTML = '<span class="ok"><i class="ti ti-check"></i> All done</span>';
