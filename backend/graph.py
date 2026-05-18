@@ -1,46 +1,46 @@
-from dotenv import load_dotenv
+﻿from dotenv import load_dotenv
 load_dotenv()
 """
 graph.py
-─────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Assembles and compiles the complete MedBrief LangGraph StateGraph.
 
 Full pipeline with guardrail node:
 
   START
-    │
-    ▼
-  guardrail_node ────────────────────────────────────┐
-    │                                                 │
-    │ (pass)           (emergency)  ──► emergency_handler ──► END
-    │                  (crisis)     ──► crisis_handler    ──► END
-    │                  (off_topic)  ──► off_topic_handler ──► END
-    │                  (invalid)    ──► invalid_handler   ──► END
-    ▼
-  extraction_node ──── (error) ──► error_handler ──► END
-    │
-    ▼
-  normalization_node ── (error) ──► error_handler ──► END
-    │
-    │   ◄─── LangGraph interrupt_before=["confirmation"] ───►
-    │         State checkpointed to MemorySaver here.
-    │         Graph pauses. API returns to frontend.
-    │         Graph resumes after POST /session/{id}/confirm.
-    ▼
+    â”‚
+    â–¼
+  guardrail_node â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+    â”‚                                                 â”‚
+    â”‚ (pass)           (emergency)  â”€â”€â–º emergency_handler â”€â”€â–º END
+    â”‚                  (crisis)     â”€â”€â–º crisis_handler    â”€â”€â–º END
+    â”‚                  (off_topic)  â”€â”€â–º off_topic_handler â”€â”€â–º END
+    â”‚                  (invalid)    â”€â”€â–º invalid_handler   â”€â”€â–º END
+    â–¼
+  extraction_node â”€â”€â”€â”€ (error) â”€â”€â–º error_handler â”€â”€â–º END
+    â”‚
+    â–¼
+  normalization_node â”€â”€ (error) â”€â”€â–º error_handler â”€â”€â–º END
+    â”‚
+    â”‚   â—„â”€â”€â”€ LangGraph interrupt_before=["confirmation"] â”€â”€â”€â–º
+    â”‚         State checkpointed to MemorySaver here.
+    â”‚         Graph pauses. API returns to frontend.
+    â”‚         Graph resumes after POST /session/{id}/confirm.
+    â–¼
   confirmation_node   (human-in-the-loop via interrupt())
-    │
-    ▼
-  briefing_node ──── (error) ──► error_handler ──► END
-    │
-    ▼
+    â”‚
+    â–¼
+  briefing_node â”€â”€â”€â”€ (error) â”€â”€â–º error_handler â”€â”€â–º END
+    â”‚
+    â–¼
    END
 
 Key LangGraph concepts:
-  StateGraph       — typed state machine with merge-based updates
-  MemorySaver      — in-memory checkpoint store (swap for Redis in production)
-  interrupt_before — pauses graph before the named node, saves state
-  Command(resume)  — resumes a paused graph with user-provided data
-  conditional_edges — runtime routing based on state values
+  StateGraph       â€” typed state machine with merge-based updates
+  MemorySaver      â€” in-memory checkpoint store (swap for Redis in production)
+  interrupt_before â€” pauses graph before the named node, saves state
+  Command(resume)  â€” resumes a paused graph with user-provided data
+  conditional_edges â€” runtime routing based on state values
 """
 
 import logging
@@ -57,11 +57,11 @@ from .nodes.briefing_node      import briefing_node
 logger = logging.getLogger(__name__)
 
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 # TERMINAL HANDLER NODES
 # These nodes write a final message to state and route to END.
-# They do not call the LLM — they are purely structural.
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# They do not call the LLM â€” they are purely structural.
+# â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 def emergency_handler(state: PatientState) -> dict:
     """Patient described an active medical emergency. Directs to 911/ER."""
@@ -71,7 +71,7 @@ def emergency_handler(state: PatientState) -> dict:
         "guardrail_message": state.get("guardrail_message") or (
             "This sounds like it could be a medical emergency. "
             "Please call 911 or go to your nearest emergency room right away. "
-            "Don't wait — your safety comes first."
+            "Don't wait â€” your safety comes first."
         ),
     }
 
@@ -84,7 +84,7 @@ def crisis_handler(state: PatientState) -> dict:
         "guardrail_message": state.get("guardrail_message") or (
             "It sounds like you might be going through something really difficult right now. "
             "Please know that you matter and help is available. "
-            "Reach out to the 988 Suicide and Crisis Lifeline — "
+            "Reach out to the 988 Suicide and Crisis Lifeline â€” "
             "just call or text 988, any time of day or night. "
             "You don't have to face this alone."
         ),
@@ -98,7 +98,7 @@ def off_topic_handler(state: PatientState) -> dict:
         "current_node":      "off_topic_handler",
         "guardrail_message": state.get("guardrail_message") or (
             "I'm here specifically to help with health and medical questions. "
-            "Feel free to share anything you've been experiencing — symptoms, "
+            "Feel free to share anything you've been experiencing â€” symptoms, "
             "something a doctor told you, or even just a concern you have "
             "about how you're feeling."
         ),
@@ -113,7 +113,7 @@ def invalid_handler(state: PatientState) -> dict:
         "guardrail_message": state.get("guardrail_message") or (
             "Could you tell me a little more about what you've been experiencing? "
             "Even just a few words about how you're feeling or what your doctor said "
-            "is a great place to start — I'm here to help."
+            "is a great place to start â€” I'm here to help."
         ),
     }
 
@@ -126,10 +126,10 @@ def error_handler(state: PatientState) -> dict:
     }
 
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 # CONDITIONAL ROUTING FUNCTIONS
 # Return the name of the next node based on current state.
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 def route_after_guardrail(state: PatientState) -> str:
     """Fan-out from guardrail to appropriate handler or extraction."""
@@ -142,7 +142,7 @@ def route_after_guardrail(state: PatientState) -> str:
         "invalid":   "invalid_handler",
     }
     destination = route_map.get(status, "extraction")
-    logger.info(f"Guardrail routing: status='{status}' → '{destination}'")
+    logger.info(f"Guardrail routing: status='{status}' â†’ '{destination}'")
     return destination
 
 
@@ -170,9 +170,9 @@ def route_after_briefing(state: PatientState) -> str:
     return END
 
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 # GRAPH ASSEMBLY
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 def build_graph():
     """
@@ -183,10 +183,10 @@ def build_graph():
 
         config = {"configurable": {"thread_id": "some-uuid"}}
 
-        # First call — runs until interrupt (extraction + normalization done)
+        # First call â€” runs until interrupt (extraction + normalization done)
         state = graph.invoke({"raw_input": "..."}, config=config)
 
-        # Second call — resume after user confirmation
+        # Second call â€” resume after user confirmation
         from langgraph.types import Command
         state = graph.invoke(
             Command(resume={"confirmed": True, "override": ""}),
@@ -199,7 +199,7 @@ def build_graph():
     """
     builder = StateGraph(PatientState)
 
-    # ── Register all nodes ───────────────────────────────────────────────
+    # â”€â”€ Register all nodes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     builder.add_node("guardrail",         guardrail_node)
     builder.add_node("extraction",        extraction_node)
     builder.add_node("normalization",     normalization_node)
@@ -211,10 +211,10 @@ def build_graph():
     builder.add_node("invalid_handler",   invalid_handler)
     builder.add_node("error_handler",     error_handler)
 
-    # ── Entry point ──────────────────────────────────────────────────────
+    # â”€â”€ Entry point â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     builder.add_edge(START, "guardrail")
 
-    # ── Guardrail fan-out ────────────────────────────────────────────────
+    # â”€â”€ Guardrail fan-out â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     builder.add_conditional_edges(
         "guardrail",
         route_after_guardrail,
@@ -227,7 +227,7 @@ def build_graph():
         }
     )
 
-    # ── Main pipeline with error routing ────────────────────────────────
+    # â”€â”€ Main pipeline with error routing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     builder.add_conditional_edges(
         "extraction",
         route_after_extraction,
@@ -244,7 +244,7 @@ def build_graph():
         {END: END, "error_handler": "error_handler"}
     )
 
-    # ── Linear terminal edges ────────────────────────────────────────────
+    # â”€â”€ Linear terminal edges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     builder.add_edge("confirmation",      "briefing")
     builder.add_edge("emergency_handler", END)
     builder.add_edge("crisis_handler",    END)
@@ -252,7 +252,7 @@ def build_graph():
     builder.add_edge("invalid_handler",   END)
     builder.add_edge("error_handler",     END)
 
-    # ── Compile with MemorySaver for interrupt/resume support ────────────
+    # â”€â”€ Compile with MemorySaver for interrupt/resume support â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     memory = MemorySaver()
     compiled = builder.compile(
         checkpointer=memory,
@@ -263,5 +263,6 @@ def build_graph():
     return compiled
 
 
-# Module-level singleton — imported by server.py
+# Module-level singleton â€” imported by server.py
 graph = build_graph()
+

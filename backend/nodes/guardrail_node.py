@@ -1,10 +1,16 @@
-﻿"""guardrail_node.py — Node 1"""
+﻿"""guardrail_node.py � Node 1"""
 import json, logging
 import anthropic
 from ..state import PatientState
 
 logger = logging.getLogger(__name__)
-client = anthropic.Anthropic()
+client = None
+
+def get_client():
+    global client
+    if client is None:
+        client = anthropic.Anthropic()
+    return client
 
 try:
     from langsmith import traceable
@@ -28,8 +34,8 @@ def guardrail_node(state: PatientState) -> dict:
     if not raw:
         return {"guardrail_status": "invalid", "guardrail_message": "Please share what's on your mind.", "current_node": "guardrail"}
     try:
-        resp = client.messages.create(
-            model="claude-sonnet-4-6",
+        resp = get_client().messages.create(
+            model="claude-sonnet-4-5-20250929",
             max_tokens=200,
             system=SYSTEM,
             messages=[{"role": "user", "content": raw}]
@@ -39,3 +45,6 @@ def guardrail_node(state: PatientState) -> dict:
     except Exception as e:
         logger.error(f"guardrail_node error: {e}")
         return {"guardrail_status": "pass", "current_node": "guardrail", "error": None}
+
+
+

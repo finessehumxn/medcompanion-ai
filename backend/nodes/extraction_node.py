@@ -1,10 +1,16 @@
-"""extraction_node.py — Node 2"""
+﻿"""extraction_node.py — Node 2"""
 import json, logging
 import anthropic
 from ..state import PatientState
 
 logger = logging.getLogger(__name__)
-client = anthropic.Anthropic()
+client = None
+
+def get_client():
+    global client
+    if client is None:
+        client = anthropic.Anthropic()
+    return client
 
 try:
     from langsmith import traceable
@@ -39,8 +45,8 @@ def extraction_node(state: PatientState) -> dict:
 
     logger.info(f"extraction_node: {raw[:60]}")
     try:
-        resp = client.messages.create(
-            model="claude-sonnet-4-6",
+        resp = get_client().messages.create(
+            model="claude-sonnet-4-5-20250929",
             max_tokens=600,
             system=SYSTEM,
             messages=[{"role": "user", "content": raw}]
@@ -77,3 +83,6 @@ def extraction_node(state: PatientState) -> dict:
         logger.error(f"extraction_node error: {e}")
         # Return empty extraction instead of crashing - let pipeline continue
         return {"extraction": {}, "current_node": "extraction", "error": None}
+
+
+

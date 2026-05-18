@@ -1,4 +1,4 @@
-"""confirmation_node.py — Node 4 — Human-in-the-Loop"""
+﻿"""confirmation_node.py â€” Node 4 â€” Human-in-the-Loop"""
 import logging
 from langgraph.types import interrupt
 from ..state import PatientState
@@ -44,3 +44,4 @@ def confirmation_node(state: PatientState) -> dict:
         "current_node":    "confirmation",
         "error":           None,
     }
+

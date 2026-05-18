@@ -1,4 +1,4 @@
-"""server.py — MedCompanion AI v2"""
+﻿"""server.py â€” MedCompanion AI v2"""
 import os, logging, uuid
 from typing import Optional
 from dotenv import load_dotenv
@@ -207,3 +207,4 @@ async def session_state(thread_id: str):
         return {"status": "ok", "state": state.values if state else {}}
     except Exception as e:
         raise HTTPException(500, str(e))
+

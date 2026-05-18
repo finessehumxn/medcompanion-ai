@@ -1,4 +1,4 @@
-"""
+﻿"""
 vision_node.py — Optional Node
 LangSmith traced image analysis for lab results, prescriptions, rashes.
 Activated when the user uploads an image alongside their text input.
@@ -11,7 +11,13 @@ import anthropic
 from ..state import PatientState
 
 logger = logging.getLogger(__name__)
-client = anthropic.Anthropic()
+client = None
+
+def get_client():
+    global client
+    if client is None:
+        client = anthropic.Anthropic()
+    return client
 
 SYSTEM = """You are analyzing a medical image uploaded by a patient.
 The image could be: lab results, a prescription, a skin condition, a medication bottle, or other health-related content.
@@ -43,8 +49,8 @@ def vision_node(state: PatientState) -> dict:
     logger.info(f"vision_node analyzing {image_media_type} image")
 
     try:
-        resp = client.messages.create(
-            model="claude-sonnet-4-6",
+        resp = get_client().messages.create(
+            model="claude-sonnet-4-5-20250929",
             max_tokens=1000,
             system=SYSTEM,
             messages=[{
@@ -72,3 +78,6 @@ def vision_node(state: PatientState) -> dict:
     except Exception as e:
         logger.error(f"vision_node error: {e}")
         return {"image_analysis": None, "current_node": "vision", "error": f"Image analysis failed: {e}"}
+
+
+
