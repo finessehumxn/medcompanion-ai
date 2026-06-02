@@ -3114,13 +3114,13 @@ function renderExtraction(raw, ex) {
     return '<div class="entity-group"><div class="entity-label">' + label + '</div>' +
       '<div class="pill-row">' + items.map(function(i) { return '<span class="pill ' + cls + '">' + clean(i) + '</span>'; }).join('') + '</div></div>';
   };
-  var total = (ex.symptoms ? ex.symptoms.length : 0) + (ex.body_parts ? ex.body_parts.length : 0);
+  var total = (ex.symptoms ? ex.symptoms.length : 0) + (ex.body_parts ? ex.body_parts.length : 0) + (ex.emotional_context ? ex.emotional_context.length : 0) + (ex.conditions_mentioned ? ex.conditions_mentioned.length : 0) + (ex.medications ? ex.medications.length : 0);
   out('<div class="card">' +
     '<div class="card-header"><div class="card-icon ci-teal"><i class="ti ti-ear"></i></div>' +
     '<div class="card-title">Here\'s what I heard you say</div>' +
     '<div class="card-status ok"><i class="ti ti-check"></i> Got it</div></div>' +
     '<div class="raw-quote">"' + clean(raw.length > 240 ? raw.slice(0,240) + '…' : raw) + '"</div>' +
-    '<p class="heard-intro">I picked up on <strong>' + total + ' things</strong> you shared with me:</p>' +
+    '<p class="heard-intro">' + (total > 0 ? 'I picked up on <strong>' + total + ' things</strong> you shared with me:' : 'Here is what I understand from what you shared:') + '</p>' +
     group('What you described feeling', ex.symptoms, 'pill-teal') +
     group('Body areas you mentioned', ex.body_parts, 'pill-sage') +
     group("How long it\'s been going on", ex.duration, 'pill-slate') +
