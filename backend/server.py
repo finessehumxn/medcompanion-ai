@@ -36,6 +36,21 @@ graph = build_graph()
 frontend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frontend")
 app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
 
+@app.get("/")
+def root_redirect():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url='/app')
+
+@app.get("/")
+def root_redirect():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url='/app')
+
+@app.get("/")
+def root_redirect():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url='/app')
+
 @app.get("/app")
 async def serve_app():
     return FileResponse(os.path.join(frontend_dir, "index.html"))
