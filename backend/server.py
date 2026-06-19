@@ -45,6 +45,10 @@ def root_redirect():
 async def serve_app():
     return FileResponse(os.path.join(frontend_dir, "index.html"))
 
+@app.get("/privacy")
+async def serve_privacy():
+    return FileResponse(os.path.join(frontend_dir, "privacy.html"))
+
 @app.get("/health")
 async def health():
     return {"status": "ok", "version": "2.0.0", "langsmith": bool(os.getenv("LANGCHAIN_API_KEY")), "supabase": SUPABASE_ENABLED}

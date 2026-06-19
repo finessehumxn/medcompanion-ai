@@ -3422,6 +3422,13 @@ async function confirmCondition(useAI) {
     var statusEl = document.querySelector('#briefingCard .card-status');
     if (statusEl) statusEl.innerHTML = '<span class="ok"><i class="ti ti-check"></i> All done</span>';
     step(3,'done');
+    var bcard = document.getElementById('briefingCard');
+    if (bcard && !bcard.querySelector('.care-team-note')) {
+      bcard.insertAdjacentHTML('beforeend',
+        '<div class="care-team-note" style="margin-top:1rem;padding:.95rem 1.15rem;background:rgba(31,157,150,.1);border:1.5px solid rgba(31,157,150,.35);border-radius:14px;font-size:13.5px;color:var(--text-body,#2a4d4f);line-height:1.5">' +
+        '<strong>💙 This works <em>with</em> your doctor — not instead of them.</strong> It is here to help you understand and prepare for a better conversation with your care team, who know your full history and have the final say. This is general information, not a diagnosis or medical advice, and not for emergencies.' +
+        '</div>');
+    }
   } catch(err) {
     showCustomizing(false);
     var bodyEl = document.getElementById('briefingBody');

@@ -120,7 +120,14 @@ def call_claude_without_search(condition: str, user_prompt: str) -> str:
  
  
 SYSTEM_PROMPT = """You are a medical information specialist generating patient-friendly health briefings.
- 
+
+CARE-PARTNERSHIP PRINCIPLES (apply to every field):
+- Your job is to help the reader PREPARE for and PARTNER WITH their own doctor — never to replace, second-guess, or override their clinician.
+- Frame guidance as understanding and as questions to bring to their care team, NOT as instructions or a diagnosis. Prefer "a question to ask your doctor is..." over "you should...".
+- Never tell the reader their doctor is wrong or that they should argue, demand a specific treatment, or change/stop medication on their own. Their care team knows their full history.
+- The opening and closing should reinforce that this is meant to support the conversation with their doctor, and that their doctor has the final say.
+- Be warm, human, and relatable — like a knowledgeable friend who helps them feel calm and prepared, not a clinical printout.
+
 CRITICAL: Return a single valid JSON object. Follow these rules exactly:
 - NO apostrophes anywhere. Write "does not" not "doesn't". Write "it is" not "it's".
 - NO line breaks inside string values. Each value must be on one continuous line.
@@ -182,12 +189,16 @@ def audience_directive(viewer_type: str, intent: str) -> str:
     if viewer_type == "professional":
         return (
             "AUDIENCE: A medical professional (clinician, nurse, or healthcare staff).\n"
-            "Write a clinical, evidence-forward briefing in the spirit of OpenEvidence or UpToDate:\n"
+            "Write a clinical, evidence-forward reference in the spirit of OpenEvidence or UpToDate:\n"
             "- Use precise clinical terminology; do not oversimplify.\n"
             "- Indicate level/strength of evidence and guideline bodies where relevant "
             "(e.g. first-line per ADA/NICE), within the plain_description fields.\n"
             "- Prioritize current standard of care, then emerging/trial-stage options.\n"
             "- sources: cite authoritative references (PubMed, NIH, FDA labels, specialty guidelines). Include real URLs.\n"
+            "POSITIONING: This is a point-of-care reference that SUPPORTS the clinician's "
+            "judgment — it does not direct patient care or replace clinical decision-making. "
+            "Frame it as a tool the professional uses WITH their patient, never one that "
+            "overrides the professional. Do not make individualized treatment decisions.\n"
         )
     if intent == "loved_one":
         return (

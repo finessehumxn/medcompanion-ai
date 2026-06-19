@@ -1,0 +1,79 @@
+name: Android Release (AAB)
+
+# Builds a signed Google Play AAB for MedCompanion AI.
+# MedCompanion's repo is a Python + static-frontend project (deployed on Railway),
+# so there is no committed package.json — this workflow reconstructs the Capacitor 8
+# tooling at build time, syncs the existing android/ project, and produces a signed bundle.
+#
+# Required GitHub repo secrets (Settings → Secrets and variables → Actions):
+#   ANDROID_KEYSTORE_BASE64    base64 of your upload keystore (.jks)
+#   ANDROID_KEYSTORE_PASSWORD  keystore password
+#   ANDROID_KEY_ALIAS          key alias
+#   ANDROID_KEY_PASSWORD       key password
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Reconstruct Capacitor tooling
+        run: |
+          cat > package.json <<'EOF'
+          {
+            "name": "medcompanion-ai",
+            "version": "1.0.0",
+            "private": true,
+            "devDependencies": { "@capacitor/cli": "^8.4.0" },
+            "dependencies": {
+              "@capacitor/core": "^8.4.0",
+              "@capacitor/android": "^8.4.0"
+            }
+          }
+          EOF
+          npm install
+
+      - name: Capacitor sync (Android)
+        run: npx cap sync android
+
+      - name: Decode signing keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/medcompanion-release.jks
+
+      - name: Write keystore.properties
+        run: |
+          cat > android/keystore.properties <<EOF
+          storeFile=../medcompanion-release.jks
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+
+      - name: Build signed release bundle
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease --no-daemon
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: medcompanion-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
