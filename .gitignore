@@ -6,3 +6,7 @@ __pycache__/
 .env
 
 .env
+
+# local marketing assets (kept in Downloads, not the repo)
+appstore-feature.png
+*-*-*-*-*.png
