@@ -41,16 +41,6 @@ def root_redirect():
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url='/app')
 
-@app.get("/")
-def root_redirect():
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url='/app')
-
-@app.get("/")
-def root_redirect():
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url='/app')
-
 @app.get("/app")
 async def serve_app():
     return FileResponse(os.path.join(frontend_dir, "index.html"))
@@ -64,6 +54,8 @@ class StartRequest(BaseModel):
     image_data: Optional[str] = None
     image_media_type: Optional[str] = None
     user_id: Optional[str] = None
+    viewer_type: Optional[str] = "everyday"   # "everyday" | "professional"
+    intent: Optional[str] = None              # "self" | "loved_one" | "medication"
 
 class ConfirmRequest(BaseModel):
     confirmed: bool
@@ -112,7 +104,9 @@ async def session_start(req: StartRequest):
         "raw_input": req.raw_input,
         "image_data": req.image_data,
         "image_media_type": req.image_media_type or "image/jpeg",
-        "user_id": req.user_id
+        "user_id": req.user_id,
+        "viewer_type": req.viewer_type or "everyday",
+        "intent": req.intent,
     }
     try:
         result = graph.invoke(initial_state, config, interrupt_before=["confirmation"])

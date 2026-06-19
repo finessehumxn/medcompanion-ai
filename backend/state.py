@@ -7,6 +7,11 @@ class PatientState(TypedDict, total=False):
     image_data: Optional[str]
     image_media_type: Optional[str]
     user_id: Optional[str]
+    # Who is asking + what they came for — drives how the briefing is written.
+    # viewer_type: "everyday" | "professional"
+    # intent:      "self" | "loved_one" | "medication" | None
+    viewer_type: Optional[str]
+    intent: Optional[str]
 
     # ── GUARDRAIL NODE OUTPUT ──────────────────────────────────────────────
     guardrail_status: str

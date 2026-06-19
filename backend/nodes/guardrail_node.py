@@ -33,12 +33,24 @@ def guardrail_node(state: PatientState) -> dict:
     raw = state.get("raw_input", "").strip()
     if not raw:
         return {"guardrail_status": "invalid", "guardrail_message": "Please share what's on your mind.", "current_node": "guardrail"}
+    # Medication-interaction mode: a bare list of meds/foods is a valid health
+    # question here, so tell the classifier not to treat it as "too vague".
+    system = SYSTEM
+    user_content = raw
+    if (state.get("intent") or "").lower() == "medication":
+        system = SYSTEM + (
+            "\n\nCONTEXT: The user is using a medication-interaction checker. "
+            "A list of medications, foods, or drinks (even without a full sentence) "
+            "is a valid health question — classify it as 'pass' unless it is an "
+            "emergency, crisis, gibberish, or clearly unrelated to health."
+        )
+        user_content = f"Medication/interaction check: {raw}"
     try:
         resp = get_client().messages.create(
-            model="claude-sonnet-4-5-20250929",
+            model="claude-sonnet-4-6",
             max_tokens=200,
-            system=SYSTEM,
-            messages=[{"role": "user", "content": raw}]
+            system=system,
+            messages=[{"role": "user", "content": user_content}]
         )
         result = json.loads(resp.content[0].text.strip())
         return {"guardrail_status": result.get("status", "pass"), "guardrail_message": result.get("message", ""), "current_node": "guardrail", "error": None}

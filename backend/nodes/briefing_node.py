@@ -98,7 +98,7 @@ def extract_text_from_response(response) -> str:
 def call_claude_with_search(condition: str, user_prompt: str) -> str:
     """Call Claude with web search enabled. Returns extracted text."""
     response = get_client().messages.create(
-        model="claude-sonnet-4-5-20250929",
+        model="claude-sonnet-4-6",
         max_tokens=4000,
         system=SYSTEM_PROMPT,
         tools=[{"type": "web_search_20250305", "name": "web_search"}],
@@ -111,7 +111,7 @@ def call_claude_without_search(condition: str, user_prompt: str) -> str:
     """Fallback: Call Claude without web search (uses training knowledge)."""
     logger.info("Falling back to no-search briefing generation")
     response = get_client().messages.create(
-        model="claude-sonnet-4-5-20250929",
+        model="claude-sonnet-4-6",
         max_tokens=4000,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_prompt}]
@@ -158,8 +158,50 @@ Return this exact structure:
   ],
   "closing": "warm closing without apostrophes"
 }"""
- 
- 
+
+
+def audience_directive(viewer_type: str, intent: str) -> str:
+    """Tailor tone + focus of the briefing to who is asking and why.
+    The JSON structure stays identical so the frontend renders consistently —
+    only voice, depth, and emphasis change."""
+    viewer_type = (viewer_type or "everyday").lower()
+    intent = (intent or "").lower()
+
+    if intent == "medication":
+        return (
+            "AUDIENCE: Someone checking medication safety and interactions.\n"
+            "FOCUS THE BRIEFING ON INTERACTIONS, not on treating a disease:\n"
+            "- opening: summarize the most important interaction warnings up front.\n"
+            "- standard_of_care.treatments: list specific interactions to watch. For each, "
+            "name = the interaction (e.g. drug with grapefruit), phase = severity "
+            "(Avoid / Caution / Usually safe), plain_description = what happens and why, "
+            "what_this_means_for_you = the concrete action to take.\n"
+            "- holistic: foods, drinks, and timing tips (what to separate, what to take with food).\n"
+            "- Always remind the reader to confirm with a pharmacist or prescriber before changing anything.\n"
+        )
+    if viewer_type == "professional":
+        return (
+            "AUDIENCE: A medical professional (clinician, nurse, or healthcare staff).\n"
+            "Write a clinical, evidence-forward briefing in the spirit of OpenEvidence or UpToDate:\n"
+            "- Use precise clinical terminology; do not oversimplify.\n"
+            "- Indicate level/strength of evidence and guideline bodies where relevant "
+            "(e.g. first-line per ADA/NICE), within the plain_description fields.\n"
+            "- Prioritize current standard of care, then emerging/trial-stage options.\n"
+            "- sources: cite authoritative references (PubMed, NIH, FDA labels, specialty guidelines). Include real URLs.\n"
+        )
+    if intent == "loved_one":
+        return (
+            "AUDIENCE: Someone trying to understand and support a loved one.\n"
+            "Write warmly and in plain language. Frame guidance around how to help, what to "
+            "expect, and what questions to ask the care team. Avoid alarming language.\n"
+        )
+    return (
+        "AUDIENCE: An everyday person trying to understand their own health.\n"
+        "Write warmly and in plain language, like a knowledgeable friend. Explain every term. "
+        "Help them feel prepared and less alone, and ready to talk with their doctor.\n"
+    )
+
+
 @traceable(name="briefing_node", tags=["briefing", "pipeline"])
 def briefing_node(state: PatientState) -> dict:
     if state.get("error"):
@@ -176,10 +218,13 @@ def briefing_node(state: PatientState) -> dict:
         return {"briefing": None, "current_node": "briefing",
                 "error": "No condition name available."}
  
-    logger.info(f"briefing_node: generating briefing for '{condition}'")
- 
+    directive = audience_directive(state.get("viewer_type"), state.get("intent"))
+    logger.info(f"briefing_node: generating briefing for '{condition}' "
+                f"(viewer={state.get('viewer_type')}, intent={state.get('intent')})")
+
     user_prompt = (
         f"Generate a complete patient briefing for: {condition}\n\n"
+        f"{directive}\n"
         f"Search for current information. Use NIH, Mayo Clinic, FDA, PubMed, OpenEvidence.\n"
         f"If multiple conditions mentioned, cover their relationship.\n\n"
         f"CRITICAL RULES:\n"
