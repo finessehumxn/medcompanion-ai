@@ -61,6 +61,10 @@ async def serve_privacy():
 async def serve_doctor():
     return FileResponse(os.path.join(frontend_dir, "doctor.html"))
 
+@app.get("/about")
+async def serve_about():
+    return FileResponse(os.path.join(frontend_dir, "about.html"))
+
 # ── PWA: serve manifest, service worker, and icons from root so install works ──
 @app.get("/manifest.json")
 async def serve_manifest():

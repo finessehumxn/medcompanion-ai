@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Our Medical Standards — MedCompanion AI</title>
+<meta name="description" content="How MedCompanion AI keeps health information trustworthy: a Medical Advisory Board of licensed physicians, source-grounded answers, safety guardrails, and privacy by design." />
+<link rel="icon" type="image/png" href="/icon-192.png" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--em:#0B3D2E;--em2:#0A2A20;--ink:#08231b;--gold:#C9A24B;--gold2:#E7C877;--cream:#F5EFE0;--tx:#EAF3EE;--t2:#9FBFB4;--card:#103b3e;--bd:#1f5a5c}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;background:var(--ink);color:var(--tx);line-height:1.65}
+  .wrap{max-width:920px;margin:0 auto;padding:0 22px}
+  h1,h2,h3{font-family:Fraunces,Georgia,serif;font-weight:600;line-height:1.12}
+  a{color:var(--gold2);text-decoration:none}
+  .hero{background:radial-gradient(900px 520px at 80% -10%,rgba(201,162,75,.18),transparent 60%),linear-gradient(165deg,var(--em),var(--em2) 70%,var(--ink));padding:60px 0 50px;border-bottom:1px solid rgba(201,162,75,.2)}
+  .eyebrow{text-transform:uppercase;letter-spacing:.24em;font-size:11px;font-weight:600;color:var(--gold)}
+  .hero h1{font-size:clamp(2.3rem,6vw,3.6rem);color:var(--cream);margin:.5rem 0}
+  .hero h1 em{color:var(--gold);font-style:italic}
+  .lead{font-size:18px;color:var(--t2);max-width:640px;margin-top:.5rem}
+  .badges{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.4rem}
+  .badge{background:rgba(201,162,75,.12);border:1px solid rgba(201,162,75,.35);color:var(--gold2);font-size:13px;font-weight:700;padding:.45rem .9rem;border-radius:100px}
+  section{padding:44px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+  h2{font-size:26px;color:var(--cream);margin-bottom:.5rem}
+  .muted{color:var(--t2)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1.3rem}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:1.2rem 1.3rem}
+  .card h3{font-size:18px;color:var(--gold2);margin-bottom:.3rem}
+  .card p{font-size:14.5px;color:var(--t2)}
+  .board{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.3rem}
+  @media(max-width:640px){.board{grid-template-columns:1fr}}
+  .doc{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:1.2rem;text-align:center}
+  .doc .av{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));margin:0 auto .6rem;display:flex;align-items:center;justify-content:center;font-family:Fraunces,serif;font-weight:700;color:var(--em);font-size:24px}
+  .doc .nm{font-weight:700;color:var(--cream);font-size:15.5px}
+  .doc .sp{font-size:13px;color:var(--gold2);margin-top:2px}
+  .doc .bio{font-size:12.5px;color:var(--t2);margin-top:.4rem;line-height:1.5}
+  ul.clean{margin:.8rem 0 0 1.1rem}
+  ul.clean li{margin:.4rem 0;color:var(--t2);font-size:14.5px}
+  .disc{background:rgba(255,255,255,.04);border:1px solid var(--bd);border-radius:14px;padding:1.1rem 1.3rem;margin-top:1.2rem;font-size:13.5px;color:var(--t2);line-height:1.6}
+  .cta{display:inline-block;margin-top:1.4rem;background:var(--gold);color:var(--ink);font-weight:800;padding:.8rem 1.4rem;border-radius:12px}
+  footer{padding:38px 0;text-align:center;color:var(--t2);font-size:13px}
+  footer .mc{font-family:Fraunces,serif;color:var(--cream);font-size:16px;margin-bottom:.3rem}
+</style>
+</head>
+<body>
+
+<div class="hero"><div class="wrap">
+  <div class="eyebrow">Trust &amp; Clinical Standards</div>
+  <h1>Built on real <em>clinical standards</em></h1>
+  <p class="lead">MedCompanion AI is guided by licensed physicians, grounded in sources you can check, and designed to work alongside your doctor — never to replace them.</p>
+  <div class="badges">
+    <span class="badge">✓ Clinically reviewed</span>
+    <span class="badge">✓ Physician-advised</span>
+    <span class="badge">✓ Sources you can check</span>
+    <span class="badge">✓ Private by design</span>
+  </div>
+</div></div>
+
+<section><div class="wrap">
+  <h2>Our Medical Advisory Board</h2>
+  <p class="muted">Licensed clinicians guide our standards, review how we explain things, and help keep patients safe. Members can co-sign briefings, which appear with a "Reviewed by a licensed physician" note.</p>
+  <!-- TODO: replace the placeholders below with real, consented board members before promoting widely. -->
+  <div class="board">
+    <div class="doc"><div class="av">MD</div><div class="nm">[Dr. Name], MD</div><div class="sp">[Primary Care / Internal Medicine]</div><div class="bio">[Short bio — years in practice, focus.]</div></div>
+    <div class="doc"><div class="av">MD</div><div class="nm">[Dr. Name], MD</div><div class="sp">[Specialty]</div><div class="bio">[Short bio.]</div></div>
+    <div class="doc"><div class="av">Rx</div><div class="nm">[Name], PharmD</div><div class="sp">[Pharmacist — medications &amp; interactions]</div><div class="bio">[Short bio.]</div></div>
+  </div>
+  <p class="muted" style="font-size:12.5px;margin-top:1rem">Our board is growing. Are you a licensed clinician who wants to help make health understandable for everyone? <a href="mailto:contact@millennialscreatives.com">Join our board →</a></p>
+</div></div></section>
+
+<section><div class="wrap">
+  <h2>How we keep it trustworthy</h2>
+  <div class="grid">
+    <div class="card"><h3>Grounded in real sources</h3><p>Briefings are generated with current information from reputable sources such as the NIH, Mayo Clinic, FDA, and PubMed — and we show you the sources.</p></div>
+    <div class="card"><h3>Plain language, on purpose</h3><p>We translate medical jargon into words a real person understands, then prepare you to talk with your own doctor.</p></div>
+    <div class="card"><h3>A human in the loop</h3><p>You confirm what we look up before we generate a briefing — you are always in control.</p></div>
+    <div class="card"><h3>Physician review</h3><p>You can ask a licensed physician on our board to review a briefing and co-sign it.</p></div>
+  </div>
+</div></div></section>
+
+<section><div class="wrap">
+  <h2>Safety first</h2>
+  <ul class="clean">
+    <li>A safety check screens every message; potential emergencies are directed to call 911 and mental-health crises to 988 before anything else.</li>
+    <li>We highlight red-flag symptoms that mean "seek care now," and an ER-or-not check that errs toward caution.</li>
+    <li>We never tell you to argue with your doctor, change your medication on your own, or treat our information as a diagnosis.</li>
+  </ul>
+</div></div></section>
+
+<section><div class="wrap">
+  <h2>Private by design</h2>
+  <ul class="clean">
+    <li>We never sell your information, and we never use your health questions for advertising.</li>
+    <li>You can use the app without an account; if you create one, you can export or delete your data anytime.</li>
+    <li>Read the full <a href="/privacy">Privacy Policy</a>.</li>
+  </ul>
+</div></div></section>
+
+<section><div class="wrap">
+  <h2>What we are — and what we are not</h2>
+  <div class="disc">
+    <strong>MedCompanion AI provides general health information for educational purposes.</strong> It is <strong>not a medical device, not a diagnosis, and not a substitute for professional medical advice</strong>, and it does not handle emergencies — if you may be experiencing one, call your local emergency number (911 in the US). Physician review confirms that information is accurate and clearly explained; it does not create a doctor-patient relationship between you and a reviewer. Your own clinician knows your full history and has the final say.
+  </div>
+  <a class="cta" href="/app">← Back to MedCompanion AI</a>
+</div></div></section>
+
+<footer>
+  <div class="mc">Millennials Creatives LLC</div>
+  <div>MedCompanion AI is a product of Millennials Creatives LLC.</div>
+</footer>
+
+</body>
+</html>
