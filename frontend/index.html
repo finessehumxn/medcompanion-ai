@@ -3431,12 +3431,75 @@ function pollReview(id, tries) {
   }, 20000);
 }
 
+/* ══ Health Memory: your private, on-device health story + new-patient one-pager ══ */
+function loadLocalHistory() { try { return JSON.parse(localStorage.getItem('mc_history') || '[]'); } catch(e) { return []; } }
+function saveToHistory(b, raw) {
+  if (!b) return;
+  try {
+    var hist = loadLocalHistory();
+    hist.unshift({ date: new Date().toLocaleDateString(), topic: (b.condition_name || b.plain_name || raw || 'Health question'), summary: (b.opening || ''), questions: (b.doctor_questions || []) });
+    localStorage.setItem('mc_history', JSON.stringify(hist.slice(0, 50)));
+  } catch(e) {}
+}
+function createHealthHubLauncher() {
+  if (document.getElementById('hhLaunch')) return;
+  ensureVcStyles();
+  var b = document.createElement('button'); b.id = 'hhLaunch'; b.className = 'vc-launch';
+  b.style.bottom = '72px'; b.style.background = 'linear-gradient(135deg,#D4B26A,#b8954f)'; b.style.color = '#0A1F1A';
+  b.innerHTML = '<i class="ti ti-heart"></i> My Health';
+  b.setAttribute('aria-label', 'Open My Health');
+  b.onclick = openHealthHub; document.body.appendChild(b);
+}
+function openHealthHub() {
+  ensureVcStyles();
+  var ov = document.getElementById('hhOverlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'hhOverlay'; ov.className = 'vc-overlay'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-label','My Health'); ov.addEventListener('click', function(e){ if (e.target === this) closeHealthHub(); }); document.body.appendChild(ov); }
+  var hist = loadLocalHistory();
+  var items = hist.length ? hist.map(function(h){
+    return '<div style="background:#16323a;border:1px solid #1f5a5c;border-radius:12px;padding:.85rem 1rem;margin-bottom:.6rem">'
+      + '<div style="font-size:11px;color:#9fbfbb">' + clean(h.date) + '</div>'
+      + '<div style="font-size:15px;font-weight:700;color:#eafaf8;margin:.15rem 0">' + clean(h.topic) + '</div>'
+      + '<div style="font-size:12.5px;color:#9fbfbb;line-height:1.5">' + clean((h.summary || '').slice(0, 150)) + '</div></div>';
+  }).join('') : '<div class="vc-empty">Your briefings are saved here privately, on your device only.<br><br>Run your first one to start your health story — then build a one-pager any new doctor will thank you for.</div>';
+  var install = window._deferredInstall ? '<button id="hhInstall" onclick="promptInstall()" style="display:flex;align-items:center;justify-content:center;gap:.4rem;margin:.6rem 1rem 0;padding:.7rem;background:#1f9d96;border:none;color:#fff;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit"><i class="ti ti-download"></i> Install MedCompanion on this device</button>' : '';
+  ov.innerHTML = '<div class="vc-modal"><div class="vc-head"><div class="vc-title"><i class="ti ti-heart"></i> My Health</div><div class="vc-sub">Private to this device. Build a one-pager for any new doctor.</div><button class="vc-close" onclick="closeHealthHub()" aria-label="Close">×</button></div>'
+    + '<div class="vc-log">' + items + '</div>'
+    + (hist.length ? '<button class="vc-save" onclick="buildOnePager()"><i class="ti ti-file-text"></i> Create New-Patient One-Pager</button>' : '')
+    + install + '</div>';
+  ov.classList.add('show');
+}
+function closeHealthHub() { var ov = document.getElementById('hhOverlay'); if (ov) ov.classList.remove('show'); }
+function buildOnePager() {
+  var hist = loadLocalHistory(); if (!hist.length) return;
+  var lines = ['NEW-PATIENT ONE-PAGER — ' + new Date().toLocaleDateString() + ' (prepared with MedCompanion AI)', '', 'Recent health topics I have been looking into:'];
+  hist.slice(0, 8).forEach(function(h){ lines.push('- ' + h.date + ': ' + h.topic); });
+  var qs = []; hist.slice(0, 6).forEach(function(h){ (h.questions || []).forEach(function(q){ if (qs.indexOf(q) < 0 && qs.length < 8) qs.push(q); }); });
+  lines.push('', 'Questions I want to ask my new doctor:');
+  (qs.length ? qs : ['What should we focus on first given my history?']).forEach(function(q,i){ lines.push((i+1) + '. ' + q); });
+  lines.push('', 'Note for my doctor: prepared with an AI tool to help me share my history in plain language. Not a diagnosis or medical advice. You know my full history and have the final say.');
+  var text = lines.join('\n');
+  if (navigator.share) { navigator.share({ title: 'New-Patient One-Pager', text: text }).catch(function(){}); }
+  else if (navigator.clipboard) { navigator.clipboard.writeText(text); var b = document.querySelector('#hhOverlay .vc-save'); if (b) b.innerHTML = '<i class="ti ti-check"></i> Copied — paste it anywhere'; }
+}
+
+/* ══ PWA: installable + works offline ══ */
+window._deferredInstall = null;
+window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); window._deferredInstall = e; });
+function promptInstall() {
+  if (!window._deferredInstall) return;
+  window._deferredInstall.prompt();
+  window._deferredInstall.userChoice.finally(function(){ window._deferredInstall = null; var ib = document.getElementById('hhInstall'); if (ib) ib.style.display = 'none'; });
+}
+function registerSW() { if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/sw.js'); } catch(e) {} } }
+
 /* ── Event listeners ── */
 document.addEventListener('DOMContentLoaded', function() {
   var textarea = document.getElementById('patientInput');
   var goBtn = document.getElementById('goBtn');
   maybeShowRoleModal();
   createVcLauncher();
+  createHealthHubLauncher();
+  registerSW();
   var roleLbl = document.querySelector('.user-type-label');
   if (roleLbl) { roleLbl.style.cursor = 'pointer'; roleLbl.title = 'Change who I am helping'; roleLbl.addEventListener('click', openRoleModal); }
   var roleOv = document.getElementById('roleModal');
@@ -3732,6 +3795,7 @@ async function confirmCondition(useAI) {
     showCustomizing(false);
     window.lastBriefing = data.briefing;
     renderBriefing(data.briefing);
+    saveToHistory(data.briefing, window.lastRawInput || '');
     var statusEl = document.querySelector('#briefingCard .card-status');
     if (statusEl) statusEl.innerHTML = '<span class="ok"><i class="ti ti-check"></i> All done</span>';
     step(3,'done');

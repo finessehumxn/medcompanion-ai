@@ -59,6 +59,24 @@ async def serve_privacy():
 async def serve_doctor():
     return FileResponse(os.path.join(frontend_dir, "doctor.html"))
 
+# ── PWA: serve manifest, service worker, and icons from root so install works ──
+@app.get("/manifest.json")
+async def serve_manifest():
+    return FileResponse(os.path.join(frontend_dir, "manifest.json"), media_type="application/manifest+json")
+
+@app.get("/sw.js")
+async def serve_sw():
+    # Served from root so its scope can control /app
+    return FileResponse(os.path.join(frontend_dir, "sw.js"), media_type="application/javascript")
+
+@app.get("/icon-192.png")
+async def serve_icon_192():
+    return FileResponse(os.path.join(frontend_dir, "icon-192.png"), media_type="image/png")
+
+@app.get("/icon-512.png")
+async def serve_icon_512():
+    return FileResponse(os.path.join(frontend_dir, "icon-512.png"), media_type="image/png")
+
 @app.get("/health")
 async def health():
     return {"status": "ok", "version": "2.0.0", "langsmith": bool(os.getenv("LANGCHAIN_API_KEY")), "supabase": SUPABASE_ENABLED}
