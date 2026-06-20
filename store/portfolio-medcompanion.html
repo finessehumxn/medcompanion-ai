@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MedCompanion AI — Case Study | Portfolio</title>
+<meta name="description" content="MedCompanion AI — a safety-first AI health companion that prepares patients and partners with their doctor. Built with LangGraph, Claude, FastAPI, and Supabase." />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--em:#0B3D2E;--em2:#0A2A20;--ink:#08231b;--gold:#C9A24B;--gold2:#E7C877;--cream:#F5EFE0;--mist:#C9D6CC;--tx:#EAF3EE;--t2:#9FBFB4}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;background:var(--ink);color:var(--tx);line-height:1.6}
+  .wrap{max-width:980px;margin:0 auto;padding:0 22px}
+  h1,h2,h3{font-family:Fraunces,Georgia,serif;font-weight:600;line-height:1.1}
+  a{color:var(--gold2);text-decoration:none}
+  /* HERO */
+  .hero{background:radial-gradient(900px 520px at 80% -10%,rgba(201,162,75,.18),transparent 60%),linear-gradient(165deg,var(--em),var(--em2) 70%,var(--ink));padding:64px 0 56px;border-bottom:1px solid rgba(201,162,75,.2)}
+  .eyebrow{text-transform:uppercase;letter-spacing:.24em;font-size:11px;font-weight:600;color:var(--gold)}
+  .hero h1{font-size:clamp(2.6rem,7vw,4.4rem);color:var(--cream);margin:.5rem 0}
+  .hero h1 em{color:var(--gold);font-style:italic}
+  .lead{font-size:18px;color:var(--t2);max-width:680px;margin-top:.6rem}
+  .cta{display:inline-flex;gap:.5rem;align-items:center;margin-top:1.6rem;background:var(--gold);color:var(--ink);font-weight:800;padding:.8rem 1.4rem;border-radius:12px}
+  .cta.ghost{background:transparent;color:var(--cream);border:1px solid rgba(255,255,255,.3);margin-left:.6rem}
+  section{padding:48px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+  h2{font-size:28px;color:var(--cream);margin-bottom:.3rem}
+  .muted{color:var(--t2)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1.4rem}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
+  .card{background:rgba(255,255,255,.04);border:1px solid rgba(201,162,75,.18);border-radius:16px;padding:1.2rem 1.3rem}
+  .card h3{font-size:18px;color:var(--gold2);margin-bottom:.3rem}
+  .card p{font-size:14.5px;color:var(--t2)}
+  .pills{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.2rem}
+  .pill{background:rgba(201,162,75,.12);border:1px solid rgba(201,162,75,.3);color:var(--gold2);font-size:13px;font-weight:600;padding:.4rem .8rem;border-radius:100px}
+  .stat-row{display:flex;gap:2rem;flex-wrap:wrap;margin-top:1rem}
+  .stat b{font-family:Fraunces,serif;font-size:30px;color:var(--gold2);display:block}
+  .role{font-size:15px;color:var(--tx)}
+  footer{padding:40px 0;text-align:center;color:var(--t2);font-size:13px}
+  footer .mc{font-family:Fraunces,serif;color:var(--cream);font-size:16px;margin-bottom:.3rem}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Case Study · Healthcare AI</div>
+    <h1>MedCompanion <em>AI</em></h1>
+    <p class="lead">A safety-first AI health companion that helps everyday people understand their health in plain language — and partners with their doctor instead of replacing them. Spanning the entire visit: before, during, and after.</p>
+    <a class="cta" href="https://medcompanion-ai.up.railway.app/app" target="_blank" rel="noopener">View the live product →</a>
+    <a class="cta ghost" href="https://github.com/finessehumxn/medcompanion-ai" target="_blank" rel="noopener">Source on GitHub</a>
+  </div>
+</div>
+
+<section><div class="wrap">
+  <h2>The problem</h2>
+  <p class="muted" style="max-width:760px;margin-top:.5rem">People leave doctor visits confused, and tools like WebMD or ChatGPT often make it worse — sending patients in to argue with their clinician. MedCompanion was built to do the opposite: reduce fear, build understanding, and make the patient a prepared partner in their own care.</p>
+</div></section>
+
+<section><div class="wrap">
+  <h2>What it does</h2>
+  <div class="grid">
+    <div class="card"><h3>Doctor Bridge</h3><p>Turns every briefing into a printable, shareable Doctor Visit Sheet — questions to ask, plain-language summary, and sources — so patients hand over a brief instead of an argument.</p></div>
+    <div class="card"><h3>Live Visit Companion</h3><p>A real-time, in-the-exam-room mode that decodes what the doctor just said and suggests the next smart question — then compiles an after-visit summary.</p></div>
+    <div class="card"><h3>Reviewed by a Real Doctor</h3><p>A physician-review portal lets licensed clinicians co-sign briefings, surfacing a "verified by a physician" badge.</p></div>
+    <div class="card"><h3>Multilingual & Read-Aloud</h3><p>Reads results aloud and translates them into the patient's language while the clinician keeps an English handoff — built for accessibility and equity.</p></div>
+    <div class="card"><h3>Safety-first pipeline</h3><p>A LangGraph state machine with an explicit human-in-the-loop step, crisis/emergency guardrails, an ER-or-not triage, and red-flag detection.</p></div>
+    <div class="card"><h3>Health Memory</h3><p>A private health log that turns logged symptoms into a dual patient + clinical visit-prep, plus a new-patient one-pager.</p></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Built with</h2>
+  <p class="muted" style="margin-top:.4rem">Full-stack AI product — architecture, prompt engineering, backend, frontend, mobile packaging, and deployment.</p>
+  <div class="pills">
+    <span class="pill">LangGraph</span><span class="pill">Anthropic Claude</span><span class="pill">Claude Vision</span>
+    <span class="pill">Live Web Search (RAG)</span><span class="pill">Human-in-the-Loop</span><span class="pill">FastAPI</span>
+    <span class="pill">Python</span><span class="pill">Supabase (Postgres / Auth)</span><span class="pill">Row-Level Security</span>
+    <span class="pill">Web Speech API (TTS + voice)</span><span class="pill">Capacitor (Android / iOS)</span>
+    <span class="pill">Progressive Web App</span><span class="pill">Service Worker / offline</span>
+    <span class="pill">Railway</span><span class="pill">LangSmith</span><span class="pill">GitHub Actions CI</span>
+    <span class="pill">Vanilla JS / HTML / CSS</span>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>My role</h2>
+  <p class="role" style="margin-top:.5rem">Creator and full-stack builder — product design, AI architecture (LangGraph pipeline, prompt + safety design), backend (FastAPI), frontend, brand/UX, mobile packaging, and deployment.</p>
+  <div class="stat-row">
+    <div class="stat"><b>5</b><span class="muted">audience modes</span></div>
+    <div class="stat"><b>15+</b><span class="muted">languages</span></div>
+    <div class="stat"><b>3</b><span class="muted">app stores targeted</span></div>
+    <div class="stat"><b>1</b><span class="muted">human-in-the-loop graph</span></div>
+  </div>
+</div></section>
+
+<footer>
+  <div class="mc">Millennials Creatives LLC</div>
+  <div>MedCompanion AI is a product of Millennials Creatives LLC. · For educational purposes only — not medical advice.</div>
+</footer>
+
+</body>
+</html>
