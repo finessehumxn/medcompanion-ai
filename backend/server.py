@@ -191,6 +191,72 @@ async def visit_prep(req: VisitPrepRequest):
         logger.error(f"visit_prep error: {ex}")
         return {"empty": False, "patient_summary": log_text, "clinical_summary": log_text, "key_questions": [], "timeline": []}
 
+class BillRequest(BaseModel):
+    text: Optional[str] = ""
+    image_data: Optional[str] = None
+    image_media_type: Optional[str] = "image/jpeg"
+    goal: Optional[str] = "explain"   # explain | dispute | appeal | financial_assistance | itemized | payment_plan
+    lang: Optional[str] = None
+
+@app.post("/billhelp")
+async def billhelp(req: BillRequest):
+    """First-of-its-kind: decode a confusing medical bill / EOB / insurance denial,
+    flag likely errors and overcharges, and draft a letter to send. General guidance,
+    not legal or financial advice. Never invents codes/amounts the user did not give."""
+    text = (req.text or "").strip()
+    if not text and not req.image_data:
+        return {"summary": "", "flags": [], "actions": [], "letter": ""}
+    lang = (req.lang or "").strip()
+    lang_line = f"Write all output in this language (BCP-47 code): {lang}." if lang else ""
+    goal = (req.goal or "explain").lower()
+    goal_map = {
+        "explain": "Focus on explaining it clearly; still flag anything worth questioning.",
+        "dispute": "The user wants to dispute likely errors/overcharges. Draft a firm but polite dispute letter.",
+        "appeal": "The user wants to appeal an insurance denial. Draft an appeal letter requesting reconsideration and the specific reason for denial.",
+        "financial_assistance": "The user needs help paying. Draft a letter requesting financial assistance / charity care and a hardship discount.",
+        "itemized": "Draft a letter requesting a fully itemized bill with billing (CPT/HCPCS) codes.",
+        "payment_plan": "Draft a letter requesting an interest-free payment plan and a prompt-pay or self-pay discount.",
+    }
+    system = (
+        "You are a calm, savvy medical-billing and insurance advocate helping an ordinary person understand "
+        "a confusing medical bill, Explanation of Benefits (EOB), or insurance denial, and fight back when "
+        "something looks wrong. Explain in plain language. Flag the things most worth questioning: duplicate "
+        "charges, services not received, upcoding, unbundling, out-of-network surprise or balance billing, "
+        "missing itemization, charges that should be covered, and amounts above typical. "
+        "Then draft a polite, effective letter the user can edit and send. "
+        + goal_map.get(goal, goal_map["explain"]) + " " + lang_line + "\n\n"
+        "IMPORTANT: You are NOT a lawyer or the insurer; this is general guidance, not legal or financial advice. "
+        "NEVER invent specific billing codes, dates, or dollar amounts the user did not provide — if itemization "
+        "is missing, the first action is to request an itemized bill. Be encouraging; people can often lower these bills.\n\n"
+        "Return ONLY valid JSON, no apostrophes inside string values:\n"
+        "{\n"
+        '  "summary": "plain-language explanation of what this bill or denial actually is",\n'
+        '  "flags": ["a specific thing worth questioning", "another"],\n'
+        '  "actions": ["a concrete next step the person can take", "another"],\n'
+        '  "letter": "a complete, ready-to-edit letter with [BRACKETED] placeholders for details to fill in"\n'
+        "}"
+    )
+    content = []
+    if req.image_data:
+        content.append({"type": "image", "source": {"type": "base64", "media_type": req.image_media_type or "image/jpeg", "data": req.image_data}})
+    content.append({"type": "text", "text": text or "Please review this medical bill or insurance document."})
+    try:
+        import anthropic, json as _json
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model="claude-sonnet-4-6", max_tokens=2500, system=system,
+            messages=[{"role": "user", "content": content}],
+        )
+        raw = "".join(getattr(b, "text", "") for b in resp.content).replace("```json", "").replace("```", "").strip()
+        s, e = raw.find("{"), raw.rfind("}")
+        data = _json.loads(raw[s:e+1]) if s != -1 else {}
+        return {"summary": data.get("summary", ""), "flags": data.get("flags", []) or [],
+                "actions": data.get("actions", []) or [], "letter": data.get("letter", "")}
+    except Exception as ex:
+        logger.error(f"billhelp error: {ex}")
+        return {"summary": "I could not read that fully just now. A safe first step is to call the billing office and request a fully itemized bill with codes — then we can review it together.",
+                "flags": [], "actions": ["Request a fully itemized bill with billing codes", "Do not pay until you have reviewed the itemized bill"], "letter": ""}
+
 class CompanionRequest(BaseModel):
     message: str                 # their question, or a request to re-explain
     context: Optional[str] = ""  # the health topic being discussed

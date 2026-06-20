@@ -2267,6 +2267,10 @@ document.addEventListener('DOMContentLoaded', function() {
         <span class="role-opt-ic">⚕️</span>
         <span><span class="role-opt-t">Pharmacist / Rx</span><span class="role-opt-s">Drug-focused: dosing, interactions, counseling points.</span></span>
       </button>
+      <button class="role-opt" onclick="closeRoleModal();openBillHelp()">
+        <span class="role-opt-ic">💵</span>
+        <span><span class="role-opt-t">Bills &amp; insurance help</span><span class="role-opt-s">Decode a bill or denial, flag overcharges, draft a letter.</span></span>
+      </button>
     </div>
     <div class="role-foot">
       <button class="role-skip" onclick="chooseRole('everyday','self')">Not sure yet — just get me started</button>
@@ -3458,6 +3462,53 @@ function ccVoice(btn) {
   try { rec.start(); } catch(e) {}
 }
 
+/* ══ Bills & Insurance Helper — decode a bill/EOB/denial, flag overcharges, draft a letter (first of its kind) ══ */
+window._bhImg = null; window._bhData = null;
+function openBillHelp() {
+  ensureVcStyles();
+  var ov = document.getElementById('bhOverlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'bhOverlay'; ov.className = 'vc-overlay'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-label','Bills and Insurance Helper'); ov.addEventListener('click', function(e){ if (e.target === this) closeBillHelp(); }); document.body.appendChild(ov); }
+  window._bhImg = null;
+  var IS = 'width:100%;background:#16323a;border:1px solid #1f5a5c;border-radius:11px;padding:.7rem .9rem;color:#eafaf8;font-size:14px;font-family:inherit;box-sizing:border-box';
+  ov.innerHTML = '<div class="vc-modal"><div class="vc-head"><div class="vc-title"><i class="ti ti-receipt-2"></i> Bills &amp; Insurance Helper</div><div class="vc-sub">Paste or photograph a confusing bill, EOB, or denial. I will explain it, flag what to question, and draft a letter you can send.</div><button class="vc-close" onclick="closeBillHelp()" aria-label="Close">×</button></div>'
+    + '<div class="vc-log" id="bhBody">'
+    + '<label style="display:block;font-size:12px;font-weight:800;color:#D4B26A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem">What do you want to do?</label>'
+    + '<select id="bhGoal" style="' + IS + ';margin-bottom:.7rem"><option value="explain">Just explain this bill to me</option><option value="dispute">Dispute an error or overcharge</option><option value="appeal">Appeal an insurance denial</option><option value="itemized">Request an itemized bill</option><option value="financial_assistance">Ask for financial assistance</option><option value="payment_plan">Request a payment plan or discount</option></select>'
+    + '<textarea id="bhText" rows="5" placeholder="Paste the bill or denial text here, or describe what you got and the amounts..." style="' + IS + '"></textarea>'
+    + '<div style="display:flex;align-items:center;gap:.6rem;margin-top:.6rem"><label style="background:#16323a;border:1px solid #1f5a5c;border-radius:10px;padding:.55rem .9rem;color:#7fe3d8;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit"><i class="ti ti-camera"></i> Add a photo<input type="file" accept="image/*" style="display:none" onchange="bhPhoto(event)"></label><span id="bhPhotoName" style="font-size:12px;color:#9fbfbb"></span></div>'
+    + '<button onclick="bhSubmit()" style="width:100%;margin-top:.9rem;background:#1f9d96;border:none;color:#fff;border-radius:12px;padding:.85rem;font-size:14.5px;font-weight:800;cursor:pointer;font-family:inherit"><i class="ti ti-sparkles"></i> Decode my bill</button>'
+    + '<p style="font-size:11px;color:#9fbfbb;margin-top:.7rem;line-height:1.5">General guidance, not legal or financial advice. I never invent codes or amounts — if your bill is not itemized, the first step is to request one.</p>'
+    + '</div></div>';
+  ov.classList.add('show');
+}
+function closeBillHelp() { var ov = document.getElementById('bhOverlay'); if (ov) ov.classList.remove('show'); }
+function bhPhoto(e) { var f = e.target.files && e.target.files[0]; if (!f) return; var r = new FileReader(); r.onload = function(){ window._bhImg = { data: String(r.result).split(',')[1], media: f.type }; var n = document.getElementById('bhPhotoName'); if (n) n.textContent = f.name; }; r.readAsDataURL(f); }
+async function bhSubmit() {
+  var text = (document.getElementById('bhText') || {}).value || '';
+  var goal = (document.getElementById('bhGoal') || {}).value || 'explain';
+  if (!text.trim() && !window._bhImg) return;
+  var body = document.getElementById('bhBody');
+  body.innerHTML = '<div class="vc-empty">Reading it carefully and checking for things to question… 🔎</div>';
+  try {
+    var payload = { text: text, goal: goal, lang: window.currentLang || null };
+    if (window._bhImg) { payload.image_data = window._bhImg.data; payload.image_media_type = window._bhImg.media; }
+    var res = await fetch(API + '/billhelp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    bhRender(await res.json());
+  } catch(e) { body.innerHTML = '<div class="vc-empty">I could not process that just now. Please try again.</div>'; }
+}
+function bhRender(d) {
+  window._bhData = d; var body = document.getElementById('bhBody'); if (!body) return;
+  var flags = (d.flags || []).map(function(f){ return '<li>' + clean(f) + '</li>'; }).join('');
+  var acts = (d.actions || []).map(function(a){ return '<li>' + clean(a) + '</li>'; }).join('');
+  body.innerHTML =
+    (d.summary ? '<div style="background:#16323a;border:1px solid #1f5a5c;border-radius:12px;padding:1rem;margin-bottom:.7rem"><div style="font-size:12px;font-weight:800;color:#1f9d96;text-transform:uppercase;margin-bottom:.3rem">What this is</div><div style="font-size:14.5px;color:#eafaf8;line-height:1.6">' + clean(d.summary) + '</div></div>' : '')
+    + (flags ? '<div style="background:rgba(224,89,78,.1);border:1.5px solid #e0594e;border-radius:12px;padding:1rem;margin-bottom:.7rem"><div style="font-size:12px;font-weight:800;color:#f7a8a0;text-transform:uppercase;margin-bottom:.3rem">⚠️ Worth questioning</div><ul style="margin:0 0 0 1.1rem;padding:0;color:#eafaf8;font-size:13.5px;line-height:1.55">' + flags + '</ul></div>' : '')
+    + (acts ? '<div style="background:#16323a;border:1px solid #1f5a5c;border-radius:12px;padding:1rem;margin-bottom:.7rem"><div style="font-size:12px;font-weight:800;color:#D4B26A;text-transform:uppercase;margin-bottom:.3rem">✅ What to do</div><ul style="margin:0 0 0 1.1rem;padding:0;color:#eafaf8;font-size:13.5px;line-height:1.55">' + acts + '</ul></div>' : '')
+    + (d.letter ? '<div style="background:#fff;color:#16323a;border-radius:12px;padding:1rem 1.1rem;margin-bottom:.7rem"><div style="font-size:12px;font-weight:800;color:#0b3d2e;text-transform:uppercase;margin-bottom:.4rem">📄 Your letter — ready to send</div><div style="font-size:13px;line-height:1.6;white-space:pre-wrap;font-family:Georgia,serif">' + clean(d.letter) + '</div></div><button onclick="bhCopyLetter()" class="vc-save" style="border-color:#1f9d96;color:#7fe3d8"><i class="ti ti-copy"></i> Copy the letter</button>' : '')
+    + '<button onclick="openCompanionChat(\'my medical bill or insurance\')" class="vc-save"><i class="ti ti-message-heart"></i> Talk to me about this</button>';
+}
+function bhCopyLetter() { var d = window._bhData; if (!d || !d.letter) return; try { if (navigator.clipboard) navigator.clipboard.writeText(d.letter); } catch(e) {} var b = document.querySelector('#bhOverlay .vc-save'); if (b) b.innerHTML = '<i class="ti ti-check"></i> Copied'; }
+
 /* ══ Multilingual care bridge: read in your language, hand the doctor English ══ */
 var MED_LANGS = [['','English'],['es','Español'],['fr','Français'],['zh','中文 (Chinese)'],['ar','العربية (Arabic)'],['hi','हिन्दी (Hindi)'],['pt','Português'],['ru','Русский'],['vi','Tiếng Việt'],['ko','한국어'],['tl','Tagalog'],['de','Deutsch'],['ja','日本語'],['fa','فارسی (Farsi)'],['so','Soomaali']];
 function langOptions() { return MED_LANGS.map(function(l){ return '<option value="' + l[0] + '">' + l[1] + '</option>'; }).join(''); }
@@ -3848,6 +3899,7 @@ function createActionFab() {
     + '<button class="vc-launch" style="background:linear-gradient(135deg,#C9A24B,#A9863A);color:#0A1F1A" onclick="closeFab();openHealthHub()"><i class="ti ti-heart"></i> My Health</button>'
     + '<button class="vc-launch" onclick="closeFab();openVisitCompanion()"><i class="ti ti-stethoscope"></i> At my visit?</button>'
     + '<button class="vc-launch" style="background:linear-gradient(135deg,#1f9d96,#15807a)" onclick="closeFab();openCompanionChat()"><i class="ti ti-message-heart"></i> Talk to me</button>'
+    + '<button class="vc-launch" style="background:linear-gradient(135deg,#3b6e57,#2c5443)" onclick="closeFab();openBillHelp()"><i class="ti ti-receipt-2"></i> Bills &amp; insurance</button>'
     + '</div>'
     + '<button id="fabMain" aria-label="Quick actions" onclick="toggleFab()" style="width:58px;height:58px;border-radius:50%;border:1px solid rgba(201,162,75,.55);background:linear-gradient(135deg,#0B3D2E,#093a2b);color:#fff;font-size:24px;cursor:pointer;box-shadow:0 12px 32px rgba(10,31,26,.4);display:flex;align-items:center;justify-content:center;transition:transform .15s"><i class="ti ti-plus"></i></button>';
   document.body.appendChild(wrap);
