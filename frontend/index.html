@@ -3094,6 +3094,8 @@ function applyIntentCopy() {
   if (hint) hint.placeholder = 'List what you want to check — e.g. "ibuprofen, lisinopril, and grapefruit"...';
   if (goBtn) goBtn.innerHTML = '<i class="ti ti-pill"></i> Check Interactions';
   if (chipsWrap) chipsWrap.style.display = 'none';
+  var extraLabel = document.querySelector('.input-extra-label');
+  if (extraLabel) extraLabel.innerHTML = '📷 Snap a photo of your pill bottles — I read the names &nbsp;|&nbsp; 🎤 or just say them';
 }
 
 function chooseRole(viewer, intent) {
@@ -3202,6 +3204,59 @@ function shareVisitSheet() {
   var t = visitSheetText(window.lastBriefing, window.lastRawInput || '');
   if (navigator.share) { navigator.share({ title: 'My Doctor Visit Sheet', text: t }).catch(function(){}); }
   else { copyVisitSheet(); }
+}
+
+/* ══ Talk to it like a person: read the answer aloud (TTS) ══ */
+function readableBriefingText(b) {
+  b = b || {};
+  var parts = [];
+  if (b.opening) parts.push(b.opening);
+  if (b.standard_of_care && b.standard_of_care.plain_summary) parts.push(b.standard_of_care.plain_summary);
+  if (b.doctor_questions && b.doctor_questions.length) {
+    parts.push('Questions to ask your doctor.');
+    b.doctor_questions.forEach(function(q){ parts.push(q); });
+  }
+  if (b.closing) parts.push(b.closing);
+  return parts.join(' ');
+}
+function stopSpeaking() { try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch(e){} window._speaking = false; }
+function toggleReadAloud(btn) {
+  if (!('speechSynthesis' in window)) { if (btn) btn.innerHTML = '<i class="ti ti-volume-off"></i> Not supported'; return; }
+  if (window._speaking) { stopSpeaking(); if (btn) btn.innerHTML = '<i class="ti ti-volume"></i> Listen'; return; }
+  var text = window._translatedText || readableBriefingText(window.lastBriefing);
+  if (!text) return;
+  var u = new SpeechSynthesisUtterance(text);
+  u.rate = 0.98; u.pitch = 1.0;
+  if (window.currentLang) u.lang = window.currentLang;
+  u.onend = function(){ window._speaking = false; var b = document.getElementById('listenBtn'); if (b) b.innerHTML = '<i class="ti ti-volume"></i> Listen'; };
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+  window._speaking = true;
+  if (btn) btn.innerHTML = '<i class="ti ti-player-stop"></i> Stop';
+}
+
+/* ══ Multilingual care bridge: read in your language, hand the doctor English ══ */
+var MED_LANGS = [['','English'],['es','Español'],['fr','Français'],['zh','中文 (Chinese)'],['ar','العربية (Arabic)'],['hi','हिन्दी (Hindi)'],['pt','Português'],['ru','Русский'],['vi','Tiếng Việt'],['ko','한국어'],['tl','Tagalog'],['de','Deutsch'],['ja','日本語'],['fa','فارسی (Farsi)'],['so','Soomaali']];
+function langOptions() { return MED_LANGS.map(function(l){ return '<option value="' + l[0] + '">' + l[1] + '</option>'; }).join(''); }
+async function translateBriefingTo(lang) {
+  window.currentLang = lang || null;
+  window._translatedText = null;
+  var panel = document.getElementById('translatedPanel');
+  if (!panel) return;
+  if (!lang) { panel.style.display = 'none'; panel.innerHTML = ''; return; }
+  panel.style.display = 'block';
+  panel.innerHTML = '<div style="opacity:.7;font-size:13px">Translating… 🌍</div>';
+  var text = readableBriefingText(window.lastBriefing);
+  try {
+    var res = await fetch(API + '/translate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: text, target: lang }) });
+    var data = await res.json();
+    var out = data && data.translated ? data.translated : text;
+    window._translatedText = out;
+    panel.innerHTML = '<div style="font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--teal,#1f9d96);margin-bottom:.4rem">🌍 In your language — your doctor still gets the sheet in English</div>'
+      + '<div style="font-size:14.5px;line-height:1.65;color:var(--text-body,#2a4d4f)">' + clean(out).replace(/\n/g,'<br>') + '</div>';
+  } catch(e) {
+    panel.innerHTML = '<div style="font-size:13px;color:var(--text-soft,#5d7274)">Translation unavailable right now — please try again.</div>';
+  }
 }
 
 /* ── Event listeners ── */
@@ -3378,6 +3433,7 @@ function renderNormalization(norm) {
     '<div class="card-header"><div class="card-icon ci-sage"><i class="ti ti-arrows-exchange"></i></div>' +
     '<div class="card-title">Let me make sure I\'ve got this right</div>' +
     '<div class="card-status ok"><i class="ti ti-check"></i> Understood</div></div>' +
+    urgencyHtml + redFlagHtml +
     '<p style="font-size:15px;color:var(--text-body);line-height:1.7;margin:.75rem 0 .25rem">You don\'t need to know medical words — that\'s my job. Here\'s what your words mean in plain language:</p>' +
     '<div class="map-table">' + rows + '</div>' +
     '<div class="confirm-box">' +
@@ -3509,9 +3565,18 @@ async function confirmCondition(useAI) {
     var bcard = document.getElementById('briefingCard');
     if (bcard && !bcard.querySelector('.care-team-note')) {
       bcard.insertAdjacentHTML('beforeend',
-        '<button class="visit-sheet-btn" onclick="openVisitSheet()" style="margin-top:1.1rem;width:100%;display:flex;align-items:center;justify-content:center;gap:.6rem;padding:1rem 1.2rem;background:linear-gradient(135deg,var(--teal,#1f9d96),#15807a);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 8px 22px rgba(31,157,150,.25);font-family:inherit">' +
-        '<i class="ti ti-clipboard-heart"></i> Make my Doctor Visit Sheet</button>' +
-        '<div class="vs-tagline" style="text-align:center;font-size:12px;color:var(--text-soft,#5d7274);margin-top:.45rem">Bring it to your appointment — questions to ask, in plain language, with sources. The 1st health app that prepares you <em>and</em> your doctor.</div>' +
+        '<div style="display:flex;gap:.6rem;margin-top:1.1rem;flex-wrap:wrap">' +
+          '<button id="listenBtn" onclick="toggleReadAloud(this)" style="flex:1;min-width:130px;display:flex;align-items:center;justify-content:center;gap:.5rem;padding:1rem;background:var(--lteal,#eef8f7);color:var(--teal,#1f9d96);border:1.5px solid var(--teal,#1f9d96);border-radius:14px;font-size:14.5px;font-weight:800;cursor:pointer;font-family:inherit">' +
+            '<i class="ti ti-volume"></i> Listen</button>' +
+          '<button class="visit-sheet-btn" onclick="openVisitSheet()" style="flex:2;min-width:200px;display:flex;align-items:center;justify-content:center;gap:.6rem;padding:1rem 1.2rem;background:linear-gradient(135deg,var(--teal,#1f9d96),#15807a);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 8px 22px rgba(31,157,150,.25);font-family:inherit">' +
+            '<i class="ti ti-clipboard-heart"></i> Make my Doctor Visit Sheet</button>' +
+        '</div>' +
+        '<div class="vs-tagline" style="text-align:center;font-size:12px;color:var(--text-soft,#5d7274);margin-top:.45rem">Listen hands-free, or bring the sheet to your appointment — questions to ask, in plain language, with sources. The 1st health app that prepares you <em>and</em> your doctor.</div>' +
+        '<div style="display:flex;align-items:center;gap:.5rem;margin-top:.85rem;flex-wrap:wrap">' +
+          '<span style="font-size:13px;color:var(--text-soft,#5d7274);font-weight:600">🌍 Read in your language:</span>' +
+          '<select onchange="translateBriefingTo(this.value)" aria-label="Translate this briefing" style="padding:.5rem .7rem;border-radius:10px;border:1.5px solid var(--border,#d9e6e6);background:#fff;color:var(--text-dark,#0d3b3e);font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer">' + langOptions() + '</select>' +
+        '</div>' +
+        '<div id="translatedPanel" style="display:none;margin-top:.7rem;padding:1rem 1.15rem;background:var(--lteal,#eef8f7);border:1.5px solid var(--border,#d9e6e6);border-radius:14px"></div>' +
         '<div class="care-team-note" style="margin-top:1rem;padding:.95rem 1.15rem;background:rgba(31,157,150,.1);border:1.5px solid rgba(31,157,150,.35);border-radius:14px;font-size:13.5px;color:var(--text-body,#2a4d4f);line-height:1.5">' +
         '<strong>💙 This works <em>with</em> your doctor — not instead of them.</strong> It is here to help you understand and prepare for a better conversation with your care team, who know your full history and have the final say. This is general information, not a diagnosis or medical advice, and not for emergencies.' +
         '</div>');

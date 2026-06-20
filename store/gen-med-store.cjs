@@ -32,7 +32,30 @@ const screens = [
     body: (x, w, y, u) => medCard(x, w, y, u) },
   { tag: "Evidence-based\nmode for pros.", sub: "Clinical briefings, sourced — like OpenEvidence.", accent: TEAL,
     body: (x, w, y, u) => proCard(x, w, y, u) },
+  { tag: "Bring it to\nyour doctor.", sub: "The 1st app that prepares you AND your doctor.", accent: GOLD,
+    body: (x, w, y, u) => visitSheet(x, w, y, u) },
 ];
+
+function visitSheet(x, w, y, u) {
+  const h = 78 * u;
+  const line = (yy, t, c, fs, fw) => `<text x="${x+5*u}" y="${yy}" font-size="${(fs||3.4)*u}" fill="${c}" font-weight="${fw||400}" font-family="Arial">${esc(t)}</text>`;
+  const label = (yy, t) => `<text x="${x+5*u}" y="${yy}" font-size="${2.7*u}" fill="${TEAL}" font-weight="800" letter-spacing="0.5" font-family="Arial">${esc(t)}</text>`;
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${3*u}" fill="#ffffff"/>`
+    + `<text x="${x+5*u}" y="${y+9*u}" font-size="${5.2*u}" fill="${EM}" font-weight="800" font-family="Georgia,serif">📋 Doctor Visit Sheet</text>`
+    + line(y+13.5*u, "Prepared with MedCompanionAI · today", "#7a8c8e", 2.6)
+    + `<rect x="${x+5*u}" y="${y+16*u}" width="${w-10*u}" height="${0.3*u}" fill="#e3eceb"/>`
+    + label(y+22*u, "WHAT I WANT TO TALK ABOUT")
+    + line(y+27*u, "Type 2 diabetes — early signs", EM, 3.7, 700)
+    + label(y+34*u, "QUESTIONS FOR MY DOCTOR")
+    + line(y+39*u, "1. Should I be tested for diabetes?", "#16323a", 3.2, 600)
+    + line(y+43.5*u, "2. What do my numbers mean?", "#16323a", 3.2, 600)
+    + line(y+48*u, "3. What changes help most first?", "#16323a", 3.2, 600)
+    + label(y+55*u, "WHAT I READ")
+    + line(y+60*u, "NIH · Mayo Clinic · FDA", "#5d7274", 3)
+    + `<rect x="${x+5*u}" y="${y+64*u}" width="${w-10*u}" height="${0.3*u}" fill="#cdd9d8"/>`
+    + `<text x="${x+5*u}" y="${y+69.5*u}" font-size="${2.7*u}" fill="#7a8c8e" font-family="Arial">For my doctor: an AI prep tool — not a diagnosis.</text>`
+    + `<text x="${x+5*u}" y="${y+73.5*u}" font-size="${2.7*u}" fill="#7a8c8e" font-family="Arial">Your clinical judgment has the final say.</text>`;
+}
 
 function pill(x, y, w, h, t, u, bg, fg, weight) {
   return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.min(h/2,10*u)}" fill="${bg}"/><text x="${x+w/2}" y="${y+h*0.66}" font-size="${3.3*u}" fill="${fg}" font-weight="${weight||700}" text-anchor="middle" font-family="Arial">${esc(t)}</text>`;

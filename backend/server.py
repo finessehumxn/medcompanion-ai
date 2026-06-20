@@ -76,6 +76,35 @@ class AuthRequest(BaseModel):
     email: str
     password: str
 
+class TranslateRequest(BaseModel):
+    text: str
+    target: str
+
+@app.post("/translate")
+async def translate(req: TranslateRequest):
+    """Multilingual care bridge: translate a briefing summary into the patient's
+    language. The doctor still gets the Visit Sheet in English. Fails soft."""
+    text = (req.text or "").strip()
+    target = (req.target or "").strip()
+    if not text or not target:
+        return {"translated": text}
+    try:
+        import anthropic
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1500,
+            system=("You are a medical translator. Translate the user's text into the target "
+                    "language naturally and clearly, preserving meaning and a warm, plain-language "
+                    "tone a patient can understand. Return ONLY the translation, no preamble."),
+            messages=[{"role": "user", "content": f"Target language code: {target}\n\nText:\n{text}"}],
+        )
+        out = "".join(getattr(b, "text", "") for b in resp.content)
+        return {"translated": out.strip() or text}
+    except Exception as e:
+        logger.error(f"translate error: {e}")
+        return {"translated": text}
+
 @app.post("/auth/signup")
 async def signup(req: AuthRequest):
     if not SUPABASE_ENABLED:
