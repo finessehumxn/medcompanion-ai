@@ -11,7 +11,7 @@
 <meta property="og:description" content="Not a doctor. Not a diagnosis. A caring companion that helps you make sense of what you are feeling — so you can talk to a professional and actually be heard." />
 <meta property="og:type" content="website" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,700;1,500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Lora:ital,wght@0,500;0,700;1,500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <style>
 
@@ -262,20 +262,23 @@ input:focus-visible {
    DESIGN TOKENS
 ════════════════════════════════════════ */
 :root {
-  --teal:      #0D4855;
-  --teal-mid:  #1A6272;
+  --teal:      #0B3D2E;   /* deep emerald — primary brand */
+  --teal-mid:  #14563E;
   --sage:      #4E7767;
-  --sage-light:#6B9E8A;
-  --slate:     #253C4D;
-  --cream:     #FDFBF7;
-  --off-white: #F4F7F5;
+  --sage-light:#7BA890;
+  --slate:     #0A1F1A;   /* deep ink */
+  --cream:     #FBF7EE;   /* warm cream */
+  --off-white: #F5EFE6;
   --white:     #FFFFFF;
-  --border:    #D0E0D8;
-  --text-dark: #0D2A33;
-  --text-body: #2C4A55;
-  --text-soft: #5A7A72;
-  --lteal:     #E0F0EC;
-  --lsage:     #E0EDE8;
+  --border:    #E6DCC8;   /* warm border */
+  --text-dark: #0A2A20;
+  --text-body: #33493F;
+  --text-soft: #6E7C72;
+  --lteal:     #ECF4EF;   /* soft emerald tint */
+  --lsage:     #F2ECDD;
+  --gold:      #C9A24B;   /* champagne gold accent */
+  --gold-deep: #A9863A;
+  --gold-soft: #F3E9CF;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1836,6 +1839,56 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
   .banner-stats { grid-template-columns: 1fr; }
   .footer-inner { flex-direction: column; }
 }
+</style>
+
+<!-- ════ PREMIUM THEME (emerald + champagne gold, editorial serif) ════ -->
+<style id="premiumTheme">
+  body { background:
+      radial-gradient(1200px 600px at 80% -5%, rgba(201,162,75,.10), transparent 60%),
+      radial-gradient(900px 500px at -10% 5%, rgba(11,61,46,.06), transparent 55%),
+      var(--cream); }
+  /* Editorial display type */
+  .hero-title, .empty-title, .section-title, h1.hero-title { font-family: 'Fraunces','Lora',Georgia,serif !important; letter-spacing:-.5px; }
+  .hero-title { font-weight:600 !important; }
+  .hero-title em { color: var(--gold); font-style: italic; }
+  .card-title, .confirm-name { font-family: 'Fraunces','Lora',serif !important; }
+  /* Hero: quiet-luxury surface */
+  .hero { background:
+      linear-gradient(180deg, rgba(255,255,255,.6), rgba(255,255,255,0)) , var(--cream); }
+  .hero-greeting { color: var(--gold-deep) !important; }
+  .hero-dot { background: var(--gold) !important; }
+  /* Primary CTA — emerald with a gold hairline + lift */
+  .go-btn {
+    background: linear-gradient(135deg, var(--teal), #093a2b) !important;
+    border: 1px solid rgba(201,162,75,.55) !important;
+    box-shadow: 0 10px 28px rgba(11,61,46,.28) !important;
+    border-radius: 14px !important; letter-spacing:.2px;
+  }
+  .go-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(11,61,46,.34) !important; background: linear-gradient(135deg,#0d4836,#0b3d2e) !important; }
+  /* Cards — softer, deeper, more premium */
+  .card, .input-card, .companion-note {
+    border-radius: 20px !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: 0 14px 40px rgba(10,31,26,.07), 0 2px 6px rgba(10,31,26,.04) !important;
+  }
+  .input-card { background: #fff; }
+  /* Section eyebrows / labels in gold */
+  .confirm-eyebrow, .entity-label, .chips-label { color: var(--gold-deep) !important; }
+  /* Pills / chips — warmer, refined */
+  .chip { border-radius: 100px !important; border-color: var(--border) !important; }
+  .chip:hover { border-color: var(--gold) !important; color: var(--teal) !important; }
+  /* Buttons: confirm yes uses emerald, no uses warm outline */
+  .btn-yes { background: linear-gradient(135deg, var(--teal), #093a2b) !important; border-radius: 12px !important; }
+  /* Nav refinement */
+  nav, .nav { backdrop-filter: saturate(1.1) blur(8px); }
+  /* User-type bar -> subtle gold active */
+  .user-type-btn.active { background: var(--teal) !important; color:#fff !important; border-color: var(--teal) !important; }
+  /* Map table & misc accents */
+  .map-arrow { color: var(--gold) !important; }
+  /* Tighten the result cards' status chip */
+  .card-status.ok { color: var(--teal) !important; }
+  /* Floating launchers -> consistent premium pill shadow */
+  .vc-launch { box-shadow: 0 10px 30px rgba(10,31,26,.32) !important; letter-spacing:.2px; }
 </style>
 
 <!-- PostHog Analytics -->
@@ -3625,6 +3678,33 @@ function promptInstall() {
 }
 function registerSW() { if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/sw.js'); } catch(e) {} } }
 
+/* ══ One elegant action button (replaces the 3 stacked pills) ══ */
+function createActionFab() {
+  if (document.getElementById('fabWrap')) return;
+  ensureVcStyles();
+  var wrap = document.createElement('div'); wrap.id = 'fabWrap';
+  wrap.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:1150;display:flex;flex-direction:column;align-items:flex-end;gap:.55rem';
+  wrap.innerHTML =
+    '<div id="fabItems" style="display:none;flex-direction:column;align-items:flex-end;gap:.55rem">'
+    + '<button class="vc-launch" style="background:linear-gradient(135deg,#e0594e,#c0392b)" onclick="closeFab();openTriage()"><i class="ti ti-urgent"></i> Emergency?</button>'
+    + '<button class="vc-launch" style="background:linear-gradient(135deg,#C9A24B,#A9863A);color:#0A1F1A" onclick="closeFab();openHealthHub()"><i class="ti ti-heart"></i> My Health</button>'
+    + '<button class="vc-launch" onclick="closeFab();openVisitCompanion()"><i class="ti ti-stethoscope"></i> At my visit?</button>'
+    + '</div>'
+    + '<button id="fabMain" aria-label="Quick actions" onclick="toggleFab()" style="width:58px;height:58px;border-radius:50%;border:1px solid rgba(201,162,75,.55);background:linear-gradient(135deg,#0B3D2E,#093a2b);color:#fff;font-size:24px;cursor:pointer;box-shadow:0 12px 32px rgba(10,31,26,.4);display:flex;align-items:center;justify-content:center;transition:transform .15s"><i class="ti ti-plus"></i></button>';
+  document.body.appendChild(wrap);
+}
+function toggleFab() {
+  var i = document.getElementById('fabItems'), m = document.getElementById('fabMain');
+  if (!i) return; var open = i.style.display !== 'none';
+  i.style.display = open ? 'none' : 'flex';
+  if (m) { m.innerHTML = open ? '<i class="ti ti-plus"></i>' : '<i class="ti ti-x"></i>'; m.style.transform = open ? 'rotate(0)' : 'rotate(90deg)'; }
+}
+function closeFab() {
+  var i = document.getElementById('fabItems'), m = document.getElementById('fabMain');
+  if (i) i.style.display = 'none';
+  if (m) { m.innerHTML = '<i class="ti ti-plus"></i>'; m.style.transform = 'rotate(0)'; }
+}
+
 /* ══ ER-or-not: fast, cautious safety triage ══ */
 function createTriageLauncher() {
   if (document.getElementById('erLaunch')) return;
@@ -3681,9 +3761,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var textarea = document.getElementById('patientInput');
   var goBtn = document.getElementById('goBtn');
   maybeShowRoleModal();
-  createVcLauncher();
-  createHealthHubLauncher();
-  createTriageLauncher();
+  createActionFab();
   registerSW();
   var roleLbl = document.querySelector('.user-type-label');
   if (roleLbl) { roleLbl.style.cursor = 'pointer'; roleLbl.title = 'Change who I am helping'; roleLbl.addEventListener('click', openRoleModal); }
