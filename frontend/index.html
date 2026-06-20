@@ -3422,6 +3422,42 @@ function wkAsk() {
 }
 function wkAskSend() { var inp = document.getElementById('wkInput'); if (!inp) return; var q = inp.value.trim(); if (!q) return; wkBubble(clean(q), 'you'); wkCompanion(q); }
 
+/* ══ Always-on conversational companion — keeps users in-app for the things
+      that usually make them leave: where to go, cost, what to do now, family ══ */
+function openCompanionChat(topic) {
+  ensureVcStyles();
+  window._cc = { topic: topic || (window.lastBriefing && (window.lastBriefing.condition_name || window.lastBriefing.plain_name)) || '' };
+  var ov = document.getElementById('ccOverlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'ccOverlay'; ov.className = 'vc-overlay'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-label','Talk to me'); ov.addEventListener('click', function(e){ if (e.target === this) closeCompanionChat(); }); document.body.appendChild(ov); }
+  var chips = ['Where should I go for this?', 'Are there lower-cost options?', 'What can I do right now?', 'How do I explain this to my family?', 'What questions should I ask?'];
+  ov.innerHTML = '<div class="vc-modal"><div class="vc-head"><div class="vc-title"><i class="ti ti-message-heart"></i> Talk to me</div><div class="vc-sub">' + (window._cc.topic ? ('About: ' + clean(window._cc.topic)) : 'Ask me anything — I am right here with you.') + '</div><button class="vc-close" onclick="closeCompanionChat()" aria-label="Close">×</button></div>'
+    + '<div class="vc-log" id="ccLog"><div class="vc-ai"><div class="vc-plain">I am right here with you. Ask me anything — or tap one of these to start.</div></div>'
+    + '<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.4rem">' + chips.map(function(c){ return '<button onclick="ccQuick(this)" style="background:#16323a;border:1px solid #1f5a5c;color:#7fe3d8;border-radius:100px;padding:.45rem .8rem;font-size:12.5px;cursor:pointer;font-family:inherit">' + c + '</button>'; }).join('') + '</div></div>'
+    + '<div class="vc-inrow"><button class="vc-ibtn vc-mic" onclick="ccVoice(this)" aria-label="Speak"><i class="ti ti-microphone"></i></button><textarea class="vc-input" id="ccInput" rows="1" placeholder="Type your question..."></textarea><button class="vc-ibtn" onclick="ccSend()" aria-label="Send"><i class="ti ti-send"></i></button></div></div>';
+  ov.classList.add('show');
+  var inp = document.getElementById('ccInput'); if (inp) inp.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ccSend(); } });
+}
+function closeCompanionChat() { stopSpeaking(); var ov = document.getElementById('ccOverlay'); if (ov) ov.classList.remove('show'); }
+function ccQuick(btn) { var inp = document.getElementById('ccInput'); if (inp) inp.value = btn.textContent; ccSend(); }
+function ccBubble(html, who) { var log = document.getElementById('ccLog'); if (!log) return; log.insertAdjacentHTML('beforeend', who === 'you' ? ('<div class="vc-you">' + html + '</div>') : ('<div class="vc-ai"><div class="vc-plain">' + html + '</div></div>')); log.scrollTop = log.scrollHeight; }
+async function ccSend() {
+  var inp = document.getElementById('ccInput'); if (!inp) return; var q = inp.value.trim(); if (!q) return; inp.value = '';
+  ccBubble(clean(q), 'you'); ccBubble('<span style="opacity:.55">…</span>', 'ai');
+  try {
+    var res = await fetch(API + '/companion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: q, context: window._cc.topic, lang: window.currentLang || null }) });
+    var d = await res.json(); var log = document.getElementById('ccLog'); if (log && log.lastChild) log.removeChild(log.lastChild);
+    ccBubble(clean(d.reply), 'ai'); wkSpeak(d.reply);
+  } catch(e) { var log = document.getElementById('ccLog'); if (log && log.lastChild) log.removeChild(log.lastChild); ccBubble("That is a good one to bring to your doctor too.", 'ai'); }
+}
+function ccVoice(btn) {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) return;
+  var rec = new SR(); rec.lang = window.currentLang || 'en-US'; rec.interimResults = false;
+  if (btn) btn.innerHTML = '<i class="ti ti-microphone-2"></i>';
+  rec.onresult = function(e){ var t = e.results[0][0].transcript; var ta = document.getElementById('ccInput'); if (ta) ta.value = (ta.value ? ta.value + ' ' : '') + t; };
+  rec.onend = function(){ if (btn) btn.innerHTML = '<i class="ti ti-microphone"></i>'; };
+  try { rec.start(); } catch(e) {}
+}
+
 /* ══ Multilingual care bridge: read in your language, hand the doctor English ══ */
 var MED_LANGS = [['','English'],['es','Español'],['fr','Français'],['zh','中文 (Chinese)'],['ar','العربية (Arabic)'],['hi','हिन्दी (Hindi)'],['pt','Português'],['ru','Русский'],['vi','Tiếng Việt'],['ko','한국어'],['tl','Tagalog'],['de','Deutsch'],['ja','日本語'],['fa','فارسی (Farsi)'],['so','Soomaali']];
 function langOptions() { return MED_LANGS.map(function(l){ return '<option value="' + l[0] + '">' + l[1] + '</option>'; }).join(''); }
@@ -3811,6 +3847,7 @@ function createActionFab() {
     + '<button class="vc-launch" style="background:linear-gradient(135deg,#e0594e,#c0392b)" onclick="closeFab();openTriage()"><i class="ti ti-urgent"></i> Emergency?</button>'
     + '<button class="vc-launch" style="background:linear-gradient(135deg,#C9A24B,#A9863A);color:#0A1F1A" onclick="closeFab();openHealthHub()"><i class="ti ti-heart"></i> My Health</button>'
     + '<button class="vc-launch" onclick="closeFab();openVisitCompanion()"><i class="ti ti-stethoscope"></i> At my visit?</button>'
+    + '<button class="vc-launch" style="background:linear-gradient(135deg,#1f9d96,#15807a)" onclick="closeFab();openCompanionChat()"><i class="ti ti-message-heart"></i> Talk to me</button>'
     + '</div>'
     + '<button id="fabMain" aria-label="Quick actions" onclick="toggleFab()" style="width:58px;height:58px;border-radius:50%;border:1px solid rgba(201,162,75,.55);background:linear-gradient(135deg,#0B3D2E,#093a2b);color:#fff;font-size:24px;cursor:pointer;box-shadow:0 12px 32px rgba(10,31,26,.4);display:flex;align-items:center;justify-content:center;transition:transform .15s"><i class="ti ti-plus"></i></button>';
   document.body.appendChild(wrap);
@@ -4220,6 +4257,7 @@ async function confirmCondition(useAI) {
             '<i class="ti ti-volume"></i> Listen</button>' +
           '<button class="visit-sheet-btn" onclick="openVisitSheet()" style="flex:2;min-width:200px;display:flex;align-items:center;justify-content:center;gap:.6rem;padding:1rem 1.2rem;background:linear-gradient(135deg,var(--teal,#1f9d96),#15807a);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 8px 22px rgba(31,157,150,.25);font-family:inherit">' +
             '<i class="ti ti-clipboard-heart"></i> Make my Doctor Visit Sheet</button>' +
+          '<button onclick="openCompanionChat()" style="flex:1;min-width:150px;display:flex;align-items:center;justify-content:center;gap:.5rem;padding:1rem;background:#fff;color:var(--teal,#0b3d2e);border:1.5px solid var(--teal,#0b3d2e);border-radius:14px;font-size:14.5px;font-weight:800;cursor:pointer;font-family:inherit"><i class="ti ti-message-heart"></i> Talk to me about this</button>' +
         '</div>' +
         '<div class="vs-tagline" style="text-align:center;font-size:12px;color:var(--text-soft,#5d7274);margin-top:.45rem">Listen hands-free, or bring the sheet to your appointment — questions to ask, in plain language, with sources. The 1st health app that prepares you <em>and</em> your doctor.</div>' +
         '<div style="display:flex;align-items:center;gap:.5rem;margin-top:.85rem;flex-wrap:wrap">' +
