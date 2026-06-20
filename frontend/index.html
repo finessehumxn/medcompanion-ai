@@ -3492,6 +3492,57 @@ function promptInstall() {
 }
 function registerSW() { if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/sw.js'); } catch(e) {} } }
 
+/* ══ ER-or-not: fast, cautious safety triage ══ */
+function createTriageLauncher() {
+  if (document.getElementById('erLaunch')) return;
+  ensureVcStyles();
+  var b = document.createElement('button'); b.id = 'erLaunch'; b.className = 'vc-launch';
+  b.style.bottom = '128px'; b.style.background = 'linear-gradient(135deg,#e0594e,#c0392b)';
+  b.innerHTML = '<i class="ti ti-urgent"></i> Emergency?';
+  b.setAttribute('aria-label', 'Quick emergency check');
+  b.onclick = openTriage; document.body.appendChild(b);
+}
+function openTriage() {
+  ensureVcStyles();
+  var ov = document.getElementById('erOverlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'erOverlay'; ov.className = 'vc-overlay'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-label','Emergency check'); ov.addEventListener('click', function(e){ if (e.target === this) closeTriage(); }); document.body.appendChild(ov); }
+  ov.innerHTML = '<div class="vc-modal"><div class="vc-head" style="background:linear-gradient(135deg,#e0594e,#c0392b)"><div class="vc-title"><i class="ti ti-urgent"></i> Is this an emergency?</div><div class="vc-sub">Tell me what is happening. I will help you decide how fast to get help.</div><button class="vc-close" onclick="closeTriage()" aria-label="Close">×</button></div>'
+    + '<div class="vc-log" id="erLog"><div class="vc-empty">If someone is unconscious, not breathing, or you believe this is life-threatening — call your local emergency number (911) now.<br><br>Otherwise, describe what is going on and I will help you decide.</div></div>'
+    + '<div class="vc-inrow"><textarea class="vc-input" id="erInput" rows="1" placeholder="e.g. sudden chest pain and short of breath..."></textarea><button class="vc-ibtn" onclick="erSend()" aria-label="Check"><i class="ti ti-arrow-right"></i></button></div></div>';
+  var ta = ov.querySelector('#erInput');
+  ta.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); erSend(); } });
+  ov.classList.add('show');
+}
+function closeTriage() { var ov = document.getElementById('erOverlay'); if (ov) ov.classList.remove('show'); }
+async function erSend() {
+  var ta = document.getElementById('erInput'); if (!ta) return; var txt = ta.value.trim(); if (!txt) return; ta.value = '';
+  var log = document.getElementById('erLog');
+  log.innerHTML = '<div class="vc-you">' + clean(txt) + '</div><div class="vc-ai"><div class="vc-plain" style="opacity:.7">Checking…</div></div>';
+  try {
+    var res = await fetch(API + '/triage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: txt, lang: window.currentLang || null }) });
+    erRender(txt, await res.json());
+  } catch(e) {
+    erRender(txt, { level: 'urgent', headline: 'If you are worried, it is okay to get checked.', action: 'If this feels serious or is getting worse, call your doctor or 911 now.', signs: [], note: '' });
+  }
+}
+function erRender(txt, d) {
+  var colors = { emergency: ['#e0594e','🚑','CALL 911 / GO TO THE ER'], urgent: ['#e8941a','⚠️','GET SEEN TODAY'], soon: ['#e8b14a','📅','SEE A DOCTOR SOON'], self_care: ['#2EC48C','🌿','LIKELY OKAY TO CARE FOR AT HOME'] };
+  var c = colors[d.level] || colors.soon;
+  var signs = (d.signs||[]).map(function(s){ return '<li>' + clean(s) + '</li>'; }).join('');
+  var log = document.getElementById('erLog');
+  var html = '<div class="vc-you">' + clean(txt) + '</div>'
+    + '<div class="vc-ai" style="border-color:' + c[0] + '">'
+    + '<div style="display:inline-block;background:' + c[0] + ';color:#fff;font-weight:800;font-size:12px;padding:.3rem .7rem;border-radius:20px;margin-bottom:.6rem">' + c[1] + ' ' + c[2] + '</div>'
+    + '<div class="vc-plain" style="font-weight:700">' + clean(d.headline) + '</div>'
+    + (d.action ? '<div class="vc-plain" style="margin-top:.4rem;color:' + c[0] + ';font-weight:700">' + clean(d.action) + '</div>' : '')
+    + (signs ? '<div class="vc-qlabel">Go now if you notice</div><ul style="margin:.2rem 0 0 1.1rem;padding:0;color:#eafaf8;font-size:13px">' + signs + '</ul>' : '')
+    + (d.note ? '<div style="font-size:12px;color:#9fbfbb;margin-top:.6rem">' + clean(d.note) + '</div>' : '')
+    + '<div style="font-size:11px;color:#9fbfbb;margin-top:.6rem">This is a safety guide, not a diagnosis. When in doubt, get checked.</div>'
+    + '</div>';
+  if (d.level === 'emergency') html += '<a href="tel:911" style="display:block;text-align:center;background:#e0594e;color:#fff;text-decoration:none;font-weight:800;padding:.9rem;border-radius:12px;margin-top:.8rem">📞 Call 911 now</a>';
+  log.innerHTML = html;
+}
+
 /* ── Event listeners ── */
 document.addEventListener('DOMContentLoaded', function() {
   var textarea = document.getElementById('patientInput');
@@ -3499,6 +3550,7 @@ document.addEventListener('DOMContentLoaded', function() {
   maybeShowRoleModal();
   createVcLauncher();
   createHealthHubLauncher();
+  createTriageLauncher();
   registerSW();
   var roleLbl = document.querySelector('.user-type-label');
   if (roleLbl) { roleLbl.style.cursor = 'pointer'; roleLbl.title = 'Change who I am helping'; roleLbl.addEventListener('click', openRoleModal); }

@@ -133,6 +133,55 @@ async def translate(req: TranslateRequest):
         logger.error(f"translate error: {e}")
         return {"translated": text}
 
+class TriageRequest(BaseModel):
+    text: str
+    lang: Optional[str] = None
+
+@app.post("/triage")
+async def triage(req: TriageRequest):
+    """ER-or-not: a fast, single-call safety triage. NOT a diagnosis — it errs
+    toward caution and always tells the user to seek care if unsure. Fails safe."""
+    text = (req.text or "").strip()
+    if not text:
+        return {"level": "", "headline": "", "action": "", "signs": [], "note": ""}
+    lang = (req.lang or "").strip()
+    lang_line = f"Respond in this language (BCP-47 code): {lang}." if lang else "Respond in the same language the person used."
+    system = (
+        "You are a careful safety triage helper for a health-information app. You are NOT a doctor and do "
+        "NOT diagnose. You ONLY help a worried person decide how urgently to seek care, and you ALWAYS err "
+        "toward caution. If there is any reasonable chance of a serious problem, choose a higher urgency. " + lang_line + "\n\n"
+        "Return ONLY valid JSON, no apostrophes in string values:\n"
+        "{\n"
+        '  "level": "emergency | urgent | soon | self_care",\n'
+        '  "headline": "one short, calm, direct sentence about what to do",\n'
+        '  "action": "the concrete next step (e.g. Call 911 now, Go to the ER, Call your doctor today)",\n'
+        '  "signs": ["warning sign to watch for that would mean go now", "another"],\n'
+        '  "note": "one short, non-alarming reassurance"\n'
+        "}\n"
+        "Use emergency for possible life-threatening signs (chest pain, trouble breathing, stroke signs, severe bleeding, etc.)."
+    )
+    try:
+        import anthropic, json as _json
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model="claude-sonnet-4-6", max_tokens=600, system=system,
+            messages=[{"role": "user", "content": text}],
+        )
+        raw = "".join(getattr(b, "text", "") for b in resp.content).replace("```json", "").replace("```", "").strip()
+        s, e = raw.find("{"), raw.rfind("}")
+        data = _json.loads(raw[s:e+1]) if s != -1 else {}
+        lvl = data.get("level", "soon")
+        if lvl not in ("emergency", "urgent", "soon", "self_care"):
+            lvl = "soon"
+        return {"level": lvl, "headline": data.get("headline", ""), "action": data.get("action", ""),
+                "signs": data.get("signs", []) or [], "note": data.get("note", "")}
+    except Exception as ex:
+        logger.error(f"triage error: {ex}")
+        # Fail safe: when unsure, encourage seeking care.
+        return {"level": "urgent", "headline": "If you are worried, it is okay to get checked.",
+                "action": "If this feels serious or is getting worse, call your doctor or local emergency number now.",
+                "signs": [], "note": "When in doubt, getting checked is never the wrong choice."}
+
 class VisitAssistRequest(BaseModel):
     text: str                          # what the doctor said / what is happening right now
     lang: Optional[str] = None         # patient's language (BCP-47 code) for the reply
