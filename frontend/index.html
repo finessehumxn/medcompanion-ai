@@ -3360,6 +3360,68 @@ function toggleReadAloud(btn) {
   if (btn) btn.innerHTML = '<i class="ti ti-player-stop"></i> Stop';
 }
 
+/* ══ Conversational walk-through: explains it WITH you, one piece at a time ══ */
+function wkSpeak(text) {
+  if (!('speechSynthesis' in window) || window._wkMuted) return;
+  try { window.speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(text); u.rate = .97; if (window.currentLang) u.lang = window.currentLang; window.speechSynthesis.speak(u); } catch(e) {}
+}
+function buildWalkChunks(b) {
+  b = b || {}; var soc = b.standard_of_care || {}; var c = [];
+  c.push("Okay — let us go through this together, no rush. I will explain a little at a time and check in with you as we go.");
+  if (b.opening) c.push(b.opening);
+  if (b.plain_name || b.condition_name) c.push("So the main thing we are looking at is " + (b.plain_name || b.condition_name) + ". " + (soc.plain_summary || ''));
+  (soc.treatments || []).slice(0, 2).forEach(function(t){ c.push("One thing doctors often use is " + t.name + ". " + (t.plain_description || '') + (t.what_this_means_for_you ? (" What that means for you: " + t.what_this_means_for_you) : "")); });
+  if (b.doctor_questions && b.doctor_questions.length) c.push("When you see your doctor, here are good things to ask. " + b.doctor_questions.slice(0, 3).join('  '));
+  if (b.closing) c.push(b.closing);
+  return c.filter(Boolean);
+}
+function startWalkthrough() {
+  var b = window.lastBriefing; if (!b) return;
+  ensureVcStyles();
+  window._wk = { chunks: buildWalkChunks(b), i: 0, topic: (b.condition_name || b.plain_name || window.lastRawInput || '') };
+  var ov = document.getElementById('wkOverlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'wkOverlay'; ov.className = 'vc-overlay'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-label','Walk me through it'); ov.addEventListener('click', function(e){ if (e.target === this) closeWalkthrough(); }); document.body.appendChild(ov); }
+  ov.innerHTML = '<div class="vc-modal"><div class="vc-head"><div class="vc-title"><i class="ti ti-message-heart"></i> Let us go through it together</div><div class="vc-sub">No rush. A little at a time, and I will check in with you.</div><button class="vc-close" onclick="closeWalkthrough()" aria-label="Close">×</button></div><div class="vc-log" id="wkLog"></div><div id="wkControls" style="flex-shrink:0;padding:.8rem 1rem;border-top:1px solid #1f5a5c;background:#0e2f31"></div></div>';
+  ov.classList.add('show');
+  wkShow();
+}
+function closeWalkthrough() { stopSpeaking(); var ov = document.getElementById('wkOverlay'); if (ov) ov.classList.remove('show'); }
+function wkBubble(html, who) { var log = document.getElementById('wkLog'); if (!log) return; log.insertAdjacentHTML('beforeend', who === 'you' ? ('<div class="vc-you">' + html + '</div>') : ('<div class="vc-ai"><div class="vc-plain">' + html + '</div></div>')); log.scrollTop = log.scrollHeight; }
+function wkControls(html) { var c = document.getElementById('wkControls'); if (c) c.innerHTML = html; }
+function wkBtns(last) {
+  if (last) return '<div style="display:flex;gap:.5rem;flex-wrap:wrap"><button onclick="closeWalkthrough();openVisitSheet()" style="flex:1;min-width:160px;background:#1f9d96;border:none;color:#fff;border-radius:11px;padding:.8rem;font-weight:800;cursor:pointer;font-family:inherit">Make my Doctor Visit Sheet</button><button onclick="closeWalkthrough()" style="background:#16323a;border:1px solid #1f5a5c;color:#9fbfbb;border-radius:11px;padding:.8rem 1rem;font-weight:700;cursor:pointer;font-family:inherit">I am good, thanks</button></div>';
+  return '<div style="display:flex;gap:.5rem;flex-wrap:wrap">'
+    + '<button onclick="wkNext()" style="flex:1;min-width:140px;background:#1f9d96;border:none;color:#fff;border-radius:11px;padding:.75rem;font-weight:800;cursor:pointer;font-family:inherit">Got it — keep going</button>'
+    + '<button onclick="wkSimpler()" style="background:#16323a;border:1px solid #1f5a5c;color:#eafaf8;border-radius:11px;padding:.75rem .9rem;font-weight:700;cursor:pointer;font-family:inherit">Say it simpler</button>'
+    + '<button onclick="wkAsk()" style="background:#16323a;border:1px solid #1f5a5c;color:#eafaf8;border-radius:11px;padding:.75rem .9rem;font-weight:700;cursor:pointer;font-family:inherit">I have a question</button>'
+    + '</div>';
+}
+function wkShow() {
+  var w = window._wk; if (!w) return;
+  if (w.i < w.chunks.length) { var text = w.chunks[w.i]; wkBubble(clean(text), 'ai'); wkSpeak(text); }
+  var last = w.i >= w.chunks.length - 1;
+  if (last) wkBubble("That is everything — and you did so well getting through it. 💚", 'ai');
+  wkControls(wkBtns(last));
+}
+function wkNext() { var w = window._wk; if (!w) return; if (w.i < w.chunks.length - 1) { w.i++; wkShow(); } }
+async function wkCompanion(message) {
+  var w = window._wk; if (!w) return;
+  wkControls('<div style="color:#9fbfbb;font-size:13px;padding:.4rem">One moment, I am right here…</div>');
+  try {
+    var res = await fetch(API + '/companion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: message, context: w.topic, lang: window.currentLang || null }) });
+    var d = await res.json(); wkBubble(clean(d.reply), 'ai'); wkSpeak(d.reply);
+  } catch(e) { wkBubble("That is a good one to bring to your doctor too.", 'ai'); }
+  var last = w.i >= w.chunks.length - 1;
+  wkControls('<div style="display:flex;gap:.5rem;flex-wrap:wrap"><button onclick="wkNext()" style="flex:1;min-width:140px;background:#1f9d96;border:none;color:#fff;border-radius:11px;padding:.75rem;font-weight:800;cursor:pointer;font-family:inherit">' + (last ? 'Finish' : 'Got it — keep going') + '</button><button onclick="wkAsk()" style="background:#16323a;border:1px solid #1f5a5c;color:#eafaf8;border-radius:11px;padding:.75rem .9rem;font-weight:700;cursor:pointer;font-family:inherit">Ask another</button></div>');
+  if (last) { var c = document.getElementById('wkControls'); /* allow finishing into the visit sheet */ }
+}
+function wkSimpler() { var w = window._wk; if (!w) return; wkCompanion("Please explain this more simply, like you are talking to someone who feels a little overwhelmed: " + w.chunks[w.i]); }
+function wkAsk() {
+  wkControls('<div style="display:flex;gap:.5rem"><input id="wkInput" placeholder="Ask me anything about this..." style="flex:1;background:#16323a;border:1px solid #1f5a5c;border-radius:11px;padding:.7rem .9rem;color:#eafaf8;font-size:14px;font-family:inherit"/><button onclick="wkAskSend()" aria-label="Send" style="background:#1f9d96;border:none;color:#fff;width:46px;border-radius:11px;font-size:18px;cursor:pointer">›</button></div>');
+  var inp = document.getElementById('wkInput'); if (inp) { inp.focus(); inp.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); wkAskSend(); } }); }
+}
+function wkAskSend() { var inp = document.getElementById('wkInput'); if (!inp) return; var q = inp.value.trim(); if (!q) return; wkBubble(clean(q), 'you'); wkCompanion(q); }
+
 /* ══ Multilingual care bridge: read in your language, hand the doctor English ══ */
 var MED_LANGS = [['','English'],['es','Español'],['fr','Français'],['zh','中文 (Chinese)'],['ar','العربية (Arabic)'],['hi','हिन्दी (Hindi)'],['pt','Português'],['ru','Русский'],['vi','Tiếng Việt'],['ko','한국어'],['tl','Tagalog'],['de','Deutsch'],['ja','日本語'],['fa','فارسی (Farsi)'],['so','Soomaali']];
 function langOptions() { return MED_LANGS.map(function(l){ return '<option value="' + l[0] + '">' + l[1] + '</option>'; }).join(''); }
@@ -4140,9 +4202,12 @@ async function confirmCondition(useAI) {
     saveToHistory(data.briefing, window.lastRawInput || '');
     var _bb = document.getElementById('briefingBody');
     if (_bb && window.currentUserType !== 'professional' && !_bb.querySelector('.read-offer')) {
-      _bb.insertAdjacentHTML('afterbegin', '<div class="read-offer" style="display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap;background:var(--lteal,#ecf4ef);border:1.5px solid var(--gold,#c9a24b);border-radius:14px;padding:.8rem 1rem;margin-bottom:1rem">'
-        + '<span style="font-size:13.5px;color:var(--text-body,#33493f);font-weight:600">A lot to take in? Let me read it to you out loud. 🔊</span>'
-        + '<button onclick="toggleReadAloud(this)" style="background:var(--teal,#0b3d2e);color:#fff;border:none;border-radius:10px;padding:.55rem 1rem;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit"><i class="ti ti-volume"></i> Read it to me</button></div>');
+      _bb.insertAdjacentHTML('afterbegin', '<div class="read-offer" style="background:var(--lteal,#ecf4ef);border:1.5px solid var(--gold,#c9a24b);border-radius:14px;padding:.9rem 1.1rem;margin-bottom:1rem">'
+        + '<div style="font-size:14px;color:var(--text-body,#33493f);font-weight:600;margin-bottom:.6rem">Feeling overwhelmed? Let me walk you through this <em>with</em> you — out loud, a little at a time, and I will check in as we go. 💚</div>'
+        + '<div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">'
+        + '<button onclick="startWalkthrough()" style="background:var(--teal,#0b3d2e);color:#fff;border:none;border-radius:10px;padding:.6rem 1.1rem;font-size:13.5px;font-weight:800;cursor:pointer;font-family:inherit"><i class="ti ti-message-heart"></i> Walk me through it</button>'
+        + '<button onclick="toggleReadAloud(this)" style="background:transparent;color:var(--teal,#0b3d2e);border:none;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:underline">or just read it aloud</button>'
+        + '</div></div>');
     }
     var statusEl = document.querySelector('#briefingCard .card-status');
     if (statusEl) statusEl.innerHTML = '<span class="ok"><i class="ti ti-check"></i> All done</span>';

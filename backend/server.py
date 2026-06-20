@@ -191,6 +191,44 @@ async def visit_prep(req: VisitPrepRequest):
         logger.error(f"visit_prep error: {ex}")
         return {"empty": False, "patient_summary": log_text, "clinical_summary": log_text, "key_questions": [], "timeline": []}
 
+class CompanionRequest(BaseModel):
+    message: str                 # their question, or a request to re-explain
+    context: Optional[str] = ""  # the health topic being discussed
+    lang: Optional[str] = None
+
+@app.post("/companion")
+async def companion(req: CompanionRequest):
+    """Conversational companion: answers a question or re-explains, the way a
+    warm, patient friend would — short, plain, human. Never diagnoses."""
+    msg = (req.message or "").strip()
+    if not msg:
+        return {"reply": ""}
+    lang = (req.lang or "").strip()
+    lang_line = f"Reply in this language (BCP-47 code): {lang}." if lang else "Reply in the same language they used."
+    ctx = (req.context or "").strip()
+    system = (
+        "You are a warm, patient health companion talking WITH someone the way a caring friend or "
+        "family member would explain things at the kitchen table. Keep every reply SHORT "
+        "(2 to 4 sentences), plain, and human - no jargon, no lists unless they ask. "
+        "You do NOT diagnose or give medical advice; you help them understand and prepare to talk to "
+        "their own doctor, who has the final say. If they ask something only their doctor can answer, "
+        "gently say that is a great question for their doctor and offer to help them phrase it. "
+        "End naturally - sometimes with a gentle check-in like 'does that make sense?' " + lang_line
+        + (f"\n\nThe health topic you are discussing: {ctx}" if ctx else "")
+    )
+    try:
+        import anthropic
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model="claude-sonnet-4-6", max_tokens=400, system=system,
+            messages=[{"role": "user", "content": msg}],
+        )
+        reply = "".join(getattr(b, "text", "") for b in resp.content).strip()
+        return {"reply": reply or "I am here with you. Could you say a little more about what you mean?"}
+    except Exception as ex:
+        logger.error(f"companion error: {ex}")
+        return {"reply": "I am still here with you. That might be a good one to ask your doctor too."}
+
 class TriageRequest(BaseModel):
     text: str
     lang: Optional[str] = None
