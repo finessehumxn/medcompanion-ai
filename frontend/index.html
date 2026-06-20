@@ -3450,23 +3450,46 @@ function createHealthHubLauncher() {
   b.setAttribute('aria-label', 'Open My Health');
   b.onclick = openHealthHub; document.body.appendChild(b);
 }
-function openHealthHub() {
+var HH_IS = 'width:100%;background:#0d2f31;border:1px solid #1f5a5c;border-radius:10px;padding:.6rem .8rem;color:#eafaf8;font-size:14px;font-family:inherit;margin-bottom:.5rem;box-sizing:border-box';
+function hubAccountBlock() {
+  if (currentUser && currentUser.user_id) {
+    return '<div style="background:#16323a;border:1px solid #1f5a5c;border-radius:12px;padding:.8rem 1rem;margin-bottom:.8rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem">'
+      + '<div style="font-size:13px;color:#9fbfbb">Signed in as <strong style="color:#eafaf8">' + clean(currentUser.email) + '</strong></div>'
+      + '<button onclick="signOut();openHealthHub()" style="background:none;border:1px solid #1f5a5c;color:#9fbfbb;border-radius:8px;padding:.4rem .7rem;font-size:12px;cursor:pointer;font-family:inherit;flex-shrink:0">Sign out</button></div>';
+  }
+  return '<div style="background:rgba(212,178,106,.12);border:1px solid #D4B26A;border-radius:12px;padding:1rem;margin-bottom:.8rem">'
+    + '<div style="font-size:14px;font-weight:700;color:#eafaf8;margin-bottom:.3rem">🔒 Create a free account to log securely</div>'
+    + '<div style="font-size:12.5px;color:#9fbfbb;line-height:1.5;margin-bottom:.7rem">Track how long it has been going on and how you feel over time — then walk into your visit with a clear summary, no hundred probing questions.</div>'
+    + '<button onclick="openAuth(\'signup\')" style="background:#1f9d96;border:none;color:#fff;border-radius:10px;padding:.6rem 1rem;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">Create free account</button></div>';
+}
+function hubLogForm() {
+  if (!(currentUser && currentUser.user_id)) return '';
+  return '<div style="background:#16323a;border:1px solid #1f5a5c;border-radius:12px;padding:1rem;margin-bottom:.8rem">'
+    + '<div style="font-size:12px;font-weight:800;color:#D4B26A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.6rem">Log how you are feeling</div>'
+    + '<input id="logWhat" placeholder="What is going on? (e.g. headaches, stomach pain)" style="' + HH_IS + '"/>'
+    + '<input id="logHowLong" placeholder="How long? (e.g. 2 weeks, on and off)" style="' + HH_IS + '"/>'
+    + '<div style="font-size:13px;color:#9fbfbb;margin:.2rem 0 .5rem">How bad right now: <input id="logSev" type="range" min="1" max="10" value="5" oninput="var v=document.getElementById(\'logSevV\');if(v)v.textContent=this.value" style="vertical-align:middle;width:55%"/> <strong id="logSevV" style="color:#eafaf8">5</strong>/10</div>'
+    + '<textarea id="logNotes" rows="2" placeholder="How does it feel and affect you? Anything else..." style="' + HH_IS + '"></textarea>'
+    + '<button onclick="addLogEntry()" style="background:#1f9d96;border:none;color:#fff;border-radius:10px;padding:.6rem 1rem;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit"><i class="ti ti-plus"></i> Add to my log</button>'
+    + ' <span id="logMsg" class="ok" style="font-size:12.5px;margin-left:.4rem"></span></div>';
+}
+async function openHealthHub() {
   ensureVcStyles();
   var ov = document.getElementById('hhOverlay');
   if (!ov) { ov = document.createElement('div'); ov.id = 'hhOverlay'; ov.className = 'vc-overlay'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-label','My Health'); ov.addEventListener('click', function(e){ if (e.target === this) closeHealthHub(); }); document.body.appendChild(ov); }
+  // shell first (so it opens instantly), then fill the server log
   var hist = loadLocalHistory();
-  var items = hist.length ? hist.map(function(h){
-    return '<div style="background:#16323a;border:1px solid #1f5a5c;border-radius:12px;padding:.85rem 1rem;margin-bottom:.6rem">'
-      + '<div style="font-size:11px;color:#9fbfbb">' + clean(h.date) + '</div>'
-      + '<div style="font-size:15px;font-weight:700;color:#eafaf8;margin:.15rem 0">' + clean(h.topic) + '</div>'
-      + '<div style="font-size:12.5px;color:#9fbfbb;line-height:1.5">' + clean((h.summary || '').slice(0, 150)) + '</div></div>';
-  }).join('') : '<div class="vc-empty">Your briefings are saved here privately, on your device only.<br><br>Run your first one to start your health story — then build a one-pager any new doctor will thank you for.</div>';
+  var brief = hist.length ? '<div style="font-size:12px;font-weight:800;color:#D4B26A;text-transform:uppercase;letter-spacing:.04em;margin:.4rem 0 .5rem">Past briefings</div>' + hist.map(function(h){
+    return '<div style="background:#16323a;border:1px solid #1f5a5c;border-radius:12px;padding:.7rem .9rem;margin-bottom:.5rem"><div style="font-size:11px;color:#9fbfbb">' + clean(h.date) + '</div><div style="font-size:14px;font-weight:700;color:#eafaf8">' + clean(h.topic) + '</div></div>';
+  }).join('') : '';
+  var prepBtn = (currentUser && currentUser.user_id) ? '<button class="vc-save" onclick="generateVisitPrep()" style="border-color:#D4B26A;color:#D4B26A"><i class="ti ti-clipboard-data"></i> Generate Visit Prep from my log</button>' : '';
+  var onePager = hist.length ? '<button class="vc-save" onclick="buildOnePager()"><i class="ti ti-file-text"></i> Create New-Patient One-Pager</button>' : '';
   var install = window._deferredInstall ? '<button id="hhInstall" onclick="promptInstall()" style="display:flex;align-items:center;justify-content:center;gap:.4rem;margin:.6rem 1rem 0;padding:.7rem;background:#1f9d96;border:none;color:#fff;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit"><i class="ti ti-download"></i> Install MedCompanion on this device</button>' : '';
-  ov.innerHTML = '<div class="vc-modal"><div class="vc-head"><div class="vc-title"><i class="ti ti-heart"></i> My Health</div><div class="vc-sub">Private to this device. Build a one-pager for any new doctor.</div><button class="vc-close" onclick="closeHealthHub()" aria-label="Close">×</button></div>'
-    + '<div class="vc-log">' + items + '</div>'
-    + (hist.length ? '<button class="vc-save" onclick="buildOnePager()"><i class="ti ti-file-text"></i> Create New-Patient One-Pager</button>' : '')
-    + install + '</div>';
+  ov.innerHTML = '<div class="vc-modal"><div class="vc-head"><div class="vc-title"><i class="ti ti-heart"></i> My Health</div><div class="vc-sub">Log your story over time. Build a summary your doctor can use in seconds.</div><button class="vc-close" onclick="closeHealthHub()" aria-label="Close">×</button></div>'
+    + '<div class="vc-log" id="hhBody">' + hubAccountBlock() + hubLogForm() + '<div id="hhServerLog"></div>' + brief + '</div>'
+    + prepBtn + onePager + install + '</div>';
   ov.classList.add('show');
+  if (currentUser && currentUser.user_id) loadServerLog();
 }
 function closeHealthHub() { var ov = document.getElementById('hhOverlay'); if (ov) ov.classList.remove('show'); }
 function buildOnePager() {
@@ -3480,6 +3503,80 @@ function buildOnePager() {
   var text = lines.join('\n');
   if (navigator.share) { navigator.share({ title: 'New-Patient One-Pager', text: text }).catch(function(){}); }
   else if (navigator.clipboard) { navigator.clipboard.writeText(text); var b = document.querySelector('#hhOverlay .vc-save'); if (b) b.innerHTML = '<i class="ti ti-check"></i> Copied — paste it anywhere'; }
+}
+
+/* ══ Health Log (account-backed) + dual Visit Prep ══ */
+async function addLogEntry() {
+  if (!(currentUser && currentUser.user_id)) { openAuth('signup'); return; }
+  var what = (document.getElementById('logWhat') || {}).value || '';
+  var howlong = (document.getElementById('logHowLong') || {}).value || '';
+  var sev = parseInt((document.getElementById('logSev') || {}).value || '5', 10);
+  var notes = (document.getElementById('logNotes') || {}).value || '';
+  var msg = document.getElementById('logMsg');
+  if (!what.trim()) { if (msg) { msg.style.color = '#f7a8a0'; msg.textContent = 'Tell me what is going on first.'; } return; }
+  var fullNotes = (howlong ? 'Duration: ' + howlong + '. ' : '') + notes;
+  if (msg) { msg.style.color = ''; msg.textContent = 'Saving…'; }
+  try {
+    var res = await fetch(API + '/user/symptoms/log', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUser.user_id, symptom: what.trim(), severity: sev, notes: fullNotes }) });
+    var d = await res.json();
+    if (d.status === 'ok') {
+      if (msg) msg.textContent = '✓ Logged';
+      ['logWhat','logHowLong','logNotes'].forEach(function(id){ var el = document.getElementById(id); if (el) el.value = ''; });
+      loadServerLog();
+    } else if (msg) { msg.style.color = '#f7a8a0'; msg.textContent = 'Could not save.'; }
+  } catch(e) { if (msg) { msg.style.color = '#f7a8a0'; msg.textContent = 'Network error.'; } }
+}
+async function loadServerLog() {
+  var el = document.getElementById('hhServerLog'); if (!el) return;
+  try {
+    var res = await fetch(API + '/user/' + currentUser.user_id + '/symptoms');
+    var d = await res.json();
+    var logs = d.symptoms || [];
+    if (!logs.length) { el.innerHTML = '<div style="font-size:12.5px;color:#9fbfbb;margin-bottom:.8rem">No log entries yet — add how you are feeling above. Each entry builds your visit summary.</div>'; return; }
+    el.innerHTML = '<div style="font-size:12px;font-weight:800;color:#D4B26A;text-transform:uppercase;letter-spacing:.04em;margin:.4rem 0 .5rem">Your log (' + logs.length + ')</div>'
+      + logs.map(function(l){ var when = (l.logged_at || '').slice(0, 10);
+        return '<div style="background:#16323a;border:1px solid #1f5a5c;border-radius:10px;padding:.6rem .85rem;margin-bottom:.45rem"><div style="font-size:11px;color:#9fbfbb">' + clean(when) + (l.severity ? ' · ' + l.severity + '/10' : '') + '</div><div style="font-size:14px;color:#eafaf8;font-weight:600">' + clean(l.symptom) + '</div>' + (l.notes ? '<div style="font-size:12px;color:#9fbfbb">' + clean(l.notes) + '</div>' : '') + '</div>';
+      }).join('');
+  } catch(e) { el.innerHTML = ''; }
+}
+async function generateVisitPrep() {
+  if (!(currentUser && currentUser.user_id)) { openAuth('signup'); return; }
+  ensureVcStyles();
+  var ov = document.getElementById('vpOverlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'vpOverlay'; ov.className = 'vc-overlay'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-label','Visit Prep'); ov.addEventListener('click', function(e){ if (e.target === this) closeVisitPrep(); }); document.body.appendChild(ov); }
+  ov.innerHTML = '<div class="vc-modal"><div class="vc-head"><div class="vc-title"><i class="ti ti-clipboard-data"></i> Visit Prep</div><div class="vc-sub">From your log — plain for you, clinical for your doctor.</div><button class="vc-close" onclick="closeVisitPrep()" aria-label="Close">×</button></div><div class="vc-log" id="vpBody"><div class="vc-empty">Building your visit prep from your log… 🧩</div></div></div>';
+  ov.classList.add('show');
+  try {
+    var res = await fetch(API + '/visit-prep', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: currentUser.user_id, lang: window.currentLang || null }) });
+    renderVisitPrep(await res.json());
+  } catch(e) { var b = document.getElementById('vpBody'); if (b) b.innerHTML = '<div class="vc-empty">Could not build it right now. Try again in a moment.</div>'; }
+}
+function closeVisitPrep() { var ov = document.getElementById('vpOverlay'); if (ov) ov.classList.remove('show'); }
+window._vpData = null;
+function renderVisitPrep(d) {
+  var b = document.getElementById('vpBody'); if (!b) return;
+  if (!d || d.empty) { b.innerHTML = '<div class="vc-empty">Your log is empty. Add a few entries about how you are feeling, then generate your visit prep.</div>'; return; }
+  window._vpData = d;
+  var qs = (d.key_questions || []).map(function(q){ return '<li>' + clean(q) + '</li>'; }).join('');
+  var tl = (d.timeline || []).map(function(t){ return '<li>' + clean(t) + '</li>'; }).join('');
+  b.innerHTML =
+    '<div style="background:#16323a;border:1px solid #1f5a5c;border-radius:12px;padding:1rem;margin-bottom:.7rem">'
+    + '<div style="font-size:12px;font-weight:800;color:#1f9d96;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem">💚 For you — your story in plain language</div>'
+    + '<div style="font-size:14.5px;color:#eafaf8;line-height:1.6">' + clean(d.patient_summary).replace(/\n/g,'<br>') + '</div></div>'
+    + (tl ? '<div style="background:#16323a;border:1px solid #1f5a5c;border-radius:12px;padding:.9rem 1rem;margin-bottom:.7rem"><div style="font-size:12px;font-weight:800;color:#D4B26A;text-transform:uppercase;margin-bottom:.3rem">Timeline</div><ul style="margin:0 0 0 1.1rem;padding:0;color:#9fbfbb;font-size:13px">' + tl + '</ul></div>' : '')
+    + '<div style="background:#0d2f31;border:1.5px solid #D4B26A;border-radius:12px;padding:1rem;margin-bottom:.7rem">'
+    + '<div style="font-size:12px;font-weight:800;color:#D4B26A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem">🩺 For your doctor — clinical handoff</div>'
+    + '<div style="font-size:13.5px;color:#eafaf8;line-height:1.6">' + clean(d.clinical_summary).replace(/\n/g,'<br>') + '</div>'
+    + (qs ? '<div style="font-size:12px;color:#9fbfbb;margin-top:.6rem"><strong style="color:#D4B26A">May want to explore:</strong><ul style="margin:.2rem 0 0 1.1rem;padding:0">' + qs + '</ul></div>' : '')
+    + '</div>'
+    + '<button class="vc-save" onclick="shareVisitPrep()" style="border-color:#1f9d96;color:#7fe3d8"><i class="ti ti-share"></i> Share / Save this prep</button>';
+}
+function shareVisitPrep() {
+  var d = window._vpData; if (!d) return;
+  var text = 'VISIT PREP (MedCompanion AI)\n\nMY STORY (plain language):\n' + (d.patient_summary || '') + '\n\nFOR MY DOCTOR (clinical):\n' + (d.clinical_summary || '') + '\n\nNote: prepared from my own symptom log with an AI tool to make our visit efficient. Not a diagnosis. My doctor has my full history and the final say.';
+  if (navigator.share) { navigator.share({ title: 'Visit Prep', text: text }).catch(function(){}); }
+  else if (navigator.clipboard) { navigator.clipboard.writeText(text); var b = document.querySelector('#vpOverlay .vc-save'); if (b) b.innerHTML = '<i class="ti ti-check"></i> Copied'; }
 }
 
 /* ══ PWA: installable + works offline ══ */

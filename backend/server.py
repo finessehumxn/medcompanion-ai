@@ -133,6 +133,62 @@ async def translate(req: TranslateRequest):
         logger.error(f"translate error: {e}")
         return {"translated": text}
 
+class VisitPrepRequest(BaseModel):
+    user_id: str
+    lang: Optional[str] = None
+
+@app.post("/visit-prep")
+async def visit_prep(req: VisitPrepRequest):
+    """Turns a patient's logged symptom history into TWO summaries:
+    a plain-language one for them, and a concise clinical handoff for their
+    clinician — so the visit is efficient without a hundred probing questions."""
+    logs = await get_symptom_history(req.user_id, limit=60)
+    if not logs:
+        return {"empty": True, "patient_summary": "", "clinical_summary": ""}
+    # Build a chronological log text (oldest first reads like a story)
+    entries = []
+    for e in reversed(logs):
+        when = (e.get("logged_at") or "")[:10]
+        sev = e.get("severity")
+        entries.append(f"[{when}] {e.get('symptom','')}"
+                       + (f" (severity {sev}/10)" if sev else "")
+                       + (f" — {e.get('notes','')}" if e.get('notes') else ""))
+    log_text = "\n".join(entries)
+    lang = (req.lang or "").strip()
+    lang_line = f"Write patient_summary in this language (BCP-47 code): {lang}. Keep clinical_summary in English." if lang else ""
+    system = (
+        "You help a patient prepare for a doctor visit using the symptom history they logged over time. "
+        "You do NOT diagnose. You organize what they recorded so the visit is efficient. " + lang_line + "\n\n"
+        "Return ONLY valid JSON, no apostrophes in string values:\n"
+        "{\n"
+        '  "patient_summary": "warm plain-language recap of their story they can read or hand over (onset, how it changed, how it affects them)",\n'
+        '  "clinical_summary": "a concise clinical handoff for the clinician in HPI style: onset/duration, course/timeline, severity, associated factors, what makes it better or worse, relevant logged details. Tight and professional.",\n'
+        '  "key_questions": ["a focused question the clinician may want to explore", "another"],\n'
+        '  "timeline": ["short dated milestone", "another"]\n'
+        "}"
+    )
+    try:
+        import anthropic, json as _json
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model="claude-sonnet-4-6", max_tokens=1400, system=system,
+            messages=[{"role": "user", "content": f"Logged history (oldest first):\n{log_text}"}],
+        )
+        raw = "".join(getattr(b, "text", "") for b in resp.content).replace("```json", "").replace("```", "").strip()
+        s, e = raw.find("{"), raw.rfind("}")
+        data = _json.loads(raw[s:e+1]) if s != -1 else {}
+        return {
+            "empty": False,
+            "patient_summary": data.get("patient_summary", ""),
+            "clinical_summary": data.get("clinical_summary", ""),
+            "key_questions": data.get("key_questions", []) or [],
+            "timeline": data.get("timeline", []) or [],
+            "entries": len(logs),
+        }
+    except Exception as ex:
+        logger.error(f"visit_prep error: {ex}")
+        return {"empty": False, "patient_summary": log_text, "clinical_summary": log_text, "key_questions": [], "timeline": []}
+
 class TriageRequest(BaseModel):
     text: str
     lang: Optional[str] = None
