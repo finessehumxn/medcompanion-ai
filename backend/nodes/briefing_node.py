@@ -176,6 +176,17 @@ def audience_directive(viewer_type: str, intent: str) -> str:
     viewer_type = (viewer_type or "everyday").lower()
     intent = (intent or "").lower()
 
+    if intent == "pharmacist":
+        return (
+            "AUDIENCE: A pharmacist or pharmacy professional.\n"
+            "Write a drug-focused clinical reference (Lexicomp / FDA-label style):\n"
+            "- Lead with drug class, key indications, and usual dosing considerations.\n"
+            "- Emphasize interactions (drug-drug, drug-food), major contraindications, and monitoring parameters.\n"
+            "- Include concise PATIENT COUNSELING POINTS the pharmacist can relay.\n"
+            "- Use precise terminology; cite FDA labels, package inserts, and reputable drug references with URLs.\n"
+            "POSITIONING: This supports the pharmacist's professional judgment and the patient's own prescriber; "
+            "it does not direct therapy or replace the label.\n"
+        )
     if intent == "medication":
         return (
             "AUDIENCE: Someone checking medication safety and interactions.\n"

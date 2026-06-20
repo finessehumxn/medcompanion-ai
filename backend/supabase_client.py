@@ -224,6 +224,41 @@ async def get_pending_reviews(limit: int = 50) -> list:
         return []
 
 
+async def export_user_data(user_id: str) -> dict:
+    """HIPAA patient right: return everything we store about this user."""
+    sb = get_supabase()
+    if not sb:
+        return {}
+    out = {}
+    for tbl, col in (("health_profiles", "user_id"), ("health_sessions", "user_id"), ("symptom_logs", "user_id"), ("medications", "user_id")):
+        try:
+            r = sb.table(tbl).select("*").eq(col, user_id).execute()
+            out[tbl] = r.data or []
+        except Exception as e:
+            logger.error(f"export {tbl} error: {e}")
+            out[tbl] = []
+    return out
+
+
+async def delete_user_data(user_id: str) -> bool:
+    """HIPAA patient right: delete all of this user's data, and the auth account."""
+    sb = get_supabase()
+    if not sb:
+        return False
+    ok = True
+    for tbl in ("symptom_logs", "medications", "health_sessions", "health_profiles"):
+        try:
+            sb.table(tbl).delete().eq("user_id", user_id).execute()
+        except Exception as e:
+            logger.error(f"delete {tbl} error: {e}")
+            ok = False
+    try:
+        sb.auth.admin.delete_user(user_id)
+    except Exception as e:
+        logger.error(f"delete auth user error: {e}")
+    return ok
+
+
 async def sign_review(review_id: str, doctor_name: str, verdict: str, note: str = "") -> bool:
     sb = get_supabase()
     if not sb:

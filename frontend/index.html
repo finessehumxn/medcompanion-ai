@@ -2180,6 +2180,10 @@ document.addEventListener('DOMContentLoaded', function() {
         <span class="role-opt-ic">💊</span>
         <span><span class="role-opt-t">Medication &amp; interaction check</span><span class="role-opt-s">What's safe to mix — foods, drinks, other meds.</span></span>
       </button>
+      <button class="role-opt" onclick="chooseRole('professional','pharmacist')">
+        <span class="role-opt-ic">⚕️</span>
+        <span><span class="role-opt-t">Pharmacist / Rx</span><span class="role-opt-s">Drug-focused: dosing, interactions, counseling points.</span></span>
+      </button>
     </div>
     <div class="role-foot">
       <button class="role-skip" onclick="chooseRole('everyday','self')">Not sure yet — just get me started</button>
@@ -2204,6 +2208,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
     <div class="auth-error" id="authError"></div>
     <button class="auth-submit" id="authSubmit" onclick="submitAuth()">Create Free Account</button>
+    <p style="font-size:11px;color:#7a8c8e;line-height:1.5;margin:.7rem 0 0">By creating an account, you agree we securely store your health log to help you prepare for your care. We never sell your data, and you can export or delete it anytime. See our <a href="/privacy" target="_blank" style="color:#1f9d96">Privacy Policy</a>.</p>
     <div class="auth-toggle" id="authToggle">
       Already have an account? <a onclick="toggleAuthMode()">Sign in</a>
     </div>
@@ -3083,17 +3088,24 @@ function showCustomizing(on, sub) {
 }
 
 function applyIntentCopy() {
-  if (window.currentIntent !== 'medication') return;
+  if (window.currentIntent !== 'medication' && window.currentIntent !== 'pharmacist') return;
   var desc = document.querySelector('.hero-desc');
   var hint = document.querySelector('.patient-input');
   var goBtn = document.getElementById('goBtn');
   var chipsWrap = document.querySelector('.chips-wrap');
   var heroTitle = document.querySelector('.hero-title');
+  if (chipsWrap) chipsWrap.style.display = 'none';
+  if (window.currentIntent === 'pharmacist') {
+    if (heroTitle) heroTitle.innerHTML = 'Pharmacist<br><em>drug reference</em>';
+    if (desc) desc.textContent = 'Enter a medication or regimen. Get a drug-focused briefing — class, dosing considerations, interactions, contraindications, monitoring, and patient counseling points — with sources.';
+    if (hint) hint.placeholder = 'Enter a drug or regimen (e.g. "warfarin", "metformin + iodinated contrast")...';
+    if (goBtn) goBtn.innerHTML = '<i class="ti ti-prescription"></i> Build Drug Reference';
+    return;
+  }
   if (heroTitle) heroTitle.innerHTML = 'Medication &amp;<br><em>interaction check</em>';
   if (desc) desc.textContent = 'Tell me the medicines, foods, or drinks you want to check together. I will flag what to avoid, what needs caution, and what is usually fine — then remind you to confirm with your pharmacist.';
   if (hint) hint.placeholder = 'List what you want to check — e.g. "ibuprofen, lisinopril, and grapefruit"...';
   if (goBtn) goBtn.innerHTML = '<i class="ti ti-pill"></i> Check Interactions';
-  if (chipsWrap) chipsWrap.style.display = 'none';
   var extraLabel = document.querySelector('.input-extra-label');
   if (extraLabel) extraLabel.innerHTML = '📷 Snap a photo of your pill bottles — I read the names &nbsp;|&nbsp; 🎤 or just say them';
 }
@@ -3453,9 +3465,12 @@ function createHealthHubLauncher() {
 var HH_IS = 'width:100%;background:#0d2f31;border:1px solid #1f5a5c;border-radius:10px;padding:.6rem .8rem;color:#eafaf8;font-size:14px;font-family:inherit;margin-bottom:.5rem;box-sizing:border-box';
 function hubAccountBlock() {
   if (currentUser && currentUser.user_id) {
-    return '<div style="background:#16323a;border:1px solid #1f5a5c;border-radius:12px;padding:.8rem 1rem;margin-bottom:.8rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem">'
+    return '<div style="background:#16323a;border:1px solid #1f5a5c;border-radius:12px;padding:.8rem 1rem;margin-bottom:.6rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem">'
       + '<div style="font-size:13px;color:#9fbfbb">Signed in as <strong style="color:#eafaf8">' + clean(currentUser.email) + '</strong></div>'
-      + '<button onclick="signOut();openHealthHub()" style="background:none;border:1px solid #1f5a5c;color:#9fbfbb;border-radius:8px;padding:.4rem .7rem;font-size:12px;cursor:pointer;font-family:inherit;flex-shrink:0">Sign out</button></div>';
+      + '<button onclick="signOut();openHealthHub()" style="background:none;border:1px solid #1f5a5c;color:#9fbfbb;border-radius:8px;padding:.4rem .7rem;font-size:12px;cursor:pointer;font-family:inherit;flex-shrink:0">Sign out</button></div>'
+      + '<div style="display:flex;gap:.5rem;margin-bottom:.8rem">'
+      + '<button onclick="exportMyData()" style="flex:1;background:#0d2f31;border:1px solid #1f5a5c;color:#7fe3d8;border-radius:9px;padding:.5rem;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit"><i class="ti ti-download"></i> Export my data</button>'
+      + '<button onclick="deleteMyAccount()" style="flex:1;background:#0d2f31;border:1px solid #6e2b27;color:#f7a8a0;border-radius:9px;padding:.5rem;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit"><i class="ti ti-trash"></i> Delete my account</button></div>';
   }
   return '<div style="background:rgba(212,178,106,.12);border:1px solid #D4B26A;border-radius:12px;padding:1rem;margin-bottom:.8rem">'
     + '<div style="font-size:14px;font-weight:700;color:#eafaf8;margin-bottom:.3rem">🔒 Create a free account to log securely</div>'
@@ -3571,6 +3586,27 @@ function renderVisitPrep(d) {
     + (qs ? '<div style="font-size:12px;color:#9fbfbb;margin-top:.6rem"><strong style="color:#D4B26A">May want to explore:</strong><ul style="margin:.2rem 0 0 1.1rem;padding:0">' + qs + '</ul></div>' : '')
     + '</div>'
     + '<button class="vc-save" onclick="shareVisitPrep()" style="border-color:#1f9d96;color:#7fe3d8"><i class="ti ti-share"></i> Share / Save this prep</button>';
+}
+async function exportMyData() {
+  if (!(currentUser && currentUser.user_id)) return;
+  try {
+    var res = await fetch(API + '/user/' + currentUser.user_id + '/export');
+    var data = await res.json();
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a'); a.href = url; a.download = 'my-medcompanion-data.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  } catch(e) { alert('Could not export right now — please try again.'); }
+}
+async function deleteMyAccount() {
+  if (!(currentUser && currentUser.user_id)) return;
+  if (!confirm('Delete your account and all your saved health data? This cannot be undone.')) return;
+  try {
+    await fetch(API + '/user/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: currentUser.user_id }) });
+  } catch(e) {}
+  try { localStorage.removeItem('mc_user'); localStorage.removeItem('mc_history'); } catch(e) {}
+  signOut(); closeHealthHub();
+  alert('Your account and data have been deleted.');
 }
 function shareVisitPrep() {
   var d = window._vpData; if (!d) return;

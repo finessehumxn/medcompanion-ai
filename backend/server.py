@@ -19,7 +19,7 @@ from .graph import build_graph
 try:
     from .supabase_client import (get_supabase, save_session, get_user_history, log_symptom,
                                   get_symptom_history, request_review, get_review,
-                                  get_pending_reviews, sign_review)
+                                  get_pending_reviews, sign_review, export_user_data, delete_user_data)
     SUPABASE_ENABLED = True
 except ImportError:
     SUPABASE_ENABLED = False
@@ -31,6 +31,8 @@ except ImportError:
     async def get_review(*a, **k): return None
     async def get_pending_reviews(*a, **k): return []
     async def sign_review(*a, **k): return False
+    async def export_user_data(*a, **k): return {}
+    async def delete_user_data(*a, **k): return False
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -472,6 +474,21 @@ async def user_symptoms(user_id: str):
 async def log_symptom_entry(req: SymptomLogRequest):
     success = await log_symptom(req.user_id, req.symptom, req.severity, req.notes or "")
     return {"status": "ok" if success else "error"}
+
+@app.get("/user/{user_id}/export")
+async def user_export(user_id: str):
+    """HIPAA patient right: download everything we store about you."""
+    data = await export_user_data(user_id)
+    return {"status": "ok", "exported_at": __import__("datetime").datetime.utcnow().isoformat() + "Z", "data": data}
+
+class DeleteRequest(BaseModel):
+    user_id: str
+
+@app.post("/user/delete")
+async def user_delete(req: DeleteRequest):
+    """HIPAA patient right: delete your account and all your data."""
+    ok = await delete_user_data(req.user_id)
+    return {"status": "ok" if ok else "error"}
 
 @app.get("/session/{thread_id}/state")
 async def session_state(thread_id: str):

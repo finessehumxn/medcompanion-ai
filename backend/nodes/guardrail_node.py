@@ -37,7 +37,7 @@ def guardrail_node(state: PatientState) -> dict:
     # question here, so tell the classifier not to treat it as "too vague".
     system = SYSTEM
     user_content = raw
-    if (state.get("intent") or "").lower() == "medication":
+    if (state.get("intent") or "").lower() in ("medication", "pharmacist"):
         system = SYSTEM + (
             "\n\nCONTEXT: The user is using a medication-interaction checker. "
             "A list of medications, foods, or drinks (even without a full sentence) "
