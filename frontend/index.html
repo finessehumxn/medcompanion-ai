@@ -1852,11 +1852,19 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
   .hero-title { font-weight:600 !important; }
   .hero-title em { color: var(--gold); font-style: italic; }
   .card-title, .confirm-name { font-family: 'Fraunces','Lora',serif !important; }
-  /* Hero: quiet-luxury surface */
+  /* Hero: dark-emerald quiet-luxury surface (white + gold text pops) */
   .hero { background:
-      linear-gradient(180deg, rgba(255,255,255,.6), rgba(255,255,255,0)) , var(--cream); }
-  .hero-greeting { color: var(--gold-deep) !important; }
+      radial-gradient(900px 520px at 78% -12%, rgba(201,162,75,.18), transparent 60%),
+      linear-gradient(165deg, #0B3D2E 0%, #0A2A20 62%, #08231b 100%) !important; }
+  .hero-title { color: #FBF7EE !important; }
+  .hero-desc { color: rgba(245,239,230,.84) !important; }
+  .hero-desc strong { color: #fff !important; }
+  .hero-greeting, #greeting { color: var(--gold) !important; }
   .hero-dot { background: var(--gold) !important; }
+  .input-label, .chips-label { color: rgba(245,239,230,.92) !important; }
+  .see-more-btn { color: rgba(245,239,230,.8) !important; }
+  .hero .chip { background: rgba(255,255,255,.08) !important; color: #EDE6D6 !important; border-color: rgba(201,162,75,.3) !important; }
+  .hero .chip:hover { background: rgba(255,255,255,.14) !important; color:#fff !important; }
   /* Primary CTA — emerald with a gold hairline + lift */
   .go-btn {
     background: linear-gradient(135deg, var(--teal), #093a2b) !important;
@@ -2206,8 +2214,8 @@ document.addEventListener('DOMContentLoaded', function() {
   .role-opt{display:flex;gap:.8rem;align-items:flex-start;text-align:left;padding:1rem;border:1.5px solid var(--border,#d9e6e6);border-radius:15px;background:var(--lteal,#f1f8f7);cursor:pointer;transition:.15s;width:100%;font-family:inherit}
   .role-opt:hover{border-color:var(--teal,#1f9d96);transform:translateY(-2px);box-shadow:0 8px 22px rgba(31,157,150,.16)}
   .role-opt-ic{font-size:26px;line-height:1;flex-shrink:0}
-  .role-opt-t{font-size:15px;font-weight:700;color:var(--text-dark,#0d3b3e);margin-bottom:.18rem}
-  .role-opt-s{font-size:12.5px;color:var(--text-soft,#5d7274);line-height:1.4}
+  .role-opt-t{display:block;font-size:15px;font-weight:700;color:var(--text-dark,#0d3b3e);margin-bottom:.18rem;font-family:'Fraunces','Lora',serif}
+  .role-opt-s{display:block;font-size:12.5px;color:var(--text-soft,#5d7274);line-height:1.4}
   .role-foot{margin-top:1.15rem;text-align:center}
   .role-skip{background:none;border:none;color:var(--text-soft,#5d7274);font-size:13px;cursor:pointer;text-decoration:underline;font-family:inherit}
   .role-disc{margin-top:.9rem;font-size:11.5px;color:var(--text-soft,#7a8c8e);text-align:center;line-height:1.45}
