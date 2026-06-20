@@ -2271,6 +2271,14 @@ document.addEventListener('DOMContentLoaded', function() {
         <span class="role-opt-ic">💵</span>
         <span><span class="role-opt-t">Bills &amp; insurance help</span><span class="role-opt-s">Decode a bill or denial, flag overcharges, draft a letter.</span></span>
       </button>
+      <button class="role-opt" onclick="chooseRole('everyday','device')">
+        <span class="role-opt-ic">🫀</span>
+        <span><span class="role-opt-t">I have a device or implant</span><span class="role-opt-s">Pacemaker, pump, monitor, prosthetic — understand it &amp; stay safe.</span></span>
+      </button>
+      <button class="role-opt" onclick="chooseRole('professional','integrative')">
+        <span class="role-opt-ic">🌿</span>
+        <span><span class="role-opt-t">Holistic / Eastern practitioner</span><span class="role-opt-s">Integrative, TCM, Ayurveda, naturopathic — both traditions.</span></span>
+      </button>
     </div>
     <div class="role-foot">
       <button class="role-skip" onclick="chooseRole('everyday','self')">Not sure yet — just get me started</button>
@@ -3205,13 +3213,20 @@ function showCustomizing(on, sub) {
 }
 
 function applyIntentCopy() {
-  if (window.currentIntent !== 'medication' && window.currentIntent !== 'pharmacist') return;
+  if (['medication','pharmacist','device'].indexOf(window.currentIntent) === -1) return;
   var desc = document.querySelector('.hero-desc');
   var hint = document.querySelector('.patient-input');
   var goBtn = document.getElementById('goBtn');
   var chipsWrap = document.querySelector('.chips-wrap');
   var heroTitle = document.querySelector('.hero-title');
   if (chipsWrap) chipsWrap.style.display = 'none';
+  if (window.currentIntent === 'device') {
+    if (heroTitle) heroTitle.innerHTML = 'Your device,<br><em>made clear</em>';
+    if (desc) desc.textContent = 'Tell me about your implant, pump, monitor, or prosthetic. I will explain what it does, what is normal, the safety to know (like MRI or screening), and what to ask your device team.';
+    if (hint) hint.placeholder = 'What device do you have, and what is on your mind? (e.g. pacemaker and MRI safety, insulin pump alarms)...';
+    if (goBtn) goBtn.innerHTML = '<i class="ti ti-device-heart-monitor"></i> Help Me Understand My Device';
+    return;
+  }
   if (window.currentIntent === 'pharmacist') {
     if (heroTitle) heroTitle.innerHTML = 'Pharmacist<br><em>drug reference</em>';
     if (desc) desc.textContent = 'Enter a medication or regimen. Get a drug-focused briefing — class, dosing considerations, interactions, contraindications, monitoring, and patient counseling points — with sources.';

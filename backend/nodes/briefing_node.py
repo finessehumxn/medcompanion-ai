@@ -176,6 +176,26 @@ def audience_directive(viewer_type: str, intent: str) -> str:
     viewer_type = (viewer_type or "everyday").lower()
     intent = (intent or "").lower()
 
+    if intent == "device":
+        return (
+            "AUDIENCE: A person who has a medical device or implant — for example a pacemaker, defibrillator (ICD), "
+            "insulin pump, continuous glucose monitor, neurostimulator, cochlear or other implant, prosthetic, or "
+            "wearable medical technology. Explain their device in plain language: what it does, what is normal versus "
+            "concerning, practical daily-living tips, and important safety notes where relevant (for example MRI safety, "
+            "electromagnetic interference, airport/security screening). Tell them the signs that mean they should seek "
+            "help, and what to ask their device clinic or the manufacturer. Do NOT give device-specific programming or "
+            "settings instructions — that belongs to their device team. Frame everything as understanding plus questions "
+            "for their care team.\n"
+        )
+    if intent == "integrative":
+        return (
+            "AUDIENCE: A holistic, integrative, naturopathic, functional, or traditional/Eastern-medicine practitioner "
+            "(for example Traditional Chinese Medicine, acupuncture, Ayurveda, naturopathy). Present a balanced, respectful, "
+            "professional briefing that covers BOTH the conventional (Western) standard of care AND evidence-informed "
+            "complementary or traditional approaches. Clearly note the strength of evidence for each, and flag any safety or "
+            "interaction concerns (for example herb-drug interactions). Use appropriate professional terminology. Never "
+            "disparage either tradition; support integrative decision-making alongside the patient's full care team.\n"
+        )
     if intent == "pharmacist":
         return (
             "AUDIENCE: A pharmacist or pharmacy professional.\n"
