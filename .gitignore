@@ -10,3 +10,12 @@ __pycache__/
 # local marketing assets (kept in Downloads, not the repo)
 appstore-feature.png
 *-*-*-*-*.png
+
+# brand source art (kept locally, served versions live in frontend/)
+/logo-*.png
+/icon-mark.png
+/favicon-512.png
+/wordmark-only.png
+/social-*.png
+/og-share-1200x630.png
+/website-hero.png
