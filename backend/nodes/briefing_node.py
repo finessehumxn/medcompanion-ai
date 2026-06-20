@@ -99,7 +99,7 @@ def call_claude_with_search(condition: str, user_prompt: str) -> str:
     """Call Claude with web search enabled. Returns extracted text."""
     response = get_client().messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=4000,
+        max_tokens=8000,
         system=SYSTEM_PROMPT,
         tools=[{"type": "web_search_20250305", "name": "web_search"}],
         messages=[{"role": "user", "content": user_prompt}]
@@ -112,7 +112,7 @@ def call_claude_without_search(condition: str, user_prompt: str) -> str:
     logger.info("Falling back to no-search briefing generation")
     response = get_client().messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=4000,
+        max_tokens=8000,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_prompt}]
     )
