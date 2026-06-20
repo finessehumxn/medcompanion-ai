@@ -176,6 +176,37 @@ def audience_directive(viewer_type: str, intent: str) -> str:
     viewer_type = (viewer_type or "everyday").lower()
     intent = (intent or "").lower()
 
+    if intent == "caregiver":
+        return (
+            "AUDIENCE: A caregiver looking after another person (a parent, partner, child, or friend). Speak to THEM as "
+            "the caregiver: explain the condition, what to watch for, how to help day to day, how to coordinate care and "
+            "talk with the care team, and a gentle reminder to care for themselves too.\n"
+        )
+    if intent == "pediatric":
+        return (
+            "AUDIENCE: A parent or guardian asking about a child. Use warm, reassuring, plain language. Note where children "
+            "differ from adults, what is normal versus when to call the pediatrician or seek urgent care, and good questions "
+            "to ask the child's doctor. Never replace pediatric medical care.\n"
+        )
+    if intent == "athlete":
+        return (
+            "AUDIENCE: An athlete or active person focused on training, injury, recovery, and performance. Explain what is "
+            "happening, general recovery and return-to-activity considerations, when to rest versus seek care, and questions "
+            "for a sports-medicine clinician. Avoid prescriptive training or medical instructions.\n"
+        )
+    if intent == "veteran":
+        return (
+            "AUDIENCE: A military veteran. Be respectful and practical. Where relevant, mention VA care navigation and that "
+            "some conditions may relate to service. Keep it plain and supportive, and point toward their VA or civilian "
+            "care team and resources available to veterans.\n"
+        )
+    if intent == "pregnancy":
+        return (
+            "AUDIENCE: Someone who is pregnant, trying to conceive, or postpartum. Use warm, careful, plain language. "
+            "Emphasize what is common versus warning signs that need prompt care (for example heavy bleeding, severe "
+            "headache, reduced fetal movement), caution about medication safety in pregnancy, and questions for their OB or "
+            "midwife. Never replace prenatal care.\n"
+        )
     if intent == "device":
         return (
             "AUDIENCE: A person who has a medical device or implant — for example a pacemaker, defibrillator (ICD), "

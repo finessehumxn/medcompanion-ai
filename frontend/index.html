@@ -2268,8 +2268,8 @@ document.addEventListener('DOMContentLoaded', function() {
         <span><span class="role-opt-t">Pharmacist / Rx</span><span class="role-opt-s">Drug-focused: dosing, interactions, counseling points.</span></span>
       </button>
       <button class="role-opt" onclick="closeRoleModal();openBillHelp()">
-        <span class="role-opt-ic">💵</span>
-        <span><span class="role-opt-t">Bills &amp; insurance help</span><span class="role-opt-s">Decode a bill or denial, flag overcharges, draft a letter.</span></span>
+        <span class="role-opt-ic">🛡️</span>
+        <span><span class="role-opt-t">Healthcare Advocate</span><span class="role-opt-s">Bills, denials, records, forms, coverage, or can't get seen.</span></span>
       </button>
       <button class="role-opt" onclick="chooseRole('everyday','device')">
         <span class="role-opt-ic">🫀</span>
@@ -2279,6 +2279,14 @@ document.addEventListener('DOMContentLoaded', function() {
         <span class="role-opt-ic">🌿</span>
         <span><span class="role-opt-t">Holistic / Eastern practitioner</span><span class="role-opt-s">Integrative, TCM, Ayurveda, naturopathic — both traditions.</span></span>
       </button>
+    </div>
+    <button type="button" onclick="var m=document.getElementById('roleMore');m.style.display='grid';this.style.display='none'" style="width:100%;margin-top:.7rem;background:none;border:1px dashed var(--border,#d9e6e6);color:var(--text-soft,#5d7274);border-radius:12px;padding:.6rem;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">+ More ways I can help</button>
+    <div class="role-grid" id="roleMore" style="display:none;margin-top:.6rem">
+      <button class="role-opt" onclick="chooseRole('everyday','caregiver')"><span class="role-opt-ic">🧑‍🤝‍🧑</span><span><span class="role-opt-t">I'm a caregiver</span><span class="role-opt-s">Looking after a parent, partner, or friend.</span></span></button>
+      <button class="role-opt" onclick="chooseRole('everyday','pediatric')"><span class="role-opt-ic">👶</span><span><span class="role-opt-t">For my child</span><span class="role-opt-s">Parent or guardian — pediatric-aware answers.</span></span></button>
+      <button class="role-opt" onclick="chooseRole('everyday','pregnancy')"><span class="role-opt-ic">🤰</span><span><span class="role-opt-t">Pregnancy / postpartum</span><span class="role-opt-s">Pregnant, trying to conceive, or after birth.</span></span></button>
+      <button class="role-opt" onclick="chooseRole('everyday','athlete')"><span class="role-opt-ic">🏃</span><span><span class="role-opt-t">Athlete / active</span><span class="role-opt-s">Training, injury, recovery, performance.</span></span></button>
+      <button class="role-opt" onclick="chooseRole('everyday','veteran')"><span class="role-opt-ic">🎖️</span><span><span class="role-opt-t">Veteran</span><span class="role-opt-s">VA-aware navigation and support.</span></span></button>
     </div>
     <div class="role-foot">
       <button class="role-skip" onclick="chooseRole('everyday','self')">Not sure yet — just get me started</button>
@@ -3485,11 +3493,30 @@ function openBillHelp() {
   if (!ov) { ov = document.createElement('div'); ov.id = 'bhOverlay'; ov.className = 'vc-overlay'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-label','Bills and Insurance Helper'); ov.addEventListener('click', function(e){ if (e.target === this) closeBillHelp(); }); document.body.appendChild(ov); }
   window._bhImg = null;
   var IS = 'width:100%;background:#16323a;border:1px solid #1f5a5c;border-radius:11px;padding:.7rem .9rem;color:#eafaf8;font-size:14px;font-family:inherit;box-sizing:border-box';
-  ov.innerHTML = '<div class="vc-modal"><div class="vc-head"><div class="vc-title"><i class="ti ti-receipt-2"></i> Bills &amp; Insurance Helper</div><div class="vc-sub">Paste or photograph a confusing bill, EOB, or denial. I will explain it, flag what to question, and draft a letter you can send.</div><button class="vc-close" onclick="closeBillHelp()" aria-label="Close">×</button></div>'
+  ov.innerHTML = '<div class="vc-modal"><div class="vc-head"><div class="vc-title"><i class="ti ti-shield-heart"></i> Healthcare Advocate</div><div class="vc-sub">Bills, denials, records, consent forms, coverage, or can not get an appointment? Paste or photograph it — I will explain it, flag problems, and draft the letter.</div><button class="vc-close" onclick="closeBillHelp()" aria-label="Close">×</button></div>'
     + '<div class="vc-log" id="bhBody">'
-    + '<label style="display:block;font-size:12px;font-weight:800;color:#D4B26A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem">What do you want to do?</label>'
-    + '<select id="bhGoal" style="' + IS + ';margin-bottom:.7rem"><option value="explain">Just explain this bill to me</option><option value="dispute">Dispute an error or overcharge</option><option value="appeal">Appeal an insurance denial</option><option value="itemized">Request an itemized bill</option><option value="financial_assistance">Ask for financial assistance</option><option value="payment_plan">Request a payment plan or discount</option></select>'
-    + '<textarea id="bhText" rows="5" placeholder="Paste the bill or denial text here, or describe what you got and the amounts..." style="' + IS + '"></textarea>'
+    + '<label style="display:block;font-size:12px;font-weight:800;color:#D4B26A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem">What do you need help with?</label>'
+    + '<select id="bhGoal" style="' + IS + ';margin-bottom:.7rem">'
+    +   '<optgroup label="Bills &amp; insurance">'
+    +     '<option value="bill_explain">Explain this bill / EOB</option>'
+    +     '<option value="bill_dispute">Dispute an error or overcharge</option>'
+    +     '<option value="appeal">Appeal an insurance denial</option>'
+    +     '<option value="financial_assistance">Ask for financial assistance</option>'
+    +     '<option value="itemized">Request an itemized bill</option>'
+    +     '<option value="payment_plan">Request a payment plan / discount</option>'
+    +     '<option value="coverage">What does my insurance actually cover?</option>'
+    +   '</optgroup>'
+    +   '<optgroup label="Records &amp; forms">'
+    +     '<option value="records">Get my medical records (letter)</option>'
+    +     '<option value="consent">What am I signing? (explain a form)</option>'
+    +   '</optgroup>'
+    +   '<optgroup label="Getting care">'
+    +     '<option value="alternatives">Booked out for months — find me alternatives</option>'
+    +   '</optgroup>'
+    + '</select>'
+    + '<label style="display:block;font-size:12px;font-weight:800;color:#D4B26A;text-transform:uppercase;letter-spacing:.04em;margin:.2rem 0 .4rem">Your insurance / money situation <span style="font-weight:500;text-transform:none;color:#9fbfbb">(optional — it changes everything)</span></label>'
+    + '<input id="bhFinance" placeholder="e.g. No insurance · Medicaid · Aetna PPO, high deductible · paying cash" style="' + IS + ';margin-bottom:.7rem"/>'
+    + '<textarea id="bhText" rows="4" placeholder="Paste the bill, denial, or form — or describe your situation and any amounts..." style="' + IS + '"></textarea>'
     + '<div style="display:flex;align-items:center;gap:.6rem;margin-top:.6rem"><label style="background:#16323a;border:1px solid #1f5a5c;border-radius:10px;padding:.55rem .9rem;color:#7fe3d8;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit"><i class="ti ti-camera"></i> Add a photo<input type="file" accept="image/*" style="display:none" onchange="bhPhoto(event)"></label><span id="bhPhotoName" style="font-size:12px;color:#9fbfbb"></span></div>'
     + '<button onclick="bhSubmit()" style="width:100%;margin-top:.9rem;background:#1f9d96;border:none;color:#fff;border-radius:12px;padding:.85rem;font-size:14.5px;font-weight:800;cursor:pointer;font-family:inherit"><i class="ti ti-sparkles"></i> Decode my bill</button>'
     + '<p style="font-size:11px;color:#9fbfbb;margin-top:.7rem;line-height:1.5">General guidance, not legal or financial advice. I never invent codes or amounts — if your bill is not itemized, the first step is to request one.</p>'
@@ -3500,14 +3527,15 @@ function closeBillHelp() { var ov = document.getElementById('bhOverlay'); if (ov
 function bhPhoto(e) { var f = e.target.files && e.target.files[0]; if (!f) return; var r = new FileReader(); r.onload = function(){ window._bhImg = { data: String(r.result).split(',')[1], media: f.type }; var n = document.getElementById('bhPhotoName'); if (n) n.textContent = f.name; }; r.readAsDataURL(f); }
 async function bhSubmit() {
   var text = (document.getElementById('bhText') || {}).value || '';
-  var goal = (document.getElementById('bhGoal') || {}).value || 'explain';
+  var task = (document.getElementById('bhGoal') || {}).value || 'bill_explain';
+  var finance = (document.getElementById('bhFinance') || {}).value || '';
   if (!text.trim() && !window._bhImg) return;
   var body = document.getElementById('bhBody');
-  body.innerHTML = '<div class="vc-empty">Reading it carefully and checking for things to question… 🔎</div>';
+  body.innerHTML = '<div class="vc-empty">Reading it carefully and working out your options… 🔎</div>';
   try {
-    var payload = { text: text, goal: goal, lang: window.currentLang || null };
+    var payload = { task: task, text: text, finance: finance, lang: window.currentLang || null };
     if (window._bhImg) { payload.image_data = window._bhImg.data; payload.image_media_type = window._bhImg.media; }
-    var res = await fetch(API + '/billhelp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    var res = await fetch(API + '/advocate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     bhRender(await res.json());
   } catch(e) { body.innerHTML = '<div class="vc-empty">I could not process that just now. Please try again.</div>'; }
 }
@@ -3914,7 +3942,7 @@ function createActionFab() {
     + '<button class="vc-launch" style="background:linear-gradient(135deg,#C9A24B,#A9863A);color:#0A1F1A" onclick="closeFab();openHealthHub()"><i class="ti ti-heart"></i> My Health</button>'
     + '<button class="vc-launch" onclick="closeFab();openVisitCompanion()"><i class="ti ti-stethoscope"></i> At my visit?</button>'
     + '<button class="vc-launch" style="background:linear-gradient(135deg,#1f9d96,#15807a)" onclick="closeFab();openCompanionChat()"><i class="ti ti-message-heart"></i> Talk to me</button>'
-    + '<button class="vc-launch" style="background:linear-gradient(135deg,#3b6e57,#2c5443)" onclick="closeFab();openBillHelp()"><i class="ti ti-receipt-2"></i> Bills &amp; insurance</button>'
+    + '<button class="vc-launch" style="background:linear-gradient(135deg,#3b6e57,#2c5443)" onclick="closeFab();openBillHelp()"><i class="ti ti-shield-heart"></i> Advocate</button>'
     + '</div>'
     + '<button id="fabMain" aria-label="Quick actions" onclick="toggleFab()" style="width:58px;height:58px;border-radius:50%;border:1px solid rgba(201,162,75,.55);background:linear-gradient(135deg,#0B3D2E,#093a2b);color:#fff;font-size:24px;cursor:pointer;box-shadow:0 12px 32px rgba(10,31,26,.4);display:flex;align-items:center;justify-content:center;transition:transform .15s"><i class="ti ti-plus"></i></button>';
   document.body.appendChild(wrap);

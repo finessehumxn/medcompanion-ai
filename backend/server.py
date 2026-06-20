@@ -257,6 +257,79 @@ async def billhelp(req: BillRequest):
         return {"summary": "I could not read that fully just now. A safe first step is to call the billing office and request a fully itemized bill with codes — then we can review it together.",
                 "flags": [], "actions": ["Request a fully itemized bill with billing codes", "Do not pay until you have reviewed the itemized bill"], "letter": ""}
 
+class AdvocateRequest(BaseModel):
+    task: str = "bill_explain"
+    text: Optional[str] = ""
+    image_data: Optional[str] = None
+    image_media_type: Optional[str] = "image/jpeg"
+    finance: Optional[str] = ""      # e.g. "No insurance", "Medicaid", "Aetna PPO, high deductible"
+    lang: Optional[str] = None
+
+ADVOCATE_TASKS = {
+    "bill_explain": "Explain this medical bill or EOB in plain language; flag anything worth questioning (duplicate charges, services not received, upcoding, surprise out-of-network, missing itemization).",
+    "bill_dispute": "Draft a firm but polite letter disputing likely errors or overcharges on this bill.",
+    "appeal": "Draft an insurance-denial appeal letter requesting reconsideration and the specific reason for denial, citing the patient's right to appeal.",
+    "financial_assistance": "Draft a letter requesting financial assistance / charity care and a hardship discount.",
+    "itemized": "Draft a letter requesting a fully itemized bill with billing (CPT/HCPCS) codes.",
+    "payment_plan": "Draft a letter requesting an interest-free payment plan and a prompt-pay or self-pay discount.",
+    "records": "The user wants their medical records. Explain their right to access them (in the US, the HIPAA Right of Access — providers generally must respond within 30 days). Draft a clear records-request letter with [BRACKETED] placeholders for dates of service, the records wanted, and delivery method.",
+    "consent": "The user is being asked to sign a form or consent. Explain in plain language what it appears to say and what they would be agreeing to, and flag anything to ASK ABOUT or be cautious of before signing. Do not tell them whether to sign — help them ask good questions.",
+    "coverage": "Explain the user's insurance coverage in plain language from what they share (plan summary, card, EOB, or description): what deductible, copay, coinsurance, out-of-pocket max, and in- vs out-of-network mean FOR THEM, what is likely covered, and how to verify. Provide a short call script to confirm coverage as the letter.",
+    "alternatives": "The user cannot get a timely appointment (often booked out months) or needs care sooner. Suggest legitimate interim options matched to their urgency and finances: telehealth, urgent care, retail/pharmacy clinics, community health centers (FQHCs) and sliding-scale clinics, nurse advice lines, asking to be added to a cancellation list, and when the ER is appropriate. If anything sounds like an emergency, tell them to call their local emergency number now. The letter field can be a short script to ask for an earlier appointment or a cancellation slot.",
+}
+
+@app.post("/advocate")
+async def advocate(req: AdvocateRequest):
+    """The Healthcare Advocate: understand a document, flag problems, and draft the
+    letter/script — for bills, denials, records, consent forms, coverage, and finding
+    care when appointments are booked out. General guidance, not legal/financial advice."""
+    text = (req.text or "").strip()
+    if not text and not req.image_data:
+        return {"summary": "", "flags": [], "actions": [], "letter": ""}
+    task = (req.task or "bill_explain").lower()
+    instr = ADVOCATE_TASKS.get(task, ADVOCATE_TASKS["bill_explain"])
+    lang = (req.lang or "").strip()
+    lang_line = f"Write all output in this language (BCP-47 code): {lang}." if lang else ""
+    fin = (req.finance or "").strip()
+    fin_line = (f"\nThe user's insurance/financial situation: {fin}. Tailor cost and access advice to this — "
+                "for example uninsured: community health centers (FQHCs), sliding-scale clinics, cash-pay/prompt-pay "
+                "discounts, hospital charity care, and patient-assistance programs; Medicaid/Medicare: covered options "
+                "and the right network; private insurance: in-network options, prior-auth, and appeals.") if fin else ""
+    system = (
+        "You are a calm, savvy patient advocate who helps ordinary people handle the parts of healthcare that are "
+        "confusing or unfair — bills, denials, records, consent forms, coverage, and getting care in time. "
+        "Explain in plain language, flag what is worth questioning, give concrete next steps, and draft a polite, "
+        "effective letter or script the person can edit and use. " + instr + " " + lang_line + fin_line + "\n\n"
+        "IMPORTANT: You are NOT a lawyer, doctor, or insurer; this is general guidance, not legal, medical, or financial "
+        "advice. NEVER invent specific codes, dates, dollar amounts, or policy numbers the user did not provide. "
+        "If anything sounds like an emergency, tell them to call their local emergency number. Be encouraging.\n\n"
+        "Return ONLY valid JSON, no apostrophes inside string values:\n"
+        "{\n"
+        '  "summary": "plain-language explanation of the situation",\n'
+        '  "flags": ["something worth questioning or watching for", "another"],\n'
+        '  "actions": ["a concrete next step", "another"],\n'
+        '  "letter": "a complete, ready-to-edit letter or call script with [BRACKETED] placeholders (empty string if not applicable)"\n'
+        "}"
+    )
+    content = []
+    if req.image_data:
+        content.append({"type": "image", "source": {"type": "base64", "media_type": req.image_media_type or "image/jpeg", "data": req.image_data}})
+    content.append({"type": "text", "text": text or "Please help me with this healthcare document or situation."})
+    try:
+        import anthropic, json as _json
+        client = anthropic.Anthropic()
+        resp = client.messages.create(model="claude-sonnet-4-6", max_tokens=2500, system=system,
+                                      messages=[{"role": "user", "content": content}])
+        raw = "".join(getattr(b, "text", "") for b in resp.content).replace("```json", "").replace("```", "").strip()
+        s, e = raw.find("{"), raw.rfind("}")
+        data = _json.loads(raw[s:e+1]) if s != -1 else {}
+        return {"summary": data.get("summary", ""), "flags": data.get("flags", []) or [],
+                "actions": data.get("actions", []) or [], "letter": data.get("letter", "")}
+    except Exception as ex:
+        logger.error(f"advocate error: {ex}")
+        return {"summary": "I could not fully process that just now — please try again.", "flags": [],
+                "actions": ["Try again in a moment", "If urgent, call your provider or local emergency number"], "letter": ""}
+
 class CompanionRequest(BaseModel):
     message: str                 # their question, or a request to re-explain
     context: Optional[str] = ""  # the health topic being discussed
