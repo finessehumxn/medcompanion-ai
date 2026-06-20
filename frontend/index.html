@@ -3121,6 +3121,89 @@ function maybeShowRoleModal() {
   }
 }
 
+/* ══ Doctor Bridge: the shareable, doctor-ready visit sheet (first of its kind) ══ */
+function ensureVisitSheetStyles() {
+  if (document.getElementById('vsStyles')) return;
+  var st = document.createElement('style'); st.id = 'vsStyles';
+  st.textContent =
+    '.vs-overlay{position:fixed;inset:0;z-index:1300;background:rgba(8,30,32,.78);backdrop-filter:blur(5px);display:none;align-items:flex-start;justify-content:center;padding:1.6rem 1rem;overflow:auto}'
+    + '.vs-overlay.show{display:flex}.vs-modal{max-width:640px;width:100%}'
+    + '.vs-actions{display:flex;gap:.5rem;margin-bottom:.8rem;flex-wrap:wrap}'
+    + '.vs-act{padding:.7rem 1rem;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);color:#fff;font-weight:700;font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;font-family:inherit}'
+    + '.vs-act-primary{background:#1f9d96;border-color:#1f9d96}.vs-act-close{margin-left:auto;font-size:20px;line-height:1;padding:.4rem .8rem}'
+    + '.vs-paper{background:#fff;color:#16323a;border-radius:14px;padding:2rem 1.8rem;box-shadow:0 20px 60px rgba(0,0,0,.4)}'
+    + '.vs-head{border-bottom:2px solid #e3eceb;padding-bottom:.8rem;margin-bottom:1.1rem}.vs-brand{font-size:22px;font-weight:800;color:#0B3D2E}.vs-by{font-size:12px;color:#7a8c8e;margin-top:2px}'
+    + '.vs-sec{margin-bottom:1.1rem}.vs-label{font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#1f9d96;margin-bottom:.35rem}'
+    + '.vs-topic{font-size:17px;font-weight:700;color:#0B3D2E}.vs-raw{font-size:13.5px;color:#5d7274;font-style:italic;margin-top:.3rem}.vs-p{font-size:14.5px;line-height:1.6;margin:.2rem 0}'
+    + '.vs-q{margin:.2rem 0 .2rem 1.1rem;padding:0}.vs-q li{font-size:15px;line-height:1.55;margin-bottom:.5rem;font-weight:600;color:#16323a}'
+    + '.vs-src{margin:.2rem 0 .2rem 1.1rem;padding:0}.vs-src li{font-size:12.5px;line-height:1.5;margin-bottom:.3rem;color:#5d7274;word-break:break-word}'
+    + '.vs-disc{margin-top:1.3rem;padding-top:.9rem;border-top:1px dashed #cdd9d8;font-size:11.5px;color:#7a8c8e;line-height:1.5}'
+    + '@media print{body{background:#fff !important}body *{visibility:hidden !important}#visitSheetPaper,#visitSheetPaper *{visibility:visible !important}#visitSheetPaper{position:absolute;left:0;top:0;width:100%;box-shadow:none;border-radius:0;padding:0}.vs-actions{display:none !important}}';
+  document.head.appendChild(st);
+}
+function buildVisitSheet(b, raw) {
+  b = b || {};
+  var dateStr = new Date().toLocaleDateString(undefined, { year:'numeric', month:'long', day:'numeric' });
+  var topic = b.condition_name || b.plain_name || raw || 'My health question';
+  var questions = (b.doctor_questions && b.doctor_questions.length) ? b.doctor_questions
+    : ['What do you think is causing this?', 'What tests or next steps do you recommend?', 'Are there options I should know about?'];
+  var qHtml = questions.map(function(q){ return '<li>' + clean(q) + '</li>'; }).join('');
+  var srcHtml = (b.sources||[]).map(function(s){ return '<li>' + clean(s.title) + ' — <span style="color:#1f9d96">' + clean(s.url) + '</span></li>'; }).join('');
+  return '<div class="vs-head"><div class="vs-brand">📋 Doctor Visit Sheet</div><div class="vs-by">Prepared with MedCompanion AI · ' + dateStr + '</div></div>'
+    + '<div class="vs-sec"><div class="vs-label">What I want to talk about</div><div class="vs-topic">' + clean(topic) + '</div>' + (raw ? '<div class="vs-raw">"' + clean(raw.length>240?raw.slice(0,240)+'…':raw) + '"</div>' : '') + '</div>'
+    + (b.opening ? '<div class="vs-sec"><div class="vs-label">In plain language</div><p class="vs-p">' + clean(b.opening) + '</p></div>' : '')
+    + '<div class="vs-sec"><div class="vs-label">Questions for my doctor</div><ol class="vs-q">' + qHtml + '</ol></div>'
+    + (srcHtml ? '<div class="vs-sec"><div class="vs-label">What I read</div><ul class="vs-src">' + srcHtml + '</ul></div>' : '')
+    + '<div class="vs-disc"><strong>For my doctor:</strong> this was prepared with MedCompanion AI, an AI health-information tool, to help me get ready for our visit. It is not a diagnosis or medical advice — your clinical judgment has the final say.</div>';
+}
+function visitSheetText(b, raw) {
+  b = b || {};
+  var topic = b.condition_name || b.plain_name || raw || 'My health question';
+  var qs = (b.doctor_questions||[]).map(function(q,i){ return (i+1) + '. ' + q; }).join('\n');
+  var src = (b.sources||[]).map(function(s){ return '- ' + s.title + ' (' + s.url + ')'; }).join('\n');
+  return 'DOCTOR VISIT SHEET — prepared with MedCompanion AI\n\n'
+    + 'What I want to talk about:\n' + topic + '\n' + (raw ? '\n"' + raw + '"\n' : '')
+    + (b.opening ? '\nIn plain language:\n' + b.opening + '\n' : '')
+    + '\nQuestions for my doctor:\n' + (qs || '(none)') + '\n'
+    + (src ? '\nWhat I read:\n' + src + '\n' : '')
+    + '\nNote for my doctor: prepared with an AI health-information tool to help me prepare for our visit. Not a diagnosis or medical advice.';
+}
+function openVisitSheet() {
+  var b = window.lastBriefing, raw = window.lastRawInput || '';
+  if (!b) return;
+  ensureVisitSheetStyles();
+  var ov = document.getElementById('visitSheetOverlay');
+  if (!ov) {
+    ov = document.createElement('div'); ov.id = 'visitSheetOverlay'; ov.className = 'vs-overlay';
+    ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Doctor visit sheet');
+    ov.addEventListener('click', function(e){ if (e.target === this) closeVisitSheet(); });
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML = '<div class="vs-modal">'
+    + '<div class="vs-actions">'
+    +   '<button onclick="printVisitSheet()" class="vs-act vs-act-primary"><i class="ti ti-printer"></i> Print / Save PDF</button>'
+    +   '<button onclick="shareVisitSheet()" class="vs-act"><i class="ti ti-share"></i> Share</button>'
+    +   '<button onclick="copyVisitSheet()" class="vs-act"><i class="ti ti-copy"></i> Copy</button>'
+    +   '<button onclick="closeVisitSheet()" class="vs-act vs-act-close" aria-label="Close">×</button>'
+    + '</div>'
+    + '<div class="vs-paper" id="visitSheetPaper">' + buildVisitSheet(b, raw) + '</div>'
+    + '</div>';
+  ov.classList.add('show');
+}
+function closeVisitSheet() { var ov = document.getElementById('visitSheetOverlay'); if (ov) ov.classList.remove('show'); }
+function printVisitSheet() { window.print(); }
+function copyVisitSheet() {
+  var t = visitSheetText(window.lastBriefing, window.lastRawInput || '');
+  try { if (navigator.clipboard) navigator.clipboard.writeText(t); } catch(e){}
+  var btns = document.querySelectorAll('#visitSheetOverlay .vs-act');
+  btns.forEach(function(x){ if (/Copy/.test(x.textContent)) x.innerHTML = '<i class="ti ti-check"></i> Copied'; });
+}
+function shareVisitSheet() {
+  var t = visitSheetText(window.lastBriefing, window.lastRawInput || '');
+  if (navigator.share) { navigator.share({ title: 'My Doctor Visit Sheet', text: t }).catch(function(){}); }
+  else { copyVisitSheet(); }
+}
+
 /* ── Event listeners ── */
 document.addEventListener('DOMContentLoaded', function() {
   var textarea = document.getElementById('patientInput');
@@ -3150,6 +3233,7 @@ document.addEventListener('DOMContentLoaded', function() {
 async function startPipeline() {
   var raw = document.getElementById('patientInput').value.trim();
   if (!raw) return;
+  window.lastRawInput = raw;
 
   document.getElementById('goBtn').disabled = true;
   document.getElementById('emptyState').style.display = 'none';
@@ -3425,6 +3509,9 @@ async function confirmCondition(useAI) {
     var bcard = document.getElementById('briefingCard');
     if (bcard && !bcard.querySelector('.care-team-note')) {
       bcard.insertAdjacentHTML('beforeend',
+        '<button class="visit-sheet-btn" onclick="openVisitSheet()" style="margin-top:1.1rem;width:100%;display:flex;align-items:center;justify-content:center;gap:.6rem;padding:1rem 1.2rem;background:linear-gradient(135deg,var(--teal,#1f9d96),#15807a);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 8px 22px rgba(31,157,150,.25);font-family:inherit">' +
+        '<i class="ti ti-clipboard-heart"></i> Make my Doctor Visit Sheet</button>' +
+        '<div class="vs-tagline" style="text-align:center;font-size:12px;color:var(--text-soft,#5d7274);margin-top:.45rem">Bring it to your appointment — questions to ask, in plain language, with sources. The 1st health app that prepares you <em>and</em> your doctor.</div>' +
         '<div class="care-team-note" style="margin-top:1rem;padding:.95rem 1.15rem;background:rgba(31,157,150,.1);border:1.5px solid rgba(31,157,150,.35);border-radius:14px;font-size:13.5px;color:var(--text-body,#2a4d4f);line-height:1.5">' +
         '<strong>💙 This works <em>with</em> your doctor — not instead of them.</strong> It is here to help you understand and prepare for a better conversation with your care team, who know your full history and have the final say. This is general information, not a diagnosis or medical advice, and not for emergencies.' +
         '</div>');

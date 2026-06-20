@@ -135,6 +135,7 @@ CRITICAL: Return a single valid JSON object. Follow these rules exactly:
 - NO markdown inside values.
 - Use double quotes for all strings.
 - Include at least 2 items in every array.
+- doctor_questions: include 3 to 5 specific, genuinely useful questions the reader should ask their own doctor about this. This is the most important field for helping them prepare for their visit.
  
 Return this exact structure:
 {
@@ -163,6 +164,7 @@ Return this exact structure:
   "sources": [
     {"title": "title", "url": "https://url.org"}
   ],
+  "doctor_questions": ["a specific useful question to ask your doctor without apostrophes", "another question to ask your doctor without apostrophes"],
   "closing": "warm closing without apostrophes"
 }"""
 
