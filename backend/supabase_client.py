@@ -169,3 +169,72 @@ async def get_symptom_history(user_id: str, limit: int = 50) -> list:
     except Exception as e:
         logger.error(f"get_symptom_history error: {e}")
         return []
+
+
+# ── PHYSICIAN REVIEW (Reviewed by a Real Doctor) ─────────────────────────────
+# Run this SQL in Supabase (also in store/DOCTOR_PORTAL.md):
+#   create table public.physician_reviews (
+#     id uuid default gen_random_uuid() primary key,
+#     raw_input text, condition text, briefing jsonb,
+#     status text default 'pending',
+#     doctor_name text, verdict text, note text,
+#     created_at timestamptz default now(), reviewed_at timestamptz
+#   );
+#   alter table public.physician_reviews enable row level security;
+#   -- the server uses the service key (bypasses RLS); no public policies needed.
+async def request_review(raw_input: str, condition: str, briefing: dict) -> Optional[dict]:
+    sb = get_supabase()
+    if not sb:
+        return None
+    try:
+        result = sb.table("physician_reviews").insert({
+            "raw_input": raw_input, "condition": condition, "briefing": briefing, "status": "pending",
+        }).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        logger.error(f"request_review error: {e}")
+        return None
+
+
+async def get_review(review_id: str) -> Optional[dict]:
+    sb = get_supabase()
+    if not sb:
+        return None
+    try:
+        result = sb.table("physician_reviews") \
+            .select("id, status, doctor_name, verdict, note, reviewed_at") \
+            .eq("id", review_id).limit(1).execute()
+        return (result.data or [None])[0]
+    except Exception as e:
+        logger.error(f"get_review error: {e}")
+        return None
+
+
+async def get_pending_reviews(limit: int = 50) -> list:
+    sb = get_supabase()
+    if not sb:
+        return []
+    try:
+        result = sb.table("physician_reviews") \
+            .select("id, raw_input, condition, briefing, created_at") \
+            .eq("status", "pending").order("created_at").limit(limit).execute()
+        return result.data or []
+    except Exception as e:
+        logger.error(f"get_pending_reviews error: {e}")
+        return []
+
+
+async def sign_review(review_id: str, doctor_name: str, verdict: str, note: str = "") -> bool:
+    sb = get_supabase()
+    if not sb:
+        return False
+    try:
+        from datetime import datetime, timezone
+        sb.table("physician_reviews").update({
+            "status": "reviewed", "doctor_name": doctor_name, "verdict": verdict,
+            "note": note, "reviewed_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("id", review_id).execute()
+        return True
+    except Exception as e:
+        logger.error(f"sign_review error: {e}")
+        return False

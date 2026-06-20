@@ -17,7 +17,9 @@ from langgraph.types import Command
 from .graph import build_graph
 
 try:
-    from .supabase_client import get_supabase, save_session, get_user_history, log_symptom, get_symptom_history
+    from .supabase_client import (get_supabase, save_session, get_user_history, log_symptom,
+                                  get_symptom_history, request_review, get_review,
+                                  get_pending_reviews, sign_review)
     SUPABASE_ENABLED = True
 except ImportError:
     SUPABASE_ENABLED = False
@@ -25,6 +27,10 @@ except ImportError:
     async def get_user_history(u, limit=20): return []
     async def log_symptom(*a, **k): return False
     async def get_symptom_history(u, limit=50): return []
+    async def request_review(*a, **k): return None
+    async def get_review(*a, **k): return None
+    async def get_pending_reviews(*a, **k): return []
+    async def sign_review(*a, **k): return False
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -48,6 +54,10 @@ async def serve_app():
 @app.get("/privacy")
 async def serve_privacy():
     return FileResponse(os.path.join(frontend_dir, "privacy.html"))
+
+@app.get("/doctor")
+async def serve_doctor():
+    return FileResponse(os.path.join(frontend_dir, "doctor.html"))
 
 @app.get("/health")
 async def health():
@@ -158,6 +168,51 @@ async def visit_assist(req: VisitAssistRequest):
     except Exception as ex:
         logger.error(f"visit_assist error: {ex}")
         return {"plain": text, "jargon": [], "questions": [], "note": "Saved. You can ask your doctor to repeat anything."}
+
+class ReviewRequest(BaseModel):
+    briefing: dict
+    condition: Optional[str] = ""
+    raw_input: Optional[str] = ""
+
+class SignRequest(BaseModel):
+    key: str
+    doctor_name: str
+    verdict: str                 # "accurate" | "edited" | "see_your_doctor"
+    note: Optional[str] = ""
+
+def _doctor_key_ok(key: str) -> bool:
+    want = os.getenv("DOCTOR_KEY")
+    return bool(want) and key == want
+
+@app.post("/review/request")
+async def review_request(req: ReviewRequest):
+    """Patient asks a real physician on the medical board to review this briefing."""
+    if not SUPABASE_ENABLED:
+        return {"status": "unavailable"}
+    row = await request_review(req.raw_input or "", req.condition or "", req.briefing or {})
+    if not row:
+        return {"status": "error"}
+    return {"status": "pending", "id": row.get("id")}
+
+@app.get("/review/{review_id}")
+async def review_status(review_id: str):
+    r = await get_review(review_id)
+    return r or {"status": "unknown"}
+
+@app.get("/review/pending/list")
+async def review_pending(key: str = ""):
+    """Medical-board only: list briefings awaiting review."""
+    if not _doctor_key_ok(key):
+        raise HTTPException(401, "Invalid board access key")
+    return {"reviews": await get_pending_reviews()}
+
+@app.post("/review/{review_id}/sign")
+async def review_sign(review_id: str, req: SignRequest):
+    """Medical-board only: co-sign a briefing with a verdict + note."""
+    if not _doctor_key_ok(req.key):
+        raise HTTPException(401, "Invalid board access key")
+    ok = await sign_review(review_id, req.doctor_name, req.verdict, req.note or "")
+    return {"ok": ok}
 
 @app.post("/auth/signup")
 async def signup(req: AuthRequest):

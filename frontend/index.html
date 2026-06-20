@@ -3378,6 +3378,60 @@ function vcSaveSummary() {
   else if (navigator.clipboard) { navigator.clipboard.writeText(text); }
 }
 
+/* ══ Reviewed by a Real Doctor: physician co-sign (unique to our medical board) ══ */
+async function requestDoctorReview() {
+  var b = window.lastBriefing; if (!b) return;
+  var btn = document.getElementById('reviewBtn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Sending to the medical board…'; }
+  try {
+    var res = await fetch(API + '/review/request', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ briefing: b, condition: (b.condition_name || b.plain_name || ''), raw_input: window.lastRawInput || '' }) });
+    var data = await res.json();
+    if (data.status === 'pending' && data.id) {
+      window.lastReviewId = data.id;
+      if (btn) btn.style.display = 'none';
+      renderReviewStatus({ status: 'pending' });
+      pollReview(data.id, 0);
+    } else if (data.status === 'unavailable') {
+      renderReviewStatus({ status: 'unavailable' });
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-stethoscope"></i> Get a real doctor to review this'; }
+    } else {
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-stethoscope"></i> Try again'; }
+    }
+  } catch(e) { if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-stethoscope"></i> Try again'; } }
+}
+function renderReviewStatus(r) {
+  var st = document.getElementById('reviewStatus'); if (!st) return; st.style.display = 'block';
+  if (r.status === 'unavailable') {
+    st.style.background = 'rgba(212,178,106,.14)'; st.style.border = '1.5px solid #D4B26A';
+    st.innerHTML = '🩺 <strong>Physician review is coming soon.</strong> Our medical board is being onboarded — you will be able to get a real doctor to confirm your briefing here.';
+    return;
+  }
+  if (r.status === 'reviewed') {
+    var v = r.verdict === 'accurate' ? '✓ Reviewed &amp; confirmed accurate by'
+          : r.verdict === 'edited' ? '✎ Reviewed with a note by'
+          : '⚑ Reviewed by';
+    st.style.background = 'rgba(46,196,140,.14)'; st.style.border = '1.5px solid #2EC48C';
+    st.innerHTML = '<strong>' + v + ' ' + clean(r.doctor_name || 'a licensed physician') + '</strong>'
+      + (r.note ? '<br><span>“' + clean(r.note) + '”</span>' : '')
+      + '<br><span style="font-size:11.5px;color:var(--text-soft,#5d7274)">A real doctor checked this — and your own doctor still knows your full history.</span>';
+    return;
+  }
+  st.style.background = 'rgba(31,157,150,.1)'; st.style.border = '1.5px solid rgba(31,157,150,.35)';
+  st.innerHTML = '🩺 <strong>Sent to our medical board.</strong> A licensed physician will review this — their verdict will appear right here. You can keep using the app meanwhile.';
+}
+function pollReview(id, tries) {
+  if (tries > 90) return; // ~30 min cap
+  setTimeout(async function(){
+    try {
+      var res = await fetch(API + '/review/' + id);
+      var r = await res.json();
+      if (r && r.status === 'reviewed') { renderReviewStatus(r); return; }
+    } catch(e) {}
+    pollReview(id, tries + 1);
+  }, 20000);
+}
+
 /* ── Event listeners ── */
 document.addEventListener('DOMContentLoaded', function() {
   var textarea = document.getElementById('patientInput');
@@ -3697,6 +3751,8 @@ async function confirmCondition(useAI) {
           '<select onchange="translateBriefingTo(this.value)" aria-label="Translate this briefing" style="padding:.5rem .7rem;border-radius:10px;border:1.5px solid var(--border,#d9e6e6);background:#fff;color:var(--text-dark,#0d3b3e);font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer">' + langOptions() + '</select>' +
         '</div>' +
         '<div id="translatedPanel" style="display:none;margin-top:.7rem;padding:1rem 1.15rem;background:var(--lteal,#eef8f7);border:1.5px solid var(--border,#d9e6e6);border-radius:14px"></div>' +
+        '<button id="reviewBtn" onclick="requestDoctorReview()" style="margin-top:1rem;width:100%;display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.95rem;background:#fff;color:#0B3D2E;border:2px solid #D4B26A;border-radius:14px;font-size:14.5px;font-weight:800;cursor:pointer;font-family:inherit"><i class="ti ti-stethoscope"></i> Get a real doctor to review this</button>' +
+        '<div id="reviewStatus" style="display:none;margin-top:.7rem;padding:.9rem 1.1rem;border-radius:14px;font-size:13.5px;line-height:1.5;color:var(--text-dark,#0d3b3e)"></div>' +
         '<div class="care-team-note" style="margin-top:1rem;padding:.95rem 1.15rem;background:rgba(31,157,150,.1);border:1.5px solid rgba(31,157,150,.35);border-radius:14px;font-size:13.5px;color:var(--text-body,#2a4d4f);line-height:1.5">' +
         '<strong>💙 This works <em>with</em> your doctor — not instead of them.</strong> It is here to help you understand and prepare for a better conversation with your care team, who know your full history and have the final say. This is general information, not a diagnosis or medical advice, and not for emergencies.' +
         '</div>');

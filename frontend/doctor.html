@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MedCompanion AI — Physician Review Portal</title>
+<style>
+  :root{--em:#0B3D2E;--gold:#D4B26A;--ink:#0A1F1A;--cream:#F5EFE0;--teal:#1f9d96;--card:#103b3e;--bd:#1f5a5c;--tx:#eafaf8;--t2:#9fbfbb}
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(160deg,#0B3D2E,#0A1F1A);color:var(--tx);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;min-height:100vh}
+  .wrap{max-width:780px;margin:0 auto;padding:2.2rem 1.2rem 5rem}
+  .brand{display:flex;align-items:center;gap:.7rem;margin-bottom:.4rem}
+  .brand b{font-family:Georgia,serif;font-size:22px}.brand b span{color:var(--gold)}
+  h1{font-size:25px;margin:.4rem 0 .2rem}.sub{color:var(--t2);font-size:14px;margin-bottom:1.6rem}
+  .card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:1.3rem 1.4rem;margin-bottom:1.1rem}
+  label{display:block;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--gold);margin:.6rem 0 .3rem}
+  input,textarea,select{width:100%;background:#0d2f31;border:1px solid var(--bd);border-radius:10px;padding:.75rem .9rem;color:var(--tx);font-size:14.5px;font-family:inherit}
+  textarea{resize:vertical;min-height:70px}
+  .btn{background:var(--teal);color:#fff;border:none;border-radius:10px;padding:.8rem 1.3rem;font-size:14.5px;font-weight:800;cursor:pointer;font-family:inherit}
+  .btn-gold{background:var(--gold);color:var(--ink)}
+  .verdicts{display:flex;gap:.5rem;flex-wrap:wrap;margin:.3rem 0}
+  .vbtn{flex:1;min-width:130px;background:#0d2f31;border:1.5px solid var(--bd);color:var(--tx);border-radius:10px;padding:.7rem;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit}
+  .vbtn.sel{border-color:var(--gold);background:rgba(212,178,106,.14);color:var(--gold)}
+  .rev-q{font-size:16px;font-weight:700;color:var(--tx);margin-bottom:.3rem}
+  .rev-cond{font-size:13px;color:var(--gold);margin-bottom:.6rem}
+  .rev-sum{font-size:13.5px;color:var(--t2);line-height:1.55;background:#0d2f31;border-radius:10px;padding:.8rem;margin-bottom:.8rem;max-height:200px;overflow:auto}
+  .muted{color:var(--t2);font-size:13px}.err{color:#f7a8a0;font-size:13px;margin-top:.5rem}
+  .ok{color:#7fe3d8}
+  .disc{font-size:11.5px;color:var(--t2);margin-top:1.5rem;line-height:1.5;border-top:1px solid var(--bd);padding-top:1rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><b>MedCompanion<span>AI</span></b></div>
+  <h1>Physician Review Portal</h1>
+  <div class="sub">Medical board access only. Your review helps patients prepare for their own doctor — it is not the practice of medicine or a doctor-patient relationship.</div>
+
+  <div id="login" class="card">
+    <label>Your name &amp; credentials</label>
+    <input id="docName" placeholder="e.g. Dr. Jane Smith, MD" />
+    <label>Board access key</label>
+    <input id="docKey" type="password" placeholder="Provided by Millennials Creatives LLC" />
+    <div style="margin-top:1rem"><button class="btn" onclick="loadQueue()">Enter review queue</button></div>
+    <div id="loginErr" class="err"></div>
+  </div>
+
+  <div id="queueWrap" style="display:none">
+    <div class="muted" id="queueMeta" style="margin-bottom:1rem"></div>
+    <div id="queue"></div>
+  </div>
+
+  <div class="disc">For physicians: you are reviewing AI-generated, general health information for accuracy and tone. You are not diagnosing or treating the person who requested it, and no doctor-patient relationship is created. Flag anything that should be left to the patient's own treating clinician.</div>
+</div>
+
+<script>
+var API = '';
+var DOCKEY = '', DOCNAME = '';
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+async function loadQueue(){
+  DOCNAME = document.getElementById('docName').value.trim();
+  DOCKEY = document.getElementById('docKey').value.trim();
+  var err = document.getElementById('loginErr'); err.textContent='';
+  if(!DOCNAME || !DOCKEY){ err.textContent='Enter your name and the access key.'; return; }
+  try{
+    var res = await fetch(API + '/review/pending/list?key=' + encodeURIComponent(DOCKEY));
+    if(res.status === 401){ err.textContent='That access key was not accepted.'; return; }
+    var data = await res.json();
+    document.getElementById('login').style.display='none';
+    document.getElementById('queueWrap').style.display='block';
+    renderQueue(data.reviews || []);
+  }catch(e){ err.textContent='Could not reach the server. Try again.'; }
+}
+function renderQueue(reviews){
+  document.getElementById('queueMeta').textContent =
+    'Signed in as ' + DOCNAME + ' · ' + reviews.length + ' briefing(s) awaiting review';
+  var q = document.getElementById('queue');
+  if(!reviews.length){ q.innerHTML='<div class="card muted">Nothing in the queue right now. Thank you. 💚</div>'; return; }
+  q.innerHTML = reviews.map(function(r){
+    var b = r.briefing || {};
+    var soc = (b.standard_of_care && b.standard_of_care.plain_summary) || '';
+    var qs = (b.doctor_questions||[]).map(function(x){return '• '+esc(x);}).join('<br>');
+    return '<div class="card" id="rev-'+r.id+'">'
+      + '<div class="rev-q">'+esc(r.raw_input || (b.plain_name||'Briefing'))+'</div>'
+      + '<div class="rev-cond">'+esc(r.condition || b.condition_name || '')+'</div>'
+      + '<div class="rev-sum"><strong>Opening:</strong> '+esc(b.opening||'(none)')
+        + (soc?'<br><br><strong>Standard of care:</strong> '+esc(soc):'')
+        + (qs?'<br><br><strong>Questions for their doctor:</strong><br>'+qs:'') + '</div>'
+      + '<label>Your verdict</label><div class="verdicts" data-id="'+r.id+'">'
+      +   '<button class="vbtn" onclick="pick(this,\'accurate\')">✓ Accurate &amp; safe</button>'
+      +   '<button class="vbtn" onclick="pick(this,\'edited\')">✎ Needs an edit</button>'
+      +   '<button class="vbtn" onclick="pick(this,\'see_your_doctor\')">⚑ Defer to their doctor</button>'
+      + '</div>'
+      + '<label>Note to the patient (optional)</label><textarea id="note-'+r.id+'" placeholder="A short clarification or reassurance in plain language..."></textarea>'
+      + '<div style="margin-top:.8rem"><button class="btn btn-gold" onclick="sign(\''+r.id+'\')">Co-sign as '+esc(DOCNAME)+'</button> <span id="signMsg-'+r.id+'" class="ok" style="margin-left:.6rem"></span></div>'
+      + '</div>';
+  }).join('');
+}
+var picks = {};
+function pick(btn, v){
+  var row = btn.parentElement; row.querySelectorAll('.vbtn').forEach(function(b){b.classList.remove('sel');});
+  btn.classList.add('sel'); picks[row.getAttribute('data-id')] = v;
+}
+async function sign(id){
+  var verdict = picks[id];
+  var msg = document.getElementById('signMsg-'+id);
+  if(!verdict){ msg.style.color='#f7a8a0'; msg.textContent='Pick a verdict first.'; return; }
+  msg.style.color=''; msg.textContent='Saving…';
+  var note = (document.getElementById('note-'+id)||{}).value || '';
+  try{
+    var res = await fetch(API + '/review/'+id+'/sign', {method:'POST',headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({key:DOCKEY, doctor_name:DOCNAME, verdict:verdict, note:note})});
+    var data = await res.json();
+    if(data.ok){ var card=document.getElementById('rev-'+id); if(card){ card.style.opacity=.5; card.innerHTML='<div class="ok">✓ Co-signed by '+esc(DOCNAME)+'. Thank you.</div>'; } }
+    else { msg.style.color='#f7a8a0'; msg.textContent='Could not save.'; }
+  }catch(e){ msg.style.color='#f7a8a0'; msg.textContent='Network error.'; }
+}
+</script>
+</body>
+</html>
