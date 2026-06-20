@@ -105,6 +105,60 @@ async def translate(req: TranslateRequest):
         logger.error(f"translate error: {e}")
         return {"translated": text}
 
+class VisitAssistRequest(BaseModel):
+    text: str                          # what the doctor said / what is happening right now
+    lang: Optional[str] = None         # patient's language (BCP-47 code) for the reply
+    context: Optional[str] = None      # the condition/topic from their briefing, if any
+
+@app.post("/visit-assist")
+async def visit_assist(req: VisitAssistRequest):
+    """Live Visit Companion: real-time, in-the-room help. Decodes what the doctor
+    said into plain language and hands the patient the next smart question to ask.
+    Fails soft so the room experience never breaks."""
+    text = (req.text or "").strip()
+    if not text:
+        return {"plain": "", "jargon": [], "questions": [], "note": ""}
+    lang = (req.lang or "").strip()
+    context = (req.context or "").strip()
+    lang_line = f"Reply in this language (BCP-47 code): {lang}." if lang else "Reply in the same language the patient used."
+    ctx_line = f"For context, the visit is about: {context}." if context else ""
+    system = (
+        "You are a calm, real-time companion sitting WITH a patient during their doctor visit. "
+        "The patient tells you what the doctor just said. You help them keep up and speak up. "
+        "You never give medical advice, never contradict the doctor, and never tell them to argue. "
+        "You help them understand and ask good questions so the DOCTOR can decide. "
+        + lang_line + " " + ctx_line + "\n\n"
+        "Return ONLY valid JSON, no apostrophes inside string values:\n"
+        "{\n"
+        '  "plain": "what the doctor said, in warm plain language (2-3 sentences)",\n'
+        '  "jargon": [{"term": "medical term they used", "meaning": "plain meaning"}],\n'
+        '  "questions": ["a smart, specific question to ask the doctor right now", "another"],\n'
+        '  "note": "one short reassuring line"\n'
+        "}"
+    )
+    try:
+        import anthropic, json as _json, re as _re
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=900,
+            system=system,
+            messages=[{"role": "user", "content": text}],
+        )
+        raw = "".join(getattr(b, "text", "") for b in resp.content)
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        s, e = raw.find("{"), raw.rfind("}")
+        data = _json.loads(raw[s:e+1]) if s != -1 else {}
+        return {
+            "plain": data.get("plain", ""),
+            "jargon": data.get("jargon", []) or [],
+            "questions": data.get("questions", []) or [],
+            "note": data.get("note", ""),
+        }
+    except Exception as ex:
+        logger.error(f"visit_assist error: {ex}")
+        return {"plain": text, "jargon": [], "questions": [], "note": "Saved. You can ask your doctor to repeat anything."}
+
 @app.post("/auth/signup")
 async def signup(req: AuthRequest):
     if not SUPABASE_ENABLED:

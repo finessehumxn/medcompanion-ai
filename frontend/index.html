@@ -3259,11 +3259,131 @@ async function translateBriefingTo(lang) {
   }
 }
 
+/* ══ Live Visit Companion: real-time, in-the-room help (world first) ══ */
+window.vcTurns = window.vcTurns || [];
+function ensureVcStyles() {
+  if (document.getElementById('vcStyles')) return;
+  var st = document.createElement('style'); st.id = 'vcStyles';
+  st.textContent =
+    '.vc-launch{position:fixed;right:16px;bottom:16px;z-index:1150;display:flex;align-items:center;gap:.5rem;padding:.8rem 1.1rem;background:linear-gradient(135deg,#1f9d96,#15807a);color:#fff;border:none;border-radius:40px;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 10px 28px rgba(31,157,150,.4);font-family:inherit}'
+    + '.vc-overlay{position:fixed;inset:0;z-index:1320;background:rgba(8,30,32,.8);backdrop-filter:blur(5px);display:none;align-items:flex-end;justify-content:center}.vc-overlay.show{display:flex}'
+    + '.vc-modal{background:#0e2f31;width:100%;max-width:560px;height:88vh;border-radius:20px 20px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -10px 50px rgba(0,0,0,.5)}'
+    + '.vc-head{padding:1.1rem 1.3rem;background:linear-gradient(135deg,#1f9d96,#15807a);color:#fff;flex-shrink:0;position:relative}.vc-title{font-size:18px;font-weight:800;display:flex;align-items:center;gap:.5rem}.vc-sub{font-size:12.5px;opacity:.92;margin-top:2px;max-width:90%}'
+    + '.vc-close{position:absolute;top:1rem;right:1.1rem;background:rgba(255,255,255,.2);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:18px;cursor:pointer}'
+    + '.vc-log{flex:1;overflow-y:auto;padding:1rem 1.1rem;display:flex;flex-direction:column;gap:.8rem}.vc-empty{color:#9fbfbb;font-size:13.5px;text-align:center;padding:2rem 1rem;line-height:1.6}'
+    + '.vc-you{align-self:flex-end;max-width:85%;background:#1f9d96;color:#fff;padding:.7rem .95rem;border-radius:14px 14px 4px 14px;font-size:14px}'
+    + '.vc-ai{align-self:flex-start;max-width:92%;background:#16323a;border:1px solid #1f5a5c;border-radius:14px 14px 14px 4px;padding:.85rem 1rem}.vc-plain{font-size:14.5px;color:#eafaf8;line-height:1.55}'
+    + '.vc-jargon{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.6rem}.vc-chip{font-size:11.5px;background:rgba(31,157,150,.18);color:#7fe3d8;padding:.25rem .6rem;border-radius:20px}'
+    + '.vc-qlabel{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#D4B26A;margin:.7rem 0 .3rem}.vc-q{font-size:13.5px;color:#eafaf8;background:rgba(212,178,106,.12);border-left:3px solid #D4B26A;padding:.5rem .7rem;border-radius:6px;margin-bottom:.4rem;cursor:pointer}'
+    + '.vc-inrow{flex-shrink:0;display:flex;gap:.5rem;padding:.8rem 1rem;border-top:1px solid #1f5a5c;background:#0e2f31}.vc-input{flex:1;background:#16323a;border:1px solid #1f5a5c;border-radius:12px;padding:.7rem .9rem;color:#eafaf8;font-size:14px;font-family:inherit;resize:none}'
+    + '.vc-ibtn{background:#1f9d96;border:none;color:#fff;width:44px;border-radius:12px;font-size:18px;cursor:pointer;flex-shrink:0}.vc-mic{background:#16323a;border:1px solid #1f5a5c;color:#7fe3d8}'
+    + '.vc-save{margin:.6rem 1rem 0;padding:.7rem;background:none;border:1px dashed #1f5a5c;color:#7fe3d8;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}';
+  document.head.appendChild(st);
+}
+function createVcLauncher() {
+  if (document.getElementById('vcLaunch')) return;
+  var b = document.createElement('button'); b.id = 'vcLaunch'; b.className = 'vc-launch';
+  b.innerHTML = '<i class="ti ti-stethoscope"></i> At my visit?';
+  b.setAttribute('aria-label', 'Open Live Visit Companion');
+  b.onclick = openVisitCompanion;
+  document.body.appendChild(b);
+}
+function openVisitCompanion() {
+  ensureVcStyles();
+  var ov = document.getElementById('vcOverlay');
+  if (!ov) {
+    ov = document.createElement('div'); ov.id = 'vcOverlay'; ov.className = 'vc-overlay';
+    ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Live Visit Companion');
+    ov.addEventListener('click', function(e){ if (e.target === this) closeVisitCompanion(); });
+    ov.innerHTML = '<div class="vc-modal">'
+      + '<div class="vc-head"><div class="vc-title"><i class="ti ti-stethoscope"></i> Live Visit Companion</div>'
+      + '<div class="vc-sub">Tell me what the doctor just said — I keep up with you, in plain language.</div>'
+      + '<button class="vc-close" onclick="closeVisitCompanion()" aria-label="Close">×</button></div>'
+      + '<div class="vc-log" id="vcLog"></div>'
+      + '<button class="vc-save" onclick="vcSaveSummary()"><i class="ti ti-download"></i> Save after-visit summary</button>'
+      + '<div class="vc-inrow">'
+      +   '<button class="vc-ibtn vc-mic" onclick="vcVoice(this)" aria-label="Speak"><i class="ti ti-microphone"></i></button>'
+      +   '<textarea class="vc-input" id="vcInput" rows="1" placeholder="Type or say what the doctor said..."></textarea>'
+      +   '<button class="vc-ibtn" onclick="vcSend()" aria-label="Send"><i class="ti ti-send"></i></button>'
+      + '</div></div>';
+    document.body.appendChild(ov);
+    var ta = ov.querySelector('#vcInput');
+    ta.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); vcSend(); } });
+  }
+  vcRenderLog();
+  ov.classList.add('show');
+}
+function closeVisitCompanion() { var ov = document.getElementById('vcOverlay'); if (ov) ov.classList.remove('show'); }
+function vcRenderLog() {
+  var log = document.getElementById('vcLog'); if (!log) return;
+  if (!window.vcTurns.length) {
+    log.innerHTML = '<div class="vc-empty">When the doctor says something you do not catch, type or speak it here.<br><br>I will turn it into plain language and hand you the smart question to ask — right now.<br><br><em>I help you understand and ask. Your doctor decides.</em></div>';
+    return;
+  }
+  log.innerHTML = window.vcTurns.map(function(t){
+    var html = '<div class="vc-you">' + clean(t.you) + '</div>';
+    if (t.ai) {
+      var jar = (t.ai.jargon||[]).map(function(j){ return '<span class="vc-chip">' + clean(j.term) + ': ' + clean(j.meaning) + '</span>'; }).join('');
+      var qs = (t.ai.questions||[]).map(function(q){ return '<div class="vc-q" onclick="vcUseQuestion(this)">' + clean(q) + '</div>'; }).join('');
+      html += '<div class="vc-ai"><div class="vc-plain">' + clean(t.ai.plain) + '</div>'
+        + (jar ? '<div class="vc-jargon">' + jar + '</div>' : '')
+        + (qs ? '<div class="vc-qlabel">Ask your doctor</div>' + qs : '')
+        + (t.ai.note ? '<div style="font-size:12px;color:#9fbfbb;margin-top:.5rem">' + clean(t.ai.note) + '</div>' : '')
+        + '</div>';
+    } else {
+      html += '<div class="vc-ai"><div class="vc-plain" style="opacity:.7">Keeping up…</div></div>';
+    }
+    return html;
+  }).join('');
+  log.scrollTop = log.scrollHeight;
+}
+async function vcSend() {
+  var ta = document.getElementById('vcInput'); if (!ta) return;
+  var txt = ta.value.trim(); if (!txt) return;
+  ta.value = '';
+  var turn = { you: txt, ai: null }; window.vcTurns.push(turn);
+  vcRenderLog();
+  try {
+    var ctx = (window.lastBriefing && (window.lastBriefing.condition_name || window.lastBriefing.plain_name)) || '';
+    var res = await fetch(API + '/visit-assist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: txt, lang: window.currentLang || null, context: ctx }) });
+    turn.ai = await res.json();
+  } catch(e) {
+    turn.ai = { plain: 'I could not reach the server just now — you can ask your doctor to repeat that.', jargon: [], questions: [], note: '' };
+  }
+  vcRenderLog();
+}
+function vcUseQuestion(el) { try { if (navigator.clipboard) navigator.clipboard.writeText(el.textContent); } catch(e){} el.style.background = 'rgba(46,196,140,.25)'; }
+function vcVoice(btn) {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  var rec = new SR(); rec.lang = window.currentLang || 'en-US'; rec.interimResults = false;
+  if (btn) btn.innerHTML = '<i class="ti ti-microphone-2"></i>';
+  rec.onresult = function(e){ var t = e.results[0][0].transcript; var ta = document.getElementById('vcInput'); if (ta) ta.value = (ta.value ? ta.value + ' ' : '') + t; };
+  rec.onend = function(){ if (btn) btn.innerHTML = '<i class="ti ti-microphone"></i>'; };
+  try { rec.start(); } catch(e){}
+}
+function vcSaveSummary() {
+  if (!window.vcTurns.length) return;
+  var d = new Date().toLocaleDateString();
+  var lines = ['AFTER-VISIT SUMMARY — ' + d + ' (MedCompanion AI Live Visit Companion)', ''];
+  window.vcTurns.forEach(function(t){
+    lines.push('- Doctor said: ' + t.you);
+    if (t.ai && t.ai.plain) lines.push('  In plain language: ' + t.ai.plain);
+    if (t.ai && t.ai.questions && t.ai.questions.length) lines.push('  Questions: ' + t.ai.questions.join(' / '));
+    lines.push('');
+  });
+  lines.push('Note: prepared with an AI companion to help me follow my visit. Not medical advice.');
+  var text = lines.join('\n');
+  if (navigator.share) { navigator.share({ title: 'After-Visit Summary', text: text }).catch(function(){}); }
+  else if (navigator.clipboard) { navigator.clipboard.writeText(text); }
+}
+
 /* ── Event listeners ── */
 document.addEventListener('DOMContentLoaded', function() {
   var textarea = document.getElementById('patientInput');
   var goBtn = document.getElementById('goBtn');
   maybeShowRoleModal();
+  createVcLauncher();
   var roleLbl = document.querySelector('.user-type-label');
   if (roleLbl) { roleLbl.style.cursor = 'pointer'; roleLbl.title = 'Change who I am helping'; roleLbl.addEventListener('click', openRoleModal); }
   var roleOv = document.getElementById('roleModal');
