@@ -3392,13 +3392,12 @@ async function requestDoctorReview() {
       if (btn) btn.style.display = 'none';
       renderReviewStatus({ status: 'pending' });
       pollReview(data.id, 0);
-    } else if (data.status === 'unavailable') {
-      renderReviewStatus({ status: 'unavailable' });
-      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-stethoscope"></i> Get a real doctor to review this'; }
     } else {
-      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-stethoscope"></i> Try again'; }
+      // board/table not set up yet — show an honest "coming soon" instead of an error
+      renderReviewStatus({ status: 'unavailable' });
+      if (btn) btn.style.display = 'none';
     }
-  } catch(e) { if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-stethoscope"></i> Try again'; } }
+  } catch(e) { renderReviewStatus({ status: 'unavailable' }); if (btn) btn.style.display = 'none'; }
 }
 function renderReviewStatus(r) {
   var st = document.getElementById('reviewStatus'); if (!st) return; st.style.display = 'block';
