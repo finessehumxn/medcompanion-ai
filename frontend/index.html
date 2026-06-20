@@ -1897,6 +1897,23 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
   .card-status.ok { color: var(--teal) !important; }
   /* Floating launchers -> consistent premium pill shadow */
   .vc-launch { box-shadow: 0 10px 30px rgba(10,31,26,.32) !important; letter-spacing:.2px; }
+
+  /* ── SIGNATURE: living gold heartbeat (the ownable identity) ── */
+  .sig-pulse { width:100%; max-width:560px; height:54px; margin:6px 0 10px; }
+  .sig-pulse svg { width:100%; height:100%; display:block; }
+  .sig-pulse .base { fill:none; stroke:rgba(201,162,75,.22); stroke-width:2; }
+  .sig-pulse .live { fill:none; stroke:#E7C877; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round;
+    stroke-dasharray:64 1400; filter:drop-shadow(0 0 7px rgba(201,162,75,.65));
+    animation: ekgSweep 2.6s cubic-bezier(.6,0,.4,1) infinite; }
+  @keyframes ekgSweep { from { stroke-dashoffset:1464; } to { stroke-dashoffset:0; } }
+  @media (prefers-reduced-motion: reduce) { .sig-pulse .live { animation:none; stroke-dasharray:none; } }
+  /* Editorial: larger, tighter display type + small-caps eyebrow */
+  .hero-title { font-size: clamp(2.6rem, 6vw, 4.2rem) !important; line-height: 1.02 !important; }
+  .hero-greeting { text-transform: uppercase; letter-spacing: .22em; font-size: 11px !important; font-weight: 600; }
+  /* Instrument-grade: monospace numerals + fine gold rule on the progress tracker */
+  .pt-t { font-variant-numeric: tabular-nums; letter-spacing:.04em; }
+  .pt-line.done { background: var(--gold) !important; }
+  .pt-c.done { border-color: var(--gold) !important; color: var(--gold) !important; }
 </style>
 
 <!-- PostHog Analytics -->
@@ -3712,6 +3729,16 @@ function closeFab() {
   if (i) i.style.display = 'none';
   if (m) { m.innerHTML = '<i class="ti ti-plus"></i>'; m.style.transform = 'rotate(0)'; }
 }
+/* Signature living-heartbeat — the ownable brand element */
+function injectSignaturePulse() {
+  if (document.querySelector('.sig-pulse')) return;
+  var g = document.querySelector('.hero-greeting');
+  if (!g) return;
+  var d = 'M0,27 H150 L162,27 L170,12 L178,42 L186,27 H320 L332,27 L340,9 L350,45 L360,27 H560';
+  g.insertAdjacentHTML('afterend',
+    '<div class="sig-pulse" aria-hidden="true"><svg viewBox="0 0 560 54" preserveAspectRatio="none">'
+    + '<path class="base" d="' + d + '"/><path class="live" d="' + d + '"/></svg></div>');
+}
 
 /* ══ ER-or-not: fast, cautious safety triage ══ */
 function createTriageLauncher() {
@@ -3770,6 +3797,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var goBtn = document.getElementById('goBtn');
   maybeShowRoleModal();
   createActionFab();
+  injectSignaturePulse();
   registerSW();
   var roleLbl = document.querySelector('.user-type-label');
   if (roleLbl) { roleLbl.style.cursor = 'pointer'; roleLbl.title = 'Change who I am helping'; roleLbl.addEventListener('click', openRoleModal); }
