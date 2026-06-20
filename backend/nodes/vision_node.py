@@ -50,7 +50,7 @@ def vision_node(state: PatientState) -> dict:
 
     try:
         resp = get_client().messages.create(
-            model="claude-sonnet-4-5-20250929",
+            model="claude-sonnet-4-6",
             max_tokens=1000,
             system=SYSTEM,
             messages=[{

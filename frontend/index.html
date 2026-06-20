@@ -3790,6 +3790,10 @@ function renderNormalization(norm) {
       '</div></div>';
   }).join('');
   var alts = (norm.alternate_conditions || []).slice(0,5).join(', ');
+  var condName = (norm.plain_condition_name || norm.primary_condition || '').trim();
+  var reason = (norm.plain_reason || '').trim();
+  var hasCond = condName.length > 0;
+  var hasRows = (norm.term_mappings || []).length > 0;
 
   // Build urgency bar
   var urgency = norm.urgency || 'monitor';
@@ -3819,22 +3823,26 @@ function renderNormalization(norm) {
     '<div class="card-title">Let me make sure I\'ve got this right</div>' +
     '<div class="card-status ok"><i class="ti ti-check"></i> Understood</div></div>' +
     urgencyHtml + redFlagHtml +
-    '<p style="font-size:15px;color:var(--text-body);line-height:1.7;margin:.75rem 0 .25rem">You don\'t need to know medical words — that\'s my job. Here\'s what your words mean in plain language:</p>' +
-    '<div class="map-table">' + rows + '</div>' +
+    (hasRows ? '<p style="font-size:15px;color:var(--text-body);line-height:1.7;margin:.75rem 0 .25rem">You don\'t need to know medical words — that\'s my job. Here\'s what your words mean in plain language:</p><div class="map-table">' + rows + '</div>' : '') +
     '<div class="confirm-box">' +
-      '<div class="confirm-eyebrow">Based on what you shared, this sounds like it could be:</div>' +
-      '<div class="confirm-name">' + clean(norm.plain_condition_name || norm.primary_condition) + '</div>' +
-      '<p class="confirm-reason">' + clean(norm.plain_reason) + '</p>' +
-      (alts ? '<p class="confirm-alts"><strong>Full differential — could also be:</strong> ' + clean(alts) + '</p>' : '') +
-      (norm.confidence_note ? '<p class="confidence-note">🔍 ' + clean(norm.confidence_note) + '</p>' : '') +
-      '<p class="confirm-q">Does this feel close to what you\'ve been experiencing?</p>' +
-      '<div class="btn-group">' +
-        '<button class="btn-yes" id="btnYes" onclick="showApproach(true)"><i class="ti ti-thumb-up"></i> Yes, that sounds right</button>' +
-        '<button class="btn-no" onclick="showOverride()">That\'s not quite it</button>' +
-      '</div>' +
-      '<div class="override-wrap" id="overrideWrap">' +
-        '<p class="override-hint">No worries — what would you like me to look into instead?</p>' +
-        '<input class="override-input" id="overrideInput" placeholder="e.g. Crohn\'s disease, high blood pressure…" />' +
+      (hasCond ?
+        '<div class="confirm-eyebrow">Based on what you shared, this sounds like it could be:</div>' +
+        '<div class="confirm-name">' + clean(condName) + '</div>' +
+        (reason ? '<p class="confirm-reason">' + clean(reason) + '</p>' : '') +
+        (alts ? '<p class="confirm-alts"><strong>Full differential — could also be:</strong> ' + clean(alts) + '</p>' : '') +
+        (norm.confidence_note ? '<p class="confidence-note">🔍 ' + clean(norm.confidence_note) + '</p>' : '') +
+        '<p class="confirm-q">Does this feel close to what you\'ve been experiencing?</p>' +
+        '<div class="btn-group">' +
+          '<button class="btn-yes" id="btnYes" onclick="showApproach(true)"><i class="ti ti-thumb-up"></i> Yes, that sounds right</button>' +
+          '<button class="btn-no" onclick="showOverride()">That\'s not quite it</button>' +
+        '</div>'
+      :
+        '<div class="confirm-eyebrow">Let\'s make sure I help with the right thing</div>' +
+        '<p class="confirm-reason">I want to look up exactly what matters to you. In a few words, what would you like me to help you understand or look into?</p>'
+      ) +
+      '<div class="override-wrap" id="overrideWrap"' + (hasCond ? '' : ' style="display:block"') + '>' +
+        (hasCond ? '<p class="override-hint">No worries — what would you like me to look into instead?</p>' : '') +
+        '<input class="override-input" id="overrideInput" placeholder="e.g. headaches and dizziness, Crohn\'s disease, high blood pressure…" />' +
         '<button class="btn-yes" onclick="showApproach(false)"><i class="ti ti-search"></i> Look this up</button>' +
       '</div>' +
       '<div class="approach-box" id="approachBox" style="display:none">' +

@@ -90,7 +90,7 @@ def normalization_node(state: PatientState) -> dict:
             f"If chest pain, cardiac causes MUST appear in the differential and red_flags."
         )
         resp = get_client().messages.create(
-            model="claude-sonnet-4-5-20250929",
+            model="claude-sonnet-4-6",
             max_tokens=1200,
             system=SYSTEM,
             messages=[{"role": "user", "content": prompt}]
