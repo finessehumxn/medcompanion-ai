@@ -65,6 +65,18 @@ async def serve_doctor():
 async def serve_about():
     return FileResponse(os.path.join(frontend_dir, "about.html"))
 
+@app.get("/about-us")
+async def serve_about_us():
+    return FileResponse(os.path.join(frontend_dir, "about-us.html"))
+
+@app.get("/partners")
+async def serve_partners():
+    return FileResponse(os.path.join(frontend_dir, "partners.html"))
+
+@app.get("/investors")
+async def serve_investors():
+    return FileResponse(os.path.join(frontend_dir, "investors.html"))
+
 # ── PWA: serve manifest, service worker, and icons from root so install works ──
 @app.get("/manifest.json")
 async def serve_manifest():
