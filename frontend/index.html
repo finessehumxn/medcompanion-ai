@@ -3802,8 +3802,10 @@ function hubAccountBlock() {
     return '<div style="background:#16323a;border:1px solid #1f5a5c;border-radius:12px;padding:.8rem 1rem;margin-bottom:.6rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem">'
       + '<div style="font-size:13px;color:#9fbfbb">Signed in as <strong style="color:#eafaf8">' + clean(currentUser.email) + '</strong></div>'
       + '<button onclick="signOut();openHealthHub()" style="background:none;border:1px solid #1f5a5c;color:#9fbfbb;border-radius:8px;padding:.4rem .7rem;font-size:12px;cursor:pointer;font-family:inherit;flex-shrink:0">Sign out</button></div>'
-      + '<div style="display:flex;gap:.5rem;margin-bottom:.8rem">'
+      + '<div style="display:flex;gap:.5rem;margin-bottom:.5rem">'
       + '<button onclick="exportMyData()" style="flex:1;background:#0d2f31;border:1px solid #1f5a5c;color:#7fe3d8;border-radius:9px;padding:.5rem;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit"><i class="ti ti-download"></i> Export my data</button>'
+      + '<button onclick="clearMyHealthData()" style="flex:1;background:#0d2f31;border:1px solid #1f5a5c;color:#e7c877;border-radius:9px;padding:.5rem;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit"><i class="ti ti-eraser"></i> Clear my data</button></div>'
+      + '<div style="display:flex;margin-bottom:.8rem">'
       + '<button onclick="deleteMyAccount()" style="flex:1;background:#0d2f31;border:1px solid #6e2b27;color:#f7a8a0;border-radius:9px;padding:.5rem;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit"><i class="ti ti-trash"></i> Delete my account</button></div>';
   }
   return '<div style="background:rgba(212,178,106,.12);border:1px solid #D4B26A;border-radius:12px;padding:1rem;margin-bottom:.8rem">'
@@ -3931,6 +3933,16 @@ async function exportMyData() {
     var a = document.createElement('a'); a.href = url; a.download = 'my-medcompanion-data.json';
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   } catch(e) { alert('Could not export right now — please try again.'); }
+}
+async function clearMyHealthData() {
+  if (!(currentUser && currentUser.user_id)) return;
+  if (!confirm('Clear all your saved health data (symptom logs and history)? Your account stays active. This cannot be undone.')) return;
+  try {
+    var res = await fetch(API + '/user/data/clear', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: currentUser.user_id }) });
+    var d = await res.json();
+    if (d.status === 'ok') { alert('Your health data has been cleared. Your account is still active.'); openHealthHub(); }
+    else alert('Could not clear your data right now — please try again.');
+  } catch(e) { alert('Could not clear your data right now — please try again.'); }
 }
 async function deleteMyAccount() {
   if (!(currentUser && currentUser.user_id)) return;

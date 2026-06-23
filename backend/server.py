@@ -19,7 +19,7 @@ from .graph import build_graph
 try:
     from .supabase_client import (get_supabase, save_session, get_user_history, log_symptom,
                                   get_symptom_history, request_review, get_review,
-                                  get_pending_reviews, sign_review, export_user_data, delete_user_data)
+                                  get_pending_reviews, sign_review, export_user_data, delete_user_data, clear_user_data)
     SUPABASE_ENABLED = True
 except ImportError:
     SUPABASE_ENABLED = False
@@ -681,6 +681,12 @@ class DeleteRequest(BaseModel):
 async def user_delete(req: DeleteRequest):
     """HIPAA patient right: delete your account and all your data."""
     ok = await delete_user_data(req.user_id)
+    return {"status": "ok" if ok else "error"}
+
+@app.post("/user/data/clear")
+async def user_data_clear(req: DeleteRequest):
+    """Patient right: delete all health data (logs, history) WITHOUT deleting the account."""
+    ok = await clear_user_data(req.user_id)
     return {"status": "ok" if ok else "error"}
 
 @app.get("/session/{thread_id}/state")

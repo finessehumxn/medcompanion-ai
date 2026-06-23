@@ -259,6 +259,34 @@ async def delete_user_data(user_id: str) -> bool:
     return ok
 
 
+async def clear_user_data(user_id: str) -> bool:
+    """Patient right: delete all of this user's health data WITHOUT deleting the account."""
+    sb = get_supabase()
+    if not sb:
+        return False
+    ok = True
+    for tbl in ("symptom_logs", "medications", "health_sessions", "health_profiles"):
+        try:
+            sb.table(tbl).delete().eq("user_id", user_id).execute()
+        except Exception as e:
+            logger.error(f"clear {tbl} error: {e}")
+            ok = False
+    return ok
+
+
+async def delete_symptom_entry(user_id: str, entry_id: str) -> bool:
+    """Delete a single symptom log entry, scoped to its owner."""
+    sb = get_supabase()
+    if not sb:
+        return False
+    try:
+        sb.table("symptom_logs").delete().eq("id", entry_id).eq("user_id", user_id).execute()
+        return True
+    except Exception as e:
+        logger.error(f"delete_symptom_entry error: {e}")
+        return False
+
+
 async def sign_review(review_id: str, doctor_name: str, verdict: str, note: str = "") -> bool:
     sb = get_supabase()
     if not sb:
