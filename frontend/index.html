@@ -4132,7 +4132,7 @@ function renderExtraction(raw, ex) {
     return '<div class="entity-group"><div class="entity-label">' + label + '</div>' +
       '<div class="pill-row">' + items.map(function(i) { return '<span class="pill ' + cls + '">' + clean(i) + '</span>'; }).join('') + '</div></div>';
   };
-  var total = (ex.symptoms ? ex.symptoms.length : 0) + (ex.body_parts ? ex.body_parts.length : 0) + (ex.emotional_context ? ex.emotional_context.length : 0) + (ex.conditions_mentioned ? ex.conditions_mentioned.length : 0) + (ex.medications ? ex.medications.length : 0);
+  var total = (ex.symptoms ? ex.symptoms.length : 0) + (ex.body_parts ? ex.body_parts.length : 0) + (ex.duration ? ex.duration.length : 0) + (ex.severity ? ex.severity.length : 0) + (ex.conditions_mentioned ? ex.conditions_mentioned.length : 0) + (ex.medications ? ex.medications.length : 0) + (ex.emotional_context ? ex.emotional_context.length : 0);
   out('<div class="card">' +
     '<div class="card-header"><div class="card-icon ci-teal"><i class="ti ti-ear"></i></div>' +
     '<div class="card-title">Here\'s what I heard you say</div>' +
@@ -4143,6 +4143,7 @@ function renderExtraction(raw, ex) {
     group('Body areas you mentioned', ex.body_parts, 'pill-sage') +
     group("How long it\'s been going on", ex.duration, 'pill-slate') +
     group('How intense it has been', ex.severity, 'pill-slate') +
+    group('Conditions or diagnoses mentioned', ex.conditions_mentioned, 'pill-slate') +
     group('Medications or treatments mentioned', ex.medications, 'pill-teal') +
     group('How you are feeling about all of this', ex.emotional_context, 'pill-sage') +
     '<div class="empathy-note"><i class="ti ti-quote"></i> ' + clean(empathyLines[Math.floor(Math.random()*empathyLines.length)]) + '</div>' +
