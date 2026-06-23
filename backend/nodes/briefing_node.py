@@ -109,16 +109,58 @@ def extract_text_from_response(response) -> str:
     return texts
  
  
-def call_claude_with_search(condition: str, user_prompt: str) -> str:
-    """Call Claude with web search enabled. Returns extracted text."""
+BRIEFING_TOOL = {
+    "name": "emit_briefing",
+    "description": "Return the complete patient briefing as structured data. After researching, you MUST call this exactly once with every field filled in.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "condition_name": {"type": "string"},
+            "plain_name": {"type": "string"},
+            "opening": {"type": "string"},
+            "standard_of_care": {
+                "type": "object",
+                "properties": {
+                    "plain_summary": {"type": "string"},
+                    "treatments": {"type": "array", "items": {"type": "object", "properties": {
+                        "name": {"type": "string"}, "phase": {"type": "string"},
+                        "plain_description": {"type": "string"}, "what_this_means_for_you": {"type": "string"}}}},
+                },
+            },
+            "emerging": {"type": "array", "items": {"type": "object", "properties": {
+                "name": {"type": "string"}, "phase": {"type": "string"}, "plain_description": {"type": "string"}}}},
+            "holistic": {
+                "type": "object",
+                "properties": {
+                    "intro": {"type": "string"},
+                    "options": {"type": "array", "items": {"type": "object", "properties": {
+                        "name": {"type": "string"}, "type": {"type": "string"},
+                        "plain_description": {"type": "string"}, "note": {"type": "string"}}}},
+                    "reminder": {"type": "string"},
+                },
+            },
+            "companies": {"type": "array", "items": {"type": "object", "properties": {
+                "name": {"type": "string"}, "type": {"type": "string"}, "focus": {"type": "string"}}}},
+            "sources": {"type": "array", "items": {"type": "object", "properties": {
+                "title": {"type": "string"}, "url": {"type": "string"}}}},
+            "doctor_questions": {"type": "array", "items": {"type": "string"}},
+            "closing": {"type": "string"},
+        },
+        "required": ["condition_name", "plain_name", "opening", "standard_of_care", "doctor_questions", "closing"],
+    },
+}
+
+
+def call_claude_with_search(condition: str, user_prompt: str):
+    """Call Claude with web search + the emit_briefing tool. Returns the raw response."""
     response = get_client().messages.create(
         model="claude-sonnet-4-6",
         max_tokens=8000,
         system=SYSTEM_PROMPT,
-        tools=[{"type": "web_search_20250305", "name": "web_search"}],
+        tools=[{"type": "web_search_20250305", "name": "web_search"}, BRIEFING_TOOL],
         messages=[{"role": "user", "content": user_prompt}]
     )
-    return extract_text_from_response(response)
+    return response
  
  
 def call_claude_without_search(condition: str, user_prompt: str) -> str:
@@ -128,9 +170,10 @@ def call_claude_without_search(condition: str, user_prompt: str) -> str:
         model="claude-sonnet-4-6",
         max_tokens=8000,
         system=SYSTEM_PROMPT,
+        tools=[BRIEFING_TOOL],
         messages=[{"role": "user", "content": user_prompt}]
     )
-    return extract_text_from_response(response)
+    return response
  
  
 SYSTEM_PROMPT = """You are a medical information specialist generating patient-friendly health briefings.
@@ -291,6 +334,24 @@ def audience_directive(viewer_type: str, intent: str) -> str:
     )
 
 
+def briefing_from_response(response):
+    """Prefer the schema-validated emit_briefing tool input (valid structure
+    guaranteed by the API); fall back to parsing any text the model wrote."""
+    for block in response.content:
+        if getattr(block, "type", None) == "tool_use" and getattr(block, "name", None) == "emit_briefing":
+            if isinstance(block.input, dict) and block.input:
+                logger.info("Briefing via validated emit_briefing tool call")
+                return block.input
+    text = extract_text_from_response(response)
+    text = re.sub(r'<cite[^>]*>.*?</cite>', '', text, flags=re.DOTALL)
+    text = re.sub(r'</?cite[^>]*>', '', text)
+    text = re.sub(r'\[\d+\]', '', text)
+    if len(text.strip()) >= 50:
+        logger.info("emit_briefing tool not called; parsing text fallback")
+        return safe_json_loads(text)
+    return None
+
+
 @traceable(name="briefing_node", tags=["briefing", "pipeline"])
 def briefing_node(state: PatientState) -> dict:
     if state.get("error"):
@@ -324,39 +385,29 @@ def briefing_node(state: PatientState) -> dict:
         f"5. Return ONLY the JSON object, nothing before or after it."
     )
  
-    texts = ""
- 
-    # Attempt 1: with web search
+    briefing = None
+
+    # Attempt 1: research with web search, emit via the schema-locked tool
     try:
-        texts = call_claude_with_search(condition, user_prompt)
-        logger.info(f"Web search call returned {len(texts)} chars")
+        resp = call_claude_with_search(condition, user_prompt)
+        briefing = briefing_from_response(resp)
     except Exception as e:
-        logger.warning(f"Web search call failed: {e}. Trying without search.")
-        texts = ""
- 
-    # Attempt 2: fallback without web search if texts is empty or too short
-    if len(texts.strip()) < 50:
-        logger.warning(f"Web search returned insufficient text ({len(texts)} chars). Using fallback.")
+        logger.warning(f"Web search briefing call failed: {e}. Trying without search.")
+
+    # Attempt 2: fallback without web search
+    if not briefing:
         try:
-            texts = call_claude_without_search(condition, user_prompt)
-            logger.info(f"Fallback call returned {len(texts)} chars")
+            resp = call_claude_without_search(condition, user_prompt)
+            briefing = briefing_from_response(resp)
         except Exception as e:
-            logger.error(f"Fallback call also failed: {e}")
+            logger.error(f"Fallback briefing call also failed: {e}")
             return {"briefing": None, "current_node": "briefing",
                     "error": f"Briefing generation failed: {e}"}
- 
-    # Clean citation tags
-    texts = re.sub(r'<cite[^>]*>.*?</cite>', '', texts, flags=re.DOTALL)
-    texts = re.sub(r'</?cite[^>]*>', '', texts)
-    texts = re.sub(r'\[\d+\]', '', texts)
- 
-    logger.info(f"Final text to parse ({len(texts)} chars): {texts[:200]}...")
- 
-    try:
-        briefing = safe_json_loads(texts)
+
+    if briefing:
         logger.info(f"briefing_node complete for '{condition}'")
         return {"briefing": briefing, "current_node": "briefing", "error": None}
-    except Exception as exc:
-        logger.error(f"JSON parse failed for '{condition}': {exc}\nRaw text: {texts[:500]}")
-        return {"briefing": None, "current_node": "briefing",
-                "error": f"Briefing parse failed: {exc}"}
+
+    logger.error(f"Briefing could not be produced for '{condition}'")
+    return {"briefing": None, "current_node": "briefing",
+            "error": "Briefing parse failed"}
