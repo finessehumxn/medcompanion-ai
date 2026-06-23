@@ -3436,7 +3436,7 @@ async function wkCompanion(message) {
 function wkSimpler() { var w = window._wk; if (!w) return; wkCompanion("Please explain this more simply, like you are talking to someone who feels a little overwhelmed: " + w.chunks[w.i]); }
 function wkAsk() {
   wkControls('<div style="display:flex;gap:.5rem"><input id="wkInput" placeholder="Ask me anything about this..." style="flex:1;background:#16323a;border:1px solid #1f5a5c;border-radius:11px;padding:.7rem .9rem;color:#eafaf8;font-size:14px;font-family:inherit"/><button onclick="wkAskSend()" aria-label="Send" style="background:#1f9d96;border:none;color:#fff;width:46px;border-radius:11px;font-size:18px;cursor:pointer">›</button></div>');
-  var inp = document.getElementById('wkInput'); if (inp) { inp.focus(); inp.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); wkAskSend(); } }); }
+  var inp = document.getElementById('wkInput'); if (inp) { inp.focus(); inp.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); wkAskSend(); } }); }
 }
 function wkAskSend() { var inp = document.getElementById('wkInput'); if (!inp) return; var q = inp.value.trim(); if (!q) return; wkBubble(clean(q), 'you'); wkCompanion(q); }
 
@@ -3453,7 +3453,7 @@ function openCompanionChat(topic) {
     + '<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.4rem">' + chips.map(function(c){ return '<button onclick="ccQuick(this)" style="background:#16323a;border:1px solid #1f5a5c;color:#7fe3d8;border-radius:100px;padding:.45rem .8rem;font-size:12.5px;cursor:pointer;font-family:inherit">' + c + '</button>'; }).join('') + '</div></div>'
     + '<div class="vc-inrow"><button class="vc-ibtn vc-mic" onclick="ccVoice(this)" aria-label="Speak"><i class="ti ti-microphone"></i></button><textarea class="vc-input" id="ccInput" rows="1" placeholder="Type your question..."></textarea><button class="vc-ibtn" onclick="ccSend()" aria-label="Send"><i class="ti ti-send"></i></button></div></div>';
   ov.classList.add('show');
-  var inp = document.getElementById('ccInput'); if (inp) inp.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ccSend(); } });
+  var inp = document.getElementById('ccInput'); if (inp) inp.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); ccSend(); } });
 }
 function closeCompanionChat() { stopSpeaking(); var ov = document.getElementById('ccOverlay'); if (ov) ov.classList.remove('show'); }
 function ccQuick(btn) { var inp = document.getElementById('ccInput'); if (inp) inp.value = btn.textContent; ccSend(); }
@@ -3616,7 +3616,7 @@ function openVisitCompanion() {
       + '</div></div>';
     document.body.appendChild(ov);
     var ta = ov.querySelector('#vcInput');
-    ta.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); vcSend(); } });
+    ta.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); vcSend(); } });
   }
   vcRenderLog();
   ov.classList.add('show');
@@ -3978,7 +3978,7 @@ function openTriage() {
     + '<div class="vc-log" id="erLog"><div class="vc-empty">If someone is unconscious, not breathing, or you believe this is life-threatening — call your local emergency number (911) now.<br><br>Otherwise, describe what is going on and I will help you decide.</div></div>'
     + '<div class="vc-inrow"><textarea class="vc-input" id="erInput" rows="1" placeholder="e.g. sudden chest pain and short of breath..."></textarea><button class="vc-ibtn" onclick="erSend()" aria-label="Check"><i class="ti ti-arrow-right"></i></button></div></div>';
   var ta = ov.querySelector('#erInput');
-  ta.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); erSend(); } });
+  ta.addEventListener('keydown', function(e){ if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); erSend(); } });
   ov.classList.add('show');
 }
 function closeTriage() { var ov = document.getElementById('erOverlay'); if (ov) ov.classList.remove('show'); }
@@ -4025,7 +4025,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (roleOv) roleOv.addEventListener('click', function(e){ if (e.target === this) closeRoleModal(); });
   if (textarea) {
     textarea.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); startPipeline(); }
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); startPipeline(); }
     });
   }
   if (goBtn) goBtn.addEventListener('click', startPipeline);
