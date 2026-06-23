@@ -70,8 +70,22 @@ def safe_json_loads(text: str) -> dict:
     cleaned3 = re.sub(r',(\s*[}\]])', r'\1', cleaned3)
     try:
         return json.loads(cleaned3)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"All JSON repair strategies failed. Last error: {e}")
+    except json.JSONDecodeError:
+        pass
+
+    # Final fallback: the purpose-built json-repair library, which fixes the
+    # structural errors LLMs produce in long JSON (missing commas/delimiters,
+    # unescaped quotes, truncated tails). Run it on the RAW extracted object.
+    try:
+        from json_repair import repair_json
+        repaired = repair_json(json_str, return_objects=True)
+        if isinstance(repaired, dict) and repaired:
+            logger.info("Recovered briefing JSON via json_repair fallback")
+            return repaired
+    except Exception as e:
+        logger.warning(f"json_repair fallback failed: {e}")
+
+    raise ValueError("All JSON repair strategies failed.")
  
  
 def extract_text_from_response(response) -> str:
