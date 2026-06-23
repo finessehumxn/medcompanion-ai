@@ -1760,6 +1760,8 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
 .sn-dot:nth-child(2){animation-delay:.2s} .sn-dot:nth-child(3){animation-delay:.4s}
 .snake-canvas-wrap { position:relative; border-radius:14px; overflow:hidden; border:2px solid var(--border); background:#0D1F0D; touch-action:none; }
 #snakeCanvas { display:block; width:100%; height:auto; image-rendering:pixelated; }
+  .g2048-board { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:8px; width:100%; aspect-ratio:1/1; box-sizing:border-box; }
+  .g2048-cell { display:flex; align-items:center; justify-content:center; border-radius:8px; font-weight:800; font-family:'Inter',system-ui,sans-serif; line-height:1; }
 .snake-overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(13,31,13,.88); color:#fff; cursor:pointer; }
 .snake-overlay-title { font-family:monospace; font-size:22px; font-weight:700; color:#4ADE80; margin-bottom:.35rem; letter-spacing:.05em; }
 .snake-overlay-sub { font-size:13px; color:rgba(255,255,255,.6); margin-bottom:1rem; }
@@ -1967,89 +1969,125 @@ function confirmWithApproach() {
 }
 
 
-/* ── Snake Game (global) ── */
-var _snake, _dir, _nextDir, _food, _snakeScore, _snakeLoop, _snakeRunning;
-var SCOLS = 20, SROWS = 14, SCELL = 16;
+/* ── 2048 Game (replaces Snake; keeps startSnake/snakeDir/_snakeRunning hooks) ── */
+var _g2048, _g2048Lock = false, _snakeScore, _snakeLoop, _snakeRunning;
+var G2N = 4;
 
-function initSnake() {
-  var c = document.getElementById('snakeCanvas');
-  if (!c) return;
-  c.width = SCOLS * SCELL;
-  c.height = SROWS * SCELL;
-}
+function initSnake() { /* board renders on startSnake() */ }
 
 function startSnake() {
-  var c = document.getElementById('snakeCanvas');
-  if (!c) return;
-  c.width = SCOLS * SCELL; c.height = SROWS * SCELL;
-  var ctx = c.getContext('2d');
-  _snake = [{x:10,y:7},{x:9,y:7},{x:8,y:7}];
-  _dir = {x:1,y:0}; _nextDir = {x:1,y:0};
-  _snakeScore = 0; _snakeRunning = true;
+  _g2048 = [];
+  for (var i = 0; i < G2N * G2N; i++) _g2048.push(0);
+  _snakeScore = 0; _snakeRunning = true; _g2048Lock = false;
   var o = document.getElementById('snakeOverlay');
   if (o) o.style.display = 'none';
-  placeSnakeFood(ctx);
-  clearInterval(_snakeLoop);
-  _snakeLoop = setInterval(function(){tickSnake(ctx);}, 130);
-  updateSnakeScore();
+  spawn2048(); spawn2048();
+  draw2048(); updateSnakeScore();
 }
 
-function placeSnakeFood(ctx) {
+function spawn2048() {
   var empty = [];
-  for (var x=0;x<SCOLS;x++) for (var y=0;y<SROWS;y++) {
-    if (!_snake.some(function(s){return s.x===x&&s.y===y;})) empty.push({x:x,y:y});
-  }
-  _food = empty[Math.floor(Math.random()*empty.length)];
+  for (var i = 0; i < _g2048.length; i++) if (_g2048[i] === 0) empty.push(i);
+  if (!empty.length) return;
+  _g2048[empty[Math.floor(Math.random() * empty.length)]] = Math.random() < 0.9 ? 2 : 4;
 }
 
-function tickSnake(ctx) {
-  _dir = _nextDir;
-  var h = {x:_snake[0].x+_dir.x, y:_snake[0].y+_dir.y};
-  if (h.x<0||h.x>=SCOLS||h.y<0||h.y>=SROWS||_snake.some(function(s){return s.x===h.x&&s.y===h.y;})) {
-    _snakeRunning = false; clearInterval(_snakeLoop); drawSnake(ctx); gameOverSnake(); return;
-  }
-  _snake.unshift(h);
-  if (h.x===_food.x&&h.y===_food.y) { _snakeScore++; updateSnakeScore(); placeSnakeFood(ctx); }
-  else _snake.pop();
-  drawSnake(ctx);
+function tile2048Style(v) {
+  var map = {
+    0:['#11302b','transparent'], 2:['#1f5a52','#eafaf8'], 4:['#247d6f','#eafaf8'],
+    8:['#2fa58f','#06231d'], 16:['#46c2a6','#06231d'], 32:['#6dd6bd','#06231d'],
+    64:['#C9A24B','#06231d'], 128:['#d8b25f','#06231d'], 256:['#e3c074','#06231d'],
+    512:['#ecd089','#06231d'], 1024:['#f3dca0','#06231d'], 2048:['#ffe9b0','#06231d']
+  };
+  return map[v] || ['#ffe9b0','#06231d'];
 }
 
-function drawSnake(ctx) {
-  var c = document.getElementById('snakeCanvas');
-  if (!c||!ctx) return;
-  ctx.fillStyle='#0D1F0D'; ctx.fillRect(0,0,c.width,c.height);
-  ctx.fillStyle='rgba(74,222,128,.08)';
-  for (var x=0;x<SCOLS;x++) for (var y=0;y<SROWS;y++) ctx.fillRect(x*SCELL+7,y*SCELL+7,2,2);
-  ctx.fillStyle='#F87171';
-  ctx.beginPath(); ctx.arc(_food.x*SCELL+SCELL/2,_food.y*SCELL+SCELL/2,SCELL/2-2,0,Math.PI*2); ctx.fill();
-  _snake.forEach(function(s,i){
-    ctx.fillStyle=i===0?'#4ADE80':'#16A34A';
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(s.x*SCELL+1,s.y*SCELL+1,SCELL-2,SCELL-2,i===0?5:3);
-    else ctx.rect(s.x*SCELL+1,s.y*SCELL+1,SCELL-2,SCELL-2);
-    ctx.fill();
-  });
+function draw2048() {
+  var b = document.getElementById('g2048Board');
+  if (!b) return;
+  var html = '';
+  for (var i = 0; i < _g2048.length; i++) {
+    var v = _g2048[i], st = tile2048Style(v);
+    var fs = v >= 1000 ? '20px' : v >= 100 ? '24px' : '28px';
+    html += '<div class="g2048-cell" style="background:' + st[0] + ';color:' + st[1] + ';font-size:' + fs + '">' + (v ? v : '') + '</div>';
+  }
+  b.innerHTML = html;
 }
 
 function updateSnakeScore() {
   var el = document.getElementById('snakeScoreLbl');
-  if (el) el.textContent = 'Score: ' + _snakeScore;
+  if (el) el.textContent = 'Score: ' + (_snakeScore || 0);
 }
 
-function gameOverSnake() {
+function slide2048(line) {
+  var arr = line.filter(function(x){ return x !== 0; });
+  var gained = 0;
+  for (var i = 0; i < arr.length - 1; i++) {
+    if (arr[i] === arr[i + 1]) { arr[i] *= 2; gained += arr[i]; arr.splice(i + 1, 1); }
+  }
+  while (arr.length < G2N) arr.push(0);
+  return { line: arr, gained: gained };
+}
+
+function move2048(dir) {
+  if (!_snakeRunning || _g2048Lock) return;
+  _g2048Lock = true;
+  setTimeout(function(){ _g2048Lock = false; }, 90);
+  var moved = false, gained = 0;
+  var get = function(r, c){ return _g2048[r * G2N + c]; };
+  var set = function(r, c, v){ _g2048[r * G2N + c] = v; };
+  for (var i = 0; i < G2N; i++) {
+    var line = [];
+    for (var j = 0; j < G2N; j++) {
+      if (dir === 'left') line.push(get(i, j));
+      else if (dir === 'right') line.push(get(i, G2N - 1 - j));
+      else if (dir === 'up') line.push(get(j, i));
+      else line.push(get(G2N - 1 - j, i));
+    }
+    var res = slide2048(line); gained += res.gained;
+    for (var j2 = 0; j2 < G2N; j2++) {
+      var v = res.line[j2], r, c;
+      if (dir === 'left') { r = i; c = j2; }
+      else if (dir === 'right') { r = i; c = G2N - 1 - j2; }
+      else if (dir === 'up') { r = j2; c = i; }
+      else { r = G2N - 1 - j2; c = i; }
+      if (get(r, c) !== v) moved = true;
+      set(r, c, v);
+    }
+  }
+  if (moved) {
+    _snakeScore = (_snakeScore || 0) + gained; updateSnakeScore();
+    spawn2048(); draw2048();
+    if (isGameOver2048()) showGameOver2048();
+  }
+}
+
+function isGameOver2048() {
+  for (var i = 0; i < _g2048.length; i++) if (_g2048[i] === 0) return false;
+  for (var r = 0; r < G2N; r++) for (var c = 0; c < G2N; c++) {
+    var v = _g2048[r * G2N + c];
+    if (c < G2N - 1 && _g2048[r * G2N + c + 1] === v) return false;
+    if (r < G2N - 1 && _g2048[(r + 1) * G2N + c] === v) return false;
+  }
+  return true;
+}
+
+function showGameOver2048() {
+  _snakeRunning = false;
   var o = document.getElementById('snakeOverlay');
   if (!o) return;
   o.style.display = 'flex';
-  o.innerHTML = '<div class="snake-overlay-title">GAME OVER</div>' +
-    '<div class="snake-overlay-sub">Score: ' + _snakeScore + '</div>' +
+  o.innerHTML = '<div class="snake-overlay-title">Nice run!</div>' +
+    '<div class="snake-overlay-sub">Score: ' + (_snakeScore || 0) + '</div>' +
     '<button class="snake-play-btn" onclick="startSnake()">PLAY AGAIN</button>';
 }
 
 function snakeDir(dx, dy) {
   if (!_snakeRunning) return;
-  if (dx===1&&_dir.x===-1||dx===-1&&_dir.x===1) return;
-  if (dy===1&&_dir.y===-1||dy===-1&&_dir.y===1) return;
-  _nextDir = {x:dx,y:dy};
+  if (dy === -1) move2048('up');
+  else if (dy === 1) move2048('down');
+  else if (dx === -1) move2048('left');
+  else if (dx === 1) move2048('right');
 }
 
 document.addEventListener('keydown', function(e) {
@@ -4283,16 +4321,16 @@ async function confirmCondition(useAI) {
     '<div id="briefingBody">' +
       '<div class="snake-wrap">' +
         '<div class="snake-top">' +
-          '<div class="snake-title">🐍 Play Snake while you wait</div>' +
+          '<div class="snake-title">🧩 Play 2048 while you wait</div>' +
           '<div class="snake-meta">' +
             '<span class="snake-score-lbl" id="snakeScoreLbl">Score: 0</span>' +
             '<div class="snake-searching"><div class="sn-dot"></div><div class="sn-dot"></div><div class="sn-dot"></div> Researching</div>' +
           '</div>' +
         '</div>' +
         '<div class="snake-canvas-wrap">' +
-          '<canvas id="snakeCanvas"></canvas>' +
+          '<div id="g2048Board" class="g2048-board"></div>' +
           '<div class="snake-overlay" id="snakeOverlay" style="display:none" onclick="startSnake()">' +
-            '<div class="snake-overlay-title">SNAKE 🐍</div>' +
+            '<div class="snake-overlay-title">2048 🧩</div>' +
             '<div class="snake-overlay-sub">tap to play while you wait</div>' +
             '<button class="snake-play-btn">START</button>' +
           '</div>' +
@@ -4521,89 +4559,125 @@ function confirmWithApproach() {
 }
 
 
-/* ── Snake Game (global) ── */
-var _snake, _dir, _nextDir, _food, _snakeScore, _snakeLoop, _snakeRunning;
-var SCOLS = 20, SROWS = 14, SCELL = 16;
+/* ── 2048 Game (replaces Snake; keeps startSnake/snakeDir/_snakeRunning hooks) ── */
+var _g2048, _g2048Lock = false, _snakeScore, _snakeLoop, _snakeRunning;
+var G2N = 4;
 
-function initSnake() {
-  var c = document.getElementById('snakeCanvas');
-  if (!c) return;
-  c.width = SCOLS * SCELL;
-  c.height = SROWS * SCELL;
-}
+function initSnake() { /* board renders on startSnake() */ }
 
 function startSnake() {
-  var c = document.getElementById('snakeCanvas');
-  if (!c) return;
-  c.width = SCOLS * SCELL; c.height = SROWS * SCELL;
-  var ctx = c.getContext('2d');
-  _snake = [{x:10,y:7},{x:9,y:7},{x:8,y:7}];
-  _dir = {x:1,y:0}; _nextDir = {x:1,y:0};
-  _snakeScore = 0; _snakeRunning = true;
+  _g2048 = [];
+  for (var i = 0; i < G2N * G2N; i++) _g2048.push(0);
+  _snakeScore = 0; _snakeRunning = true; _g2048Lock = false;
   var o = document.getElementById('snakeOverlay');
   if (o) o.style.display = 'none';
-  placeSnakeFood(ctx);
-  clearInterval(_snakeLoop);
-  _snakeLoop = setInterval(function(){tickSnake(ctx);}, 130);
-  updateSnakeScore();
+  spawn2048(); spawn2048();
+  draw2048(); updateSnakeScore();
 }
 
-function placeSnakeFood(ctx) {
+function spawn2048() {
   var empty = [];
-  for (var x=0;x<SCOLS;x++) for (var y=0;y<SROWS;y++) {
-    if (!_snake.some(function(s){return s.x===x&&s.y===y;})) empty.push({x:x,y:y});
-  }
-  _food = empty[Math.floor(Math.random()*empty.length)];
+  for (var i = 0; i < _g2048.length; i++) if (_g2048[i] === 0) empty.push(i);
+  if (!empty.length) return;
+  _g2048[empty[Math.floor(Math.random() * empty.length)]] = Math.random() < 0.9 ? 2 : 4;
 }
 
-function tickSnake(ctx) {
-  _dir = _nextDir;
-  var h = {x:_snake[0].x+_dir.x, y:_snake[0].y+_dir.y};
-  if (h.x<0||h.x>=SCOLS||h.y<0||h.y>=SROWS||_snake.some(function(s){return s.x===h.x&&s.y===h.y;})) {
-    _snakeRunning = false; clearInterval(_snakeLoop); drawSnake(ctx); gameOverSnake(); return;
-  }
-  _snake.unshift(h);
-  if (h.x===_food.x&&h.y===_food.y) { _snakeScore++; updateSnakeScore(); placeSnakeFood(ctx); }
-  else _snake.pop();
-  drawSnake(ctx);
+function tile2048Style(v) {
+  var map = {
+    0:['#11302b','transparent'], 2:['#1f5a52','#eafaf8'], 4:['#247d6f','#eafaf8'],
+    8:['#2fa58f','#06231d'], 16:['#46c2a6','#06231d'], 32:['#6dd6bd','#06231d'],
+    64:['#C9A24B','#06231d'], 128:['#d8b25f','#06231d'], 256:['#e3c074','#06231d'],
+    512:['#ecd089','#06231d'], 1024:['#f3dca0','#06231d'], 2048:['#ffe9b0','#06231d']
+  };
+  return map[v] || ['#ffe9b0','#06231d'];
 }
 
-function drawSnake(ctx) {
-  var c = document.getElementById('snakeCanvas');
-  if (!c||!ctx) return;
-  ctx.fillStyle='#0D1F0D'; ctx.fillRect(0,0,c.width,c.height);
-  ctx.fillStyle='rgba(74,222,128,.08)';
-  for (var x=0;x<SCOLS;x++) for (var y=0;y<SROWS;y++) ctx.fillRect(x*SCELL+7,y*SCELL+7,2,2);
-  ctx.fillStyle='#F87171';
-  ctx.beginPath(); ctx.arc(_food.x*SCELL+SCELL/2,_food.y*SCELL+SCELL/2,SCELL/2-2,0,Math.PI*2); ctx.fill();
-  _snake.forEach(function(s,i){
-    ctx.fillStyle=i===0?'#4ADE80':'#16A34A';
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(s.x*SCELL+1,s.y*SCELL+1,SCELL-2,SCELL-2,i===0?5:3);
-    else ctx.rect(s.x*SCELL+1,s.y*SCELL+1,SCELL-2,SCELL-2);
-    ctx.fill();
-  });
+function draw2048() {
+  var b = document.getElementById('g2048Board');
+  if (!b) return;
+  var html = '';
+  for (var i = 0; i < _g2048.length; i++) {
+    var v = _g2048[i], st = tile2048Style(v);
+    var fs = v >= 1000 ? '20px' : v >= 100 ? '24px' : '28px';
+    html += '<div class="g2048-cell" style="background:' + st[0] + ';color:' + st[1] + ';font-size:' + fs + '">' + (v ? v : '') + '</div>';
+  }
+  b.innerHTML = html;
 }
 
 function updateSnakeScore() {
   var el = document.getElementById('snakeScoreLbl');
-  if (el) el.textContent = 'Score: ' + _snakeScore;
+  if (el) el.textContent = 'Score: ' + (_snakeScore || 0);
 }
 
-function gameOverSnake() {
+function slide2048(line) {
+  var arr = line.filter(function(x){ return x !== 0; });
+  var gained = 0;
+  for (var i = 0; i < arr.length - 1; i++) {
+    if (arr[i] === arr[i + 1]) { arr[i] *= 2; gained += arr[i]; arr.splice(i + 1, 1); }
+  }
+  while (arr.length < G2N) arr.push(0);
+  return { line: arr, gained: gained };
+}
+
+function move2048(dir) {
+  if (!_snakeRunning || _g2048Lock) return;
+  _g2048Lock = true;
+  setTimeout(function(){ _g2048Lock = false; }, 90);
+  var moved = false, gained = 0;
+  var get = function(r, c){ return _g2048[r * G2N + c]; };
+  var set = function(r, c, v){ _g2048[r * G2N + c] = v; };
+  for (var i = 0; i < G2N; i++) {
+    var line = [];
+    for (var j = 0; j < G2N; j++) {
+      if (dir === 'left') line.push(get(i, j));
+      else if (dir === 'right') line.push(get(i, G2N - 1 - j));
+      else if (dir === 'up') line.push(get(j, i));
+      else line.push(get(G2N - 1 - j, i));
+    }
+    var res = slide2048(line); gained += res.gained;
+    for (var j2 = 0; j2 < G2N; j2++) {
+      var v = res.line[j2], r, c;
+      if (dir === 'left') { r = i; c = j2; }
+      else if (dir === 'right') { r = i; c = G2N - 1 - j2; }
+      else if (dir === 'up') { r = j2; c = i; }
+      else { r = G2N - 1 - j2; c = i; }
+      if (get(r, c) !== v) moved = true;
+      set(r, c, v);
+    }
+  }
+  if (moved) {
+    _snakeScore = (_snakeScore || 0) + gained; updateSnakeScore();
+    spawn2048(); draw2048();
+    if (isGameOver2048()) showGameOver2048();
+  }
+}
+
+function isGameOver2048() {
+  for (var i = 0; i < _g2048.length; i++) if (_g2048[i] === 0) return false;
+  for (var r = 0; r < G2N; r++) for (var c = 0; c < G2N; c++) {
+    var v = _g2048[r * G2N + c];
+    if (c < G2N - 1 && _g2048[r * G2N + c + 1] === v) return false;
+    if (r < G2N - 1 && _g2048[(r + 1) * G2N + c] === v) return false;
+  }
+  return true;
+}
+
+function showGameOver2048() {
+  _snakeRunning = false;
   var o = document.getElementById('snakeOverlay');
   if (!o) return;
   o.style.display = 'flex';
-  o.innerHTML = '<div class="snake-overlay-title">GAME OVER</div>' +
-    '<div class="snake-overlay-sub">Score: ' + _snakeScore + '</div>' +
+  o.innerHTML = '<div class="snake-overlay-title">Nice run!</div>' +
+    '<div class="snake-overlay-sub">Score: ' + (_snakeScore || 0) + '</div>' +
     '<button class="snake-play-btn" onclick="startSnake()">PLAY AGAIN</button>';
 }
 
 function snakeDir(dx, dy) {
   if (!_snakeRunning) return;
-  if (dx===1&&_dir.x===-1||dx===-1&&_dir.x===1) return;
-  if (dy===1&&_dir.y===-1||dy===-1&&_dir.y===1) return;
-  _nextDir = {x:dx,y:dy};
+  if (dy === -1) move2048('up');
+  else if (dy === 1) move2048('down');
+  else if (dx === -1) move2048('left');
+  else if (dx === 1) move2048('right');
 }
 
 document.addEventListener('keydown', function(e) {
