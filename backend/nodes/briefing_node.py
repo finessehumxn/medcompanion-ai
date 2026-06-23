@@ -157,7 +157,7 @@ def call_claude_with_search(condition: str, user_prompt: str):
         model="claude-sonnet-4-6",
         max_tokens=8000,
         system=SYSTEM_PROMPT,
-        tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 4}, BRIEFING_TOOL],
+        tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 2}, BRIEFING_TOOL],
         messages=[{"role": "user", "content": user_prompt}]
     )
     return response
