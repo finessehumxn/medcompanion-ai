@@ -2336,6 +2336,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <a href="#crisis-help" class="nav-link nav-link-crisis"><i class="ti ti-life-buoy" aria-hidden="true"></i> Need help now</a>
     <a href="#questions" class="nav-link"><i class="ti ti-help-circle" aria-hidden="true"></i> Common questions</a>
     <a href="/about" class="nav-link"><i class="ti ti-rosette-discount-check" aria-hidden="true"></i> Our standards</a>
+    <a href="javascript:void(0)" class="nav-link" id="navAuthLink" aria-label="Sign in or account" onclick="if(typeof currentUser!=='undefined'&&currentUser&&currentUser.user_id){openHealthHub()}else{openAuth('login')}"><i class="ti ti-user-circle" aria-hidden="true"></i> <span id="navAuthLabel">Sign in</span></a>
   </div>
   <button class="nav-menu-btn" aria-label="Open menu" onclick="toggleMobileMenu()">
     <i class="ti ti-menu-2" aria-hidden="true"></i>
