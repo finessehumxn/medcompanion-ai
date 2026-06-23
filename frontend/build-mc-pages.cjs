@@ -82,7 +82,7 @@ const pages = {
 <section><div class="wrap">
   <h2>Let's build something together</h2>
   <p class="muted">Pilots, co-branded deployments, content licensing, and multilingual community programs — tell us who you serve and we'll shape the right partnership.</p>
-  <a class="cta" href="mailto:contact@millennialscreatives.com?subject=MedCompanion%20AI%20Partnership">Start a partnership →</a>
+  <a class="cta" href="mailto:team@medcompanionai.com?subject=MedCompanion%20AI%20Partnership">Start a partnership →</a>
 </div></div></section>`,
   },
 
@@ -121,7 +121,7 @@ const pages = {
 <section><div class="wrap">
   <h2>Let's talk</h2>
   <p class="muted">We welcome conversations with mission-aligned investors. Request our deck and the details on traction, roadmap, and the raise.</p>
-  <a class="cta" href="mailto:contact@millennialscreatives.com?subject=MedCompanion%20AI%20Investor%20Inquiry">Request the investor deck →</a>
+  <a class="cta" href="mailto:team@medcompanionai.com?subject=MedCompanion%20AI%20Investor%20Inquiry">Request the investor deck →</a>
   <div class="disc" style="margin-top:1.4rem">This page is for informational purposes only and is <strong>not an offer to sell, or the solicitation of an offer to buy, any security.</strong> Any such offer would be made only to qualified investors through definitive offering documents.</div>
 </div></div></section>`,
   },
