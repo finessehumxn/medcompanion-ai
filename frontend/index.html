@@ -2228,12 +2228,12 @@ document.addEventListener('DOMContentLoaded', function() {
 <style>
   .role-overlay{position:fixed;inset:0;z-index:1200;background:rgba(8,30,32,.72);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:1.25rem}
   .role-overlay.show{display:flex}
-  .role-modal{background:var(--card,#fff);border-radius:22px;max-width:560px;width:100%;padding:1.9rem 1.6rem 1.5rem;box-shadow:0 24px 70px rgba(0,0,0,.35);max-height:92vh;overflow:auto}
+  .role-modal{background:var(--card,#fff);border-radius:22px;max-width:560px;width:100%;box-sizing:border-box;padding:1.9rem 1.6rem 1.5rem;box-shadow:0 24px 70px rgba(0,0,0,.35);max-height:92vh;overflow:auto}
   .role-title{font-size:21px;font-weight:800;color:var(--text-dark,#0d3b3e);margin:0 0 .35rem;line-height:1.25}
   .role-sub{font-size:14px;color:var(--text-soft,#5d7274);margin:0 0 1.25rem;line-height:1.5}
-  .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
-  @media(max-width:480px){.role-grid{grid-template-columns:1fr}}
-  .role-opt{display:flex;gap:.8rem;align-items:flex-start;text-align:left;padding:1rem;border:1.5px solid var(--border,#d9e6e6);border-radius:15px;background:var(--lteal,#f1f8f7);cursor:pointer;transition:.15s;width:100%;font-family:inherit}
+  .role-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.7rem}
+  @media(max-width:600px){.role-grid{grid-template-columns:1fr}.role-modal{padding:1.3rem 1.1rem 1.1rem}}
+  .role-opt{display:flex;gap:.8rem;align-items:flex-start;text-align:left;padding:1rem;border:1.5px solid var(--border,#d9e6e6);border-radius:15px;background:var(--lteal,#f1f8f7);cursor:pointer;transition:.15s;width:100%;min-width:0;box-sizing:border-box;font-family:inherit}
   .role-opt:hover{border-color:var(--teal,#1f9d96);transform:translateY(-2px);box-shadow:0 8px 22px rgba(31,157,150,.16)}
   .role-opt-ic{font-size:26px;line-height:1;flex-shrink:0}
   .role-opt-t{display:block;font-size:15px;font-weight:700;color:var(--text-dark,#0d3b3e);margin-bottom:.18rem;font-family:'Fraunces','Lora',serif}
