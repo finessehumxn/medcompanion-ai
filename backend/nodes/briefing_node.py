@@ -377,12 +377,11 @@ def briefing_node(state: PatientState) -> dict:
         f"{directive}\n"
         f"Search for current information. Use NIH, Mayo Clinic, FDA, PubMed, OpenEvidence.\n"
         f"If multiple conditions mentioned, cover their relationship.\n\n"
-        f"CRITICAL RULES:\n"
-        f"1. NO apostrophes in any text. Use full words only.\n"
-        f"2. NO line breaks inside string values.\n"
-        f"3. NO citation markers.\n"
-        f"4. At least 2 items in every array.\n"
-        f"5. Return ONLY the JSON object, nothing before or after it."
+        f"RULES:\n"
+        f"1. Be concise and scannable. Each description is 1 to 2 short sentences, no filler.\n"
+        f"2. Limit each array to the 2 to 3 most important items. doctor_questions: exactly 3 to 4.\n"
+        f"3. No citation markers, no markdown.\n"
+        f"4. After researching, you MUST call the emit_briefing tool with the complete briefing. Do not write JSON as text."
     )
  
     briefing = None
