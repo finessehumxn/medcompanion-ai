@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>MedCompanion AI — Understand Your Health in Plain Language</title>
+<script>try{if(window.Capacitor||location.hostname==='localhost'||location.hostname==='127.0.0.1'){document.documentElement.classList.add('cap-app');}}catch(e){}</script>
 <meta name="description" content="MedCompanion AI helps every human understand their health — symptoms, puberty, sexual health, mental health, reproductive questions, and everything too embarrassing to say out loud. Plain language. Free. All languages. All bodies. All beliefs." />
 <meta name="keywords" content="understand symptoms, plain language health, medical companion, better than WebMD, understand doctor, health questions, free health help, all languages, holistic health" />
 <meta name="robots" content="index, follow" />
@@ -92,6 +93,9 @@
   .nav-links { display: none; }
   .nav-menu-btn { display: flex; align-items: center; justify-content: center; }
 }
+/* In the native app, always use the hamburger nav (which has Sign in) — never the desktop links, regardless of the WebView's reported width */
+html.cap-app .nav-links { display: none !important; }
+html.cap-app .nav-menu-btn { display: flex !important; align-items: center; justify-content: center; }
 
 .crisis-inner {
   max-width: 720px;
