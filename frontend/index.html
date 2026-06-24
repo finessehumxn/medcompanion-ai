@@ -3781,11 +3781,20 @@ function pollReview(id, tries) {
 
 /* ══ Health Memory: your private, on-device health story + new-patient one-pager ══ */
 function loadLocalHistory() { try { return JSON.parse(localStorage.getItem('mc_history') || '[]'); } catch(e) { return []; } }
+function openCachedBriefing(i) {
+  var h = loadLocalHistory()[i];
+  if (!h) return;
+  if (!h.briefing) { alert('This older briefing was saved before full offline reading was added. New briefings are fully readable here — even offline.'); return; }
+  window.lastBriefing = h.briefing;
+  window.lastRawInput = h.raw || '';
+  closeHealthHub();
+  openVisitSheet();
+}
 function saveToHistory(b, raw) {
   if (!b) return;
   try {
     var hist = loadLocalHistory();
-    hist.unshift({ date: new Date().toLocaleDateString(), topic: (b.condition_name || b.plain_name || raw || 'Health question'), summary: (b.opening || ''), questions: (b.doctor_questions || []) });
+    hist.unshift({ date: new Date().toLocaleDateString(), topic: (b.condition_name || b.plain_name || raw || 'Health question'), summary: (b.opening || ''), questions: (b.doctor_questions || []), briefing: b, raw: (raw || '') });
     localStorage.setItem('mc_history', JSON.stringify(hist.slice(0, 50)));
   } catch(e) {}
 }
@@ -3832,8 +3841,8 @@ async function openHealthHub() {
   if (!ov) { ov = document.createElement('div'); ov.id = 'hhOverlay'; ov.className = 'vc-overlay'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-label','My Health'); ov.addEventListener('click', function(e){ if (e.target === this) closeHealthHub(); }); document.body.appendChild(ov); }
   // shell first (so it opens instantly), then fill the server log
   var hist = loadLocalHistory();
-  var brief = hist.length ? '<div style="font-size:12px;font-weight:800;color:#D4B26A;text-transform:uppercase;letter-spacing:.04em;margin:.4rem 0 .5rem">Past briefings</div>' + hist.map(function(h){
-    return '<div style="background:#16323a;border:1px solid #1f5a5c;border-radius:12px;padding:.7rem .9rem;margin-bottom:.5rem"><div style="font-size:11px;color:#9fbfbb">' + clean(h.date) + '</div><div style="font-size:14px;font-weight:700;color:#eafaf8">' + clean(h.topic) + '</div></div>';
+  var brief = hist.length ? '<div style="font-size:12px;font-weight:800;color:#D4B26A;text-transform:uppercase;letter-spacing:.04em;margin:.4rem 0 .5rem">Past briefings</div>' + hist.map(function(h, i){
+    return '<div onclick="openCachedBriefing(' + i + ')" style="background:#16323a;border:1px solid #1f5a5c;border-radius:12px;padding:.7rem .9rem;margin-bottom:.5rem;cursor:pointer">' + (h.briefing ? '<span style="float:right;font-size:11px;color:#7fe3d8"><i class="ti ti-eye"></i> open</span>' : '') + '<div style="font-size:11px;color:#9fbfbb">' + clean(h.date) + '</div><div style="font-size:14px;font-weight:700;color:#eafaf8">' + clean(h.topic) + '</div></div>';
   }).join('') : '';
   var prepBtn = (currentUser && currentUser.user_id) ? '<button class="vc-save" onclick="generateVisitPrep()" style="border-color:#D4B26A;color:#D4B26A"><i class="ti ti-clipboard-data"></i> Generate Visit Prep from my log</button>' : '';
   var onePager = hist.length ? '<button class="vc-save" onclick="buildOnePager()"><i class="ti ti-file-text"></i> Create New-Patient One-Pager</button>' : '';
