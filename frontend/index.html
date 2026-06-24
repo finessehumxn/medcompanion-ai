@@ -3980,7 +3980,17 @@ function promptInstall() {
   window._deferredInstall.prompt();
   window._deferredInstall.userChoice.finally(function(){ window._deferredInstall = null; var ib = document.getElementById('hhInstall'); if (ib) ib.style.display = 'none'; });
 }
-function registerSW() { if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/sw.js'); } catch(e) {} } }
+function registerSW() {
+  // Never run the service worker inside the native (Capacitor) app or on localhost —
+  // its '/app' cache fallback breaks the bundled app. PWA service worker is web-only.
+  if (window.Capacitor || location.protocol === 'capacitor:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
+      navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }).catch(function(){});
+    }
+    return;
+  }
+  if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('/sw.js'); } catch(e) {} }
+}
 
 /* ══ One elegant action button (replaces the 3 stacked pills) ══ */
 function createActionFab() {
