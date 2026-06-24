@@ -38,6 +38,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="MedCompanion AI", version="2.0.0")
+
+# CORS — required so the bundled mobile app (origin https://localhost / capacitor://localhost)
+# can call this API cross-origin. No cookies are used (user_id is sent in the request body),
+# so credentials are disabled and wildcard origins are safe.
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 memory = MemorySaver()
 graph = build_graph()
 
@@ -697,4 +710,17 @@ async def session_state(thread_id: str):
         return {"status": "ok", "state": state.values if state else {}}
     except Exception as e:
         raise HTTPException(500, str(e))
+
+# Catch-all (MUST stay last): serve any other root-level frontend file by name, so the
+# same relative links/assets (e.g. /about.html, /brand-mark.png) resolve on the web AND
+# in the bundled mobile app. All explicit routes + API endpoints above take precedence.
+@app.get("/{filename:path}")
+async def serve_root_asset(filename: str):
+    safe = os.path.normpath(filename).replace("\\", "/").lstrip("/")
+    if not safe or ".." in safe:
+        raise HTTPException(404)
+    fp = os.path.join(frontend_dir, safe)
+    if os.path.isfile(fp):
+        return FileResponse(fp)
+    raise HTTPException(404)
 

@@ -2,10 +2,6 @@
   "appId": "com.medcompanionai.app",
   "appName": "MedCompanion AI",
   "webDir": "frontend",
-  "server": {
-    "url": "https://medcompanionai.com",
-    "cleartext": true
-  },
   "android": {
     "allowMixedContent": true
   }

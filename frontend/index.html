@@ -2350,7 +2350,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
     <div class="auth-error" id="authError"></div>
     <button class="auth-submit" id="authSubmit" onclick="submitAuth()">Create Free Account</button>
-    <p style="font-size:11px;color:#7a8c8e;line-height:1.5;margin:.7rem 0 0">By creating an account, you agree we securely store your health log to help you prepare for your care. We never sell your data, and you can export or delete it anytime. See our <a href="/privacy" target="_blank" style="color:#1f9d96">Privacy Policy</a>.</p>
+    <p style="font-size:11px;color:#7a8c8e;line-height:1.5;margin:.7rem 0 0">By creating an account, you agree we securely store your health log to help you prepare for your care. We never sell your data, and you can export or delete it anytime. See our <a href="/privacy.html" target="_blank" style="color:#1f9d96">Privacy Policy</a>.</p>
     <div class="auth-toggle" id="authToggle">
       Already have an account? <a onclick="toggleAuthMode()">Sign in</a>
     </div>
@@ -2367,14 +2367,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <nav class="nav" role="navigation" aria-label="Main navigation">
   <a href="#top" class="nav-brand" aria-label="MedCompanion AI home">
-    <img src="/static/brand-mark.png" alt="MedCompanion AI" class="nav-icon" style="object-fit:cover;background:transparent;border:none;border-radius:9px" />
+    <img src="/brand-mark.png" alt="MedCompanion AI" class="nav-icon" style="object-fit:cover;background:transparent;border:none;border-radius:9px" />
     <span class="nav-name">MedCompanion <em>AI</em></span>
   </a>
   <div class="nav-links">
     <a href="#start" class="nav-link"><i class="ti ti-message-circle-heart" aria-hidden="true"></i> Talk to me</a>
     <a href="#crisis-help" class="nav-link nav-link-crisis"><i class="ti ti-life-buoy" aria-hidden="true"></i> Need help now</a>
     <a href="#questions" class="nav-link"><i class="ti ti-help-circle" aria-hidden="true"></i> Common questions</a>
-    <a href="/about" class="nav-link"><i class="ti ti-rosette-discount-check" aria-hidden="true"></i> Our standards</a>
+    <a href="/about.html" class="nav-link"><i class="ti ti-rosette-discount-check" aria-hidden="true"></i> Our standards</a>
     <a href="javascript:void(0)" class="nav-link" id="navAuthLink" aria-label="Sign in or account" onclick="if(typeof currentUser!=='undefined'&&currentUser&&currentUser.user_id){openHealthHub()}else{openAuth('login')}"><i class="ti ti-user-circle" aria-hidden="true"></i> <span id="navAuthLabel">Sign in</span></a>
   </div>
   <button class="nav-menu-btn" aria-label="Open menu" onclick="toggleMobileMenu()">
@@ -2930,12 +2930,12 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class="footer-tagline">For every human being. Every question. Every situation. No judgment. Ever.</div>
     </div>
     <div class="footer-links">
-      <a href="/about-us" class="footer-link"><i class="ti ti-info-circle" aria-hidden="true"></i> About us</a>
-      <a href="/about" class="footer-link"><i class="ti ti-rosette-discount-check" aria-hidden="true"></i> Our medical standards</a>
-      <a href="/partners" class="footer-link"><i class="ti ti-heart-handshake" aria-hidden="true"></i> Partnerships</a>
-      <a href="/investors" class="footer-link"><i class="ti ti-trending-up" aria-hidden="true"></i> Investors</a>
+      <a href="/about-us.html" class="footer-link"><i class="ti ti-info-circle" aria-hidden="true"></i> About us</a>
+      <a href="/about.html" class="footer-link"><i class="ti ti-rosette-discount-check" aria-hidden="true"></i> Our medical standards</a>
+      <a href="/partners.html" class="footer-link"><i class="ti ti-heart-handshake" aria-hidden="true"></i> Partnerships</a>
+      <a href="/investors.html" class="footer-link"><i class="ti ti-trending-up" aria-hidden="true"></i> Investors</a>
       <a href="https://millennialscreatives.com" target="_blank" class="footer-link" rel="noopener"><i class="ti ti-building-skyscraper" aria-hidden="true"></i> millennialscreatives.com</a>
-      <a href="/privacy" class="footer-link"><i class="ti ti-lock" aria-hidden="true"></i> Privacy</a>
+      <a href="/privacy.html" class="footer-link"><i class="ti ti-lock" aria-hidden="true"></i> Privacy</a>
       <a href="mailto:team@medcompanionai.com" class="footer-link"><i class="ti ti-mail" aria-hidden="true"></i> team@medcompanionai.com</a>
     </div>
   </div>
@@ -2947,7 +2947,7 @@ document.addEventListener('DOMContentLoaded', function() {
    MEDCOMPANION AI — MAIN SCRIPT
 ══════════════════════════════════════ */
 
-const API = '';
+const API = 'https://medcompanionai.com';
 let threadId = null;
 let currentUser = null;
 let authMode = 'signup';
@@ -3126,7 +3126,7 @@ function signOut() {
 
 async function loadHistory() {
   if (!currentUser || !currentUser.user_id) { openAuth('login'); return; }
-  var res = await fetch('/user/' + currentUser.user_id + '/history');
+  var res = await fetch(API + '/user/' + currentUser.user_id + '/history');
   var data = await res.json();
   if (!data.history || !data.history.length) {
     alert('No history yet — complete a health briefing to save it here.');
@@ -3878,18 +3878,29 @@ async function addLogEntry() {
     } else if (msg) { msg.style.color = '#f7a8a0'; msg.textContent = 'Could not save.'; }
   } catch(e) { if (msg) { msg.style.color = '#f7a8a0'; msg.textContent = 'Network error.'; } }
 }
+function renderServerLog(logs, offline) {
+  var el = document.getElementById('hhServerLog'); if (!el) return;
+  if (!logs || !logs.length) { el.innerHTML = '<div style="font-size:12.5px;color:#9fbfbb;margin-bottom:.8rem">No log entries yet — add how you are feeling above. Each entry builds your visit summary.</div>'; return; }
+  el.innerHTML = '<div style="font-size:12px;font-weight:800;color:#D4B26A;text-transform:uppercase;letter-spacing:.04em;margin:.4rem 0 .5rem">Your log (' + logs.length + ')' + (offline ? ' · offline copy' : '') + '</div>'
+    + logs.map(function(l){ var when = (l.logged_at || '').slice(0, 10);
+      return '<div style="background:#16323a;border:1px solid #1f5a5c;border-radius:10px;padding:.6rem .85rem;margin-bottom:.45rem"><div style="font-size:11px;color:#9fbfbb">' + clean(when) + (l.severity ? ' · ' + l.severity + '/10' : '') + '</div><div style="font-size:14px;color:#eafaf8;font-weight:600">' + clean(l.symptom) + '</div>' + (l.notes ? '<div style="font-size:12px;color:#9fbfbb">' + clean(l.notes) + '</div>' : '') + '</div>';
+    }).join('');
+}
 async function loadServerLog() {
   var el = document.getElementById('hhServerLog'); if (!el) return;
+  var key = 'mc_log_' + (currentUser && currentUser.user_id);
+  // Show the cached copy instantly (works offline)
+  try { var cached = JSON.parse(localStorage.getItem(key) || 'null'); if (cached) renderServerLog(cached, false); } catch(e){}
   try {
     var res = await fetch(API + '/user/' + currentUser.user_id + '/symptoms');
     var d = await res.json();
     var logs = d.symptoms || [];
-    if (!logs.length) { el.innerHTML = '<div style="font-size:12.5px;color:#9fbfbb;margin-bottom:.8rem">No log entries yet — add how you are feeling above. Each entry builds your visit summary.</div>'; return; }
-    el.innerHTML = '<div style="font-size:12px;font-weight:800;color:#D4B26A;text-transform:uppercase;letter-spacing:.04em;margin:.4rem 0 .5rem">Your log (' + logs.length + ')</div>'
-      + logs.map(function(l){ var when = (l.logged_at || '').slice(0, 10);
-        return '<div style="background:#16323a;border:1px solid #1f5a5c;border-radius:10px;padding:.6rem .85rem;margin-bottom:.45rem"><div style="font-size:11px;color:#9fbfbb">' + clean(when) + (l.severity ? ' · ' + l.severity + '/10' : '') + '</div><div style="font-size:14px;color:#eafaf8;font-weight:600">' + clean(l.symptom) + '</div>' + (l.notes ? '<div style="font-size:12px;color:#9fbfbb">' + clean(l.notes) + '</div>' : '') + '</div>';
-      }).join('');
-  } catch(e) { el.innerHTML = ''; }
+    try { localStorage.setItem(key, JSON.stringify(logs)); } catch(e){}
+    renderServerLog(logs, false);
+  } catch(e) {
+    // Offline: keep showing the cached copy
+    try { var c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && c.length) renderServerLog(c, true); } catch(e2){}
+  }
 }
 async function generateVisitPrep() {
   if (!(currentUser && currentUser.user_id)) { openAuth('signup'); return; }
