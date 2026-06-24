@@ -2136,7 +2136,7 @@ function setUserType(type) {
 
   if (type === 'professional') {
     if (heroTitle) heroTitle.innerHTML = 'Clinical Briefing<br><em>Generator</em>';
-    if (desc) desc.textContent = 'Enter any diagnosis, condition, or clinical question. Get a structured evidence-based briefing — sourced from NIH, Mayo Clinic, PubMed, and OpenEvidence — formatted for patient education.';
+    if (desc) desc.textContent = 'Enter any diagnosis, condition, or clinical question. Get a structured evidence-based briefing — sourced from NIH, Mayo Clinic, PubMed, and the FDA — formatted for patient education.';
     if (hint) hint.placeholder = 'Enter diagnosis or condition (e.g. "Type 2 diabetes management" or "catamenial pneumothorax")...';
     if (goBtn) goBtn.innerHTML = '<i class="ti ti-file-medical"></i> Generate Clinical Briefing';
     if (chipsWrap) chipsWrap.style.display = 'none';
@@ -2296,7 +2296,7 @@ document.addEventListener('DOMContentLoaded', function() {
       </button>
       <button class="role-opt" onclick="chooseRole('professional',null)">
         <span class="role-opt-ic">🩺</span>
-        <span><span class="role-opt-t">I'm a medical professional</span><span class="role-opt-s">Clinical, evidence-based briefings — OpenEvidence-style.</span></span>
+        <span><span class="role-opt-t">I'm a medical professional</span><span class="role-opt-s">Clinical depth for you — plain-language tools to explain it to your patients.</span></span>
       </button>
       <button class="role-opt" onclick="chooseRole('everyday','medication')">
         <span class="role-opt-ic">💊</span>
@@ -2707,7 +2707,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <ul class="pricing-features">
           <li>Generate patient briefings by diagnosis</li>
           <li>Plain-language patient handouts</li>
-          <li>OpenEvidence-referenced sources</li>
+          <li>Peer-reviewed clinical sources</li>
           <li>Holistic + cultural care options</li>
           <li>Unlimited briefings per month</li>
           <li>Priority response speed</li>
@@ -4524,7 +4524,7 @@ function renderBriefing(b) {
       '<div style="display:flex;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:1.25rem"><div style="flex:1"><div class="brief-condition">'+clean(b.condition_name)+'</div><div style="font-size:13px;color:var(--text-soft);margin-top:.25rem">Common name: '+clean(b.plain_name||b.condition_name)+' &middot; '+(b.sources?b.sources.length:0)+' sources &middot; Evidence-based</div></div><span style="background:#1a3a4a;color:#7ecfc0;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:6px">Clinical Pro</span></div>'+
       '<div style="background:#f0f9f7;border:1.5px solid var(--teal);border-radius:14px;padding:1.25rem;margin-bottom:1.25rem"><div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem"><i class="ti ti-file-text" style="color:var(--teal);font-size:18px"></i><strong style="font-size:15px;color:var(--text-dark)">After Visit Summary &mdash; Patient-Ready Language</strong><span style="font-size:11px;color:var(--text-soft);margin-left:auto">Copy and give directly to patient</span></div><p id="avsContent" style="font-size:14px;line-height:1.8;color:var(--text-body);margin:0 0 .75rem">'+avs+'</p><button onclick="navigator.clipboard.writeText(document.getElementById(\'avsContent\').innerText);this.textContent=\'Copied!\';var el=this;setTimeout(function(){el.innerHTML=\'<i class=\\\"ti ti-copy\\\"></i> Copy AVS for patient\';},2000)" style="background:var(--teal);color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-copy"></i> Copy AVS for patient</button></div>'+
       '<div class="card" style="margin-bottom:.85rem"><div class="card-header"><div class="card-icon ci-teal"><i class="ti ti-stethoscope"></i></div><div class="card-title">Standard of Care</div></div><p style="font-size:14px;color:var(--text-body);line-height:1.7;margin:.5rem 0 '+(txP?'1rem':'0')+';padding:.75rem;background:#f8f8f8;border-radius:8px">'+clean(soc.plain_summary)+'</p>'+txP+'</div>'+
-      '<div class="card" style="margin-bottom:.85rem"><div class="card-header"><div class="card-icon ci-sage"><i class="ti ti-flask"></i></div><div class="card-title">Emerging &amp; Investigational Therapies</div></div><p style="font-size:13px;color:var(--text-soft);margin:.25rem 0 .85rem">Sourced from PubMed, OpenEvidence, and ClinicalTrials.gov:</p>'+(emP||'<p style="font-size:14px;color:var(--text-soft)">No emerging therapies identified.</p>')+'</div>'+
+      '<div class="card" style="margin-bottom:.85rem"><div class="card-header"><div class="card-icon ci-sage"><i class="ti ti-flask"></i></div><div class="card-title">Emerging &amp; Investigational Therapies</div></div><p style="font-size:13px;color:var(--text-soft);margin:.25rem 0 .85rem">Sourced from PubMed, the FDA, and ClinicalTrials.gov:</p>'+(emP||'<p style="font-size:14px;color:var(--text-soft)">No emerging therapies identified.</p>')+'</div>'+
       '<div class="card" style="margin-bottom:.85rem"><div class="card-header"><div class="card-icon ci-sage"><i class="ti ti-plant"></i></div><div class="card-title">Integrative &amp; Complementary Options</div></div><p style="font-size:13px;color:var(--text-soft);margin:.25rem 0 .85rem">Evidence-informed options patients may be using or asking about:</p>'+(hP||'<p style="font-size:14px;color:var(--text-soft)">None identified.</p>')+(holistic.reminder?'<div class="holistic-reminder" style="font-size:13px"><i class="ti ti-info-circle"></i> '+clean(holistic.reminder)+'</div>':'')+'</div>'+
       '<div class="card" style="margin-bottom:.85rem"><div class="card-header"><div class="card-icon ci-teal"><i class="ti ti-certificate"></i></div><div class="card-title">Sources &amp; References</div></div>'+srcRows+'</div>'+
       '<div class="reset-row"><span class="reset-hint">Generate another briefing?</span><button class="reset-btn" onclick="reset()"><i class="ti ti-refresh"></i> New clinical briefing</button></div>'+
@@ -4770,7 +4770,7 @@ function setUserType(type) {
 
   if (type === 'professional') {
     if (heroTitle) heroTitle.innerHTML = 'Clinical Briefing<br><em>Generator</em>';
-    if (desc) desc.textContent = 'Enter any diagnosis, condition, or clinical question. Get a structured evidence-based briefing — sourced from NIH, Mayo Clinic, PubMed, and OpenEvidence — formatted for patient education.';
+    if (desc) desc.textContent = 'Enter any diagnosis, condition, or clinical question. Get a structured evidence-based briefing — sourced from NIH, Mayo Clinic, PubMed, and the FDA — formatted for patient education.';
     if (hint) hint.placeholder = 'Enter diagnosis or condition (e.g. "Type 2 diabetes management" or "catamenial pneumothorax")...';
     if (goBtn) goBtn.innerHTML = '<i class="ti ti-file-medical"></i> Generate Clinical Briefing';
     if (chipsWrap) chipsWrap.style.display = 'none';
