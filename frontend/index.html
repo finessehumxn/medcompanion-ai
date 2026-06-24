@@ -4018,7 +4018,7 @@ function createActionFab() {
   if (document.getElementById('fabWrap')) return;
   ensureVcStyles();
   var wrap = document.createElement('div'); wrap.id = 'fabWrap';
-  wrap.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:1150;display:flex;flex-direction:column;align-items:flex-end;gap:.55rem';
+  wrap.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:1150;display:flex;flex-direction:column;align-items:flex-end;gap:.55rem;transform:translateZ(0);will-change:transform;-webkit-backface-visibility:hidden';
   wrap.innerHTML =
     '<div id="fabItems" style="display:none;flex-direction:column;align-items:flex-end;gap:.55rem">'
     + '<button class="vc-launch" style="background:linear-gradient(135deg,#e0594e,#c0392b)" onclick="closeFab();openTriage()"><i class="ti ti-urgent"></i> Emergency?</button>'
