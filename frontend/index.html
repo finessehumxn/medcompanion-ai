@@ -4008,6 +4008,12 @@ function registerSW() {
 }
 
 /* ══ One elegant action button (replaces the 3 stacked pills) ══ */
+function toggleMobileMenu() {
+  var m = document.getElementById('mobileMenu');
+  if (!m) return;
+  m.classList.toggle('open');
+  m.setAttribute('aria-hidden', m.classList.contains('open') ? 'false' : 'true');
+}
 function createActionFab() {
   if (document.getElementById('fabWrap')) return;
   ensureVcStyles();
