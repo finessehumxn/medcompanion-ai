@@ -311,7 +311,7 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
 ════════════════════════════════════════ */
 .nav {
   background: var(--teal);
-  padding: .9rem 1.5rem;
+  padding: calc(1.1rem + env(safe-area-inset-top, 0px)) 1.5rem .9rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
