@@ -397,7 +397,7 @@ async def quick_take(req: QuickTakeRequest):
         return {"status": "ok", "quick": data.get("quick", ""), "questions": (data.get("questions") or [])[:3]}
     except Exception as ex:
         logger.error(f"quick_take error: {ex}")
-        return {"status": "error", "err": str(ex)[:300]}
+        return {"status": "error"}
 
 
 class CompanionRequest(BaseModel):
