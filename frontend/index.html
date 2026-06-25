@@ -4031,6 +4031,14 @@ function createActionFab() {
     + '</div>'
     + '<button id="fabMain" aria-label="Quick actions" onclick="toggleFab()" style="width:58px;height:58px;border-radius:50%;border:1px solid rgba(201,162,75,.55);background:linear-gradient(135deg,#0B3D2E,#093a2b);color:#fff;font-size:24px;cursor:pointer;box-shadow:0 12px 32px rgba(10,31,26,.4);display:flex;align-items:center;justify-content:center;transition:transform .15s"><i class="ti ti-plus"></i></button>';
   document.body.appendChild(wrap);
+  // Force the FAB items out of .vc-launch's position:fixed so they stack in the column instead of piling on one spot
+  Array.prototype.forEach.call(wrap.querySelectorAll('.vc-launch'), function(b){
+    b.style.setProperty('position', 'static', 'important');
+    b.style.setProperty('right', 'auto', 'important');
+    b.style.setProperty('bottom', 'auto', 'important');
+    b.style.setProperty('left', 'auto', 'important');
+    b.style.setProperty('top', 'auto', 'important');
+  });
 }
 function toggleFab() {
   var i = document.getElementById('fabItems'), m = document.getElementById('fabMain');
