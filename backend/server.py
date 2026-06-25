@@ -366,7 +366,7 @@ class QuickTakeRequest(BaseModel):
 async def quick_take(req: QuickTakeRequest):
     """Two-phase speed: a fast plain-language first answer shown while the full
     web-grounded briefing loads. No web search, small output — returns in a few seconds."""
-    import json as _qjson
+    import anthropic, json as _qjson
     topic = (req.topic or "").strip()[:400]
     if not topic:
         return {"status": "error"}
