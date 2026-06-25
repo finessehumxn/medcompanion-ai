@@ -96,6 +96,8 @@
 /* In the native app, always use the hamburger nav (which has Sign in) — never the desktop links, regardless of the WebView's reported width */
 html.cap-app .nav-links { display: none !important; }
 html.cap-app .nav-menu-btn { display: flex !important; align-items: center; justify-content: center; }
+/* FAB items use the .vc-launch class (which is position:fixed) — override so they flow in the column and cascade up instead of stacking on the same spot */
+#fabWrap .vc-launch, #fabItems .vc-launch { position: static !important; right: auto !important; bottom: auto !important; left: auto !important; top: auto !important; z-index: auto !important; }
 
 .crisis-inner {
   max-width: 720px;
