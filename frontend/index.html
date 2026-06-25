@@ -4427,9 +4427,17 @@ async function confirmCondition(useAI) {
         bb.insertAdjacentHTML('afterbegin',
           '<div id="quickTake" style="background:var(--lteal,#ecf4ef);border:1.5px solid var(--gold,#c9a24b);border-radius:14px;padding:1rem 1.15rem;margin-bottom:1rem">'
           + '<div style="font-size:12px;font-weight:800;color:var(--gold,#c9a24b);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.45rem">⚡ Quick take · full briefing loading…</div>'
-          + '<div style="font-size:15px;color:var(--text-dark,#0d3b3e);line-height:1.55">'+clean(d.quick)+'</div>'
-          + (qs ? '<div style="font-size:12.5px;font-weight:700;color:var(--text-soft,#5d7274);margin:.75rem 0 .3rem">A few questions to ask your doctor:</div><ul style="margin:0 0 0 1.1rem;font-size:14px;color:var(--text-dark,#0d3b3e);line-height:1.5">'+qs+'</ul>' : '')
+          + '<div id="qtText" style="font-size:15px;color:var(--text-dark,#0d3b3e);line-height:1.55;white-space:pre-wrap"></div>'
+          + (qs ? '<div id="qtQs" style="display:none"><div style="font-size:12.5px;font-weight:700;color:var(--text-soft,#5d7274);margin:.75rem 0 .3rem">A few questions to ask your doctor:</div><ul style="margin:0 0 0 1.1rem;font-size:14px;color:var(--text-dark,#0d3b3e);line-height:1.5">'+qs+'</ul></div>' : '')
           + '</div>');
+        // Typewriter effect — read it as it "thinks"
+        var _qtTxt = clean(d.quick), _qi = 0;
+        (function _type(){
+          var el = document.getElementById('qtText');
+          if (!el || window.lastBriefing) { if (el) el.textContent = _qtTxt; return; }
+          if (_qi <= _qtTxt.length) { el.textContent = _qtTxt.slice(0, _qi) + '▍'; _qi += 2; setTimeout(_type, 16); }
+          else { el.textContent = _qtTxt; var q = document.getElementById('qtQs'); if (q) q.style.display = ''; }
+        })();
       }).catch(function(){});
   })();
 
