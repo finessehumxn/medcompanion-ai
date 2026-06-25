@@ -359,6 +359,47 @@ async def advocate(req: AdvocateRequest):
         return {"summary": "I could not fully process that just now — please try again.", "flags": [],
                 "actions": ["Try again in a moment", "If urgent, call your provider or local emergency number"], "letter": ""}
 
+class QuickTakeRequest(BaseModel):
+    topic: str
+
+@app.post("/quick-take")
+async def quick_take(req: QuickTakeRequest):
+    """Two-phase speed: a fast plain-language first answer shown while the full
+    web-grounded briefing loads. No web search, small output — returns in a few seconds."""
+    import json as _qjson
+    topic = (req.topic or "").strip()[:400]
+    if not topic:
+        return {"status": "error"}
+    try:
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=400,
+            system=("You are a warm, plain-language health companion giving a quick first take while a "
+                    "fuller briefing loads. Educational only, never a diagnosis. Keep it short and calm."),
+            messages=[{"role": "user", "content": (
+                "Give a quick plain-language take for a patient who asked about: " + topic +
+                "\nReturn ONLY this JSON: {\"quick\": \"2 to 3 short plain sentences\", "
+                "\"questions\": [\"a short question to ask your doctor\", \"another\", \"another\"]}")}],
+        )
+        text = "".join(getattr(b, "text", "") for b in resp.content)
+        s, e = text.find("{"), text.rfind("}")
+        data = {}
+        if s != -1:
+            try:
+                data = _qjson.loads(text[s:e + 1])
+            except Exception:
+                try:
+                    from json_repair import repair_json
+                    data = repair_json(text[s:e + 1], return_objects=True) or {}
+                except Exception:
+                    data = {}
+        return {"status": "ok", "quick": data.get("quick", ""), "questions": (data.get("questions") or [])[:3]}
+    except Exception as ex:
+        logger.error(f"quick_take error: {ex}")
+        return {"status": "error"}
+
+
 class CompanionRequest(BaseModel):
     message: str                 # their question, or a request to re-explain
     context: Optional[str] = ""  # the health topic being discussed

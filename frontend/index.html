@@ -4413,6 +4413,26 @@ async function confirmCondition(useAI) {
   // Init snake after card is in DOM
   setTimeout(function(){ initSnake(); startSnake(); }, 150);
 
+  // Two-phase speed: show a fast plain-language "quick take" while the full briefing loads
+  (function(){
+    var topic = (override && String(override).trim()) || (window.lastRawInput || '');
+    if (!topic) return;
+    fetch(API + '/quick-take', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ topic: topic }) })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!d || d.status !== 'ok' || !d.quick || window.lastBriefing) return;
+        var bb = document.getElementById('briefingBody');
+        if (!bb || document.getElementById('quickTake')) return;
+        var qs = (d.questions||[]).map(function(q){ return '<li>'+clean(q)+'</li>'; }).join('');
+        bb.insertAdjacentHTML('afterbegin',
+          '<div id="quickTake" style="background:var(--lteal,#ecf4ef);border:1.5px solid var(--gold,#c9a24b);border-radius:14px;padding:1rem 1.15rem;margin-bottom:1rem">'
+          + '<div style="font-size:12px;font-weight:800;color:var(--gold,#c9a24b);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.45rem">⚡ Quick take · full briefing loading…</div>'
+          + '<div style="font-size:15px;color:var(--text-dark,#0d3b3e);line-height:1.55">'+clean(d.quick)+'</div>'
+          + (qs ? '<div style="font-size:12.5px;font-weight:700;color:var(--text-soft,#5d7274);margin:.75rem 0 .3rem">A few questions to ask your doctor:</div><ul style="margin:0 0 0 1.1rem;font-size:14px;color:var(--text-dark,#0d3b3e);line-height:1.5">'+qs+'</ul>' : '')
+          + '</div>');
+      }).catch(function(){});
+  })();
+
   try {
     var res = await fetch(API + '/session/' + threadId + '/confirm', {
       method: 'POST',
