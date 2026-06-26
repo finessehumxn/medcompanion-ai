@@ -3164,7 +3164,14 @@ var isRecording = false;
 function toggleVoice() {
   var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRec) {
-    alert('Voice input is not supported in this browser. Please try Chrome or Edge.');
+    // In-app Android WebView has no Web Speech API — hand off to the keyboard's built-in voice typing (reliable everywhere)
+    var inp = document.getElementById('patientInput');
+    var lbl = document.querySelector('.input-extra-label');
+    if (inp) { inp.focus(); }
+    if (lbl) {
+      lbl.innerHTML = '🎤 <strong>Tap the microphone on your keyboard</strong> and start speaking — your words type into the box above.';
+      setTimeout(function(){ try { if (lbl) lbl.textContent = ''; } catch(e){} }, 8000);
+    }
     return;
   }
   if (isRecording) {
