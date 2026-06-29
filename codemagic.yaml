@@ -47,6 +47,13 @@ workflows:
           plutil -replace ITSAppUsesNonExemptEncryption -bool false "$PLIST" 2>/dev/null || plutil -insert ITSAppUsesNonExemptEncryption -bool false "$PLIST"
       - name: Capacitor sync (copies frontend/ into the app)
         script: npx cap sync ios
+      - name: Set the MedCompanion app icon (replaces Capacitor default)
+        script: |
+          npx --yes @capacitor/assets generate --ios \
+            --iconBackgroundColor '#034730' --iconBackgroundColorDark '#034730' || true
+          ICONSET=ios/App/App/Assets.xcassets/AppIcon.appiconset
+          BIG=$(ls -S "$ICONSET"/*.png 2>/dev/null | head -1)
+          if [ -n "$BIG" ]; then cp assets/icon.png "$BIG"; echo "App icon set -> $BIG"; fi
       - name: Set DEVELOPMENT_TEAM on the generated project
         script: |
           perl -0777 -i -pe 's/(\n(\t+)buildSettings = \{)/$1\n$2\tDEVELOPMENT_TEAM = $ENV{DEV_TEAM};/g' ios/App/App.xcodeproj/project.pbxproj
