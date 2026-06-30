@@ -75,7 +75,8 @@ workflows:
           xcode-project use-profiles
       - name: Increment build number
         script: |
-          cd ios/App && agvtool new-version -all $(($(date +%s) % 100000)) || true
+          # Full unix timestamp = always increases (the old % 100000 could wrap lower).
+          cd ios/App && agvtool new-version -all $(date +%s) || true
       - name: Build IPA (workspace if CocoaPods, else project)
         script: |
           if [ -d ios/App/App.xcworkspace ]; then
