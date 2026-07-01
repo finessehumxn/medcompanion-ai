@@ -5095,3 +5095,78 @@ document.addEventListener('DOMContentLoaded', function() {
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>
+
+<!-- ═══ APPOINTMENTS — on-device visit tracker with countdown + one-tap visit prep ═══ -->
+<script>
+(function(){
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function appts(){ try { return JSON.parse(localStorage.getItem('mc_appts')||'[]'); } catch(e){ return []; } }
+  function saveAppts(a){ try { localStorage.setItem('mc_appts', JSON.stringify(a)); } catch(e){} }
+  function rel(dateStr){ try { var d=new Date(dateStr+'T00:00:00'); var now=new Date(); now.setHours(0,0,0,0); var days=Math.round((d-now)/86400000);
+    if(days<0) return {t:'past', s:Math.abs(days)+ (Math.abs(days)===1?' day ago':' days ago')};
+    if(days===0) return {t:'today', s:'Today'};
+    if(days===1) return {t:'soon', s:'Tomorrow'};
+    if(days<=7) return {t:'soon', s:'in '+days+' days'};
+    return {t:'future', s:'in '+days+' days'}; } catch(e){ return {t:'future', s:''}; } }
+  function fmtDate(dateStr){ try { return new Date(dateStr+'T00:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}); } catch(e){ return dateStr; } }
+
+  function aRender(){
+    var list=document.getElementById('mcAList'); if(!list) return;
+    var a=appts().slice().sort(function(x,y){ return (x.date||'').localeCompare(y.date||''); });
+    if(!a.length){ list.innerHTML='<div style="color:var(--text-soft);font-size:14px;padding:.4rem 0;line-height:1.5">No appointments yet. Add your next visit — I\'ll help you show up prepared with the right questions.</div>'; return; }
+    list.innerHTML=a.map(function(x){ var r=rel(x.date); var past=r.t==='past';
+      var pillc = r.t==='today'?'#e0594e':(r.t==='soon'?'#C9A24B':(past?'var(--text-soft)':'var(--sage)'));
+      return '<div style="padding:.7rem .85rem;background:'+(past?'var(--off-white)':'var(--lteal)')+';border:1px solid var(--border);border-radius:12px;margin-bottom:.5rem;'+(past?'opacity:.7':'')+'">'
+        +'<div style="display:flex;justify-content:space-between;gap:.5rem;align-items:baseline"><b style="color:var(--text-dark)">'+esc(x.who||'Appointment')+'</b><span style="font-size:12px;font-weight:700;color:'+pillc+';white-space:nowrap">'+r.s+'</span></div>'
+        +'<div style="font-size:12px;color:var(--text-soft);margin-top:.15rem">'+fmtDate(x.date)+(x.time?(' · '+esc(x.time)):'')+'</div>'
+        +(x.reason?'<div style="font-size:13px;color:var(--text-body);margin-top:.3rem">'+esc(x.reason)+'</div>':'')
+        +'<div style="display:flex;gap:.5rem;margin-top:.6rem"><button class="mcAPrep" data-r="'+esc(x.reason||'')+'" data-w="'+esc(x.who||'')+'" style="flex:1;background:var(--teal);color:#fff;border:none;border-radius:10px;padding:.5rem;font-weight:700;font-size:12px;cursor:pointer">📋 Prep for this</button><button class="mcADel" data-id="'+esc(x.id)+'" style="background:var(--white);border:1px solid var(--border);color:#c0392b;border-radius:10px;padding:.5rem .8rem;cursor:pointer;font-size:12px">Remove</button></div>'
+        +'</div>';
+    }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('.mcADel'),function(b){ b.onclick=function(){ var a=appts().filter(function(x){ return String(x.id)!==b.getAttribute('data-id'); }); saveAppts(a); aRender(); }; });
+    Array.prototype.forEach.call(document.querySelectorAll('.mcAPrep'),function(b){ b.onclick=function(){ prep(b.getAttribute('data-w'), b.getAttribute('data-r')); }; });
+  }
+  function aAdd(){ var d=document.getElementById('mcADate'), t=document.getElementById('mcATime'), w=document.getElementById('mcAWho'), r=document.getElementById('mcAReason');
+    if(!d||!d.value){ alert('Pick a date.'); return; }
+    var a=appts(); a.push({id:''+Date.now()+Math.floor(Math.random()*1000), date:d.value, time:(t&&t.value)||'', who:(w&&w.value.trim())||'', reason:(r&&r.value.trim())||''}); saveAppts(a);
+    d.value=''; if(t)t.value=''; if(w)w.value=''; if(r)r.value=''; aRender(); }
+  function prep(who, reason){ closeA(); var input=document.getElementById('patientInput');
+    var extra=''; try{ var syms=JSON.parse(localStorage.getItem('mc_symptoms')||'[]'); if(syms.length) extra+=' I have been tracking these symptoms: '+syms.slice(-6).map(function(s){return s.symptom+' (severity '+s.severity+'/5)';}).join(', ')+'.'; var v=JSON.parse(localStorage.getItem('mc_vitals')||'[]'); if(v.length) extra+=' Recent measurements: '+v.slice(-4).map(function(x){return x.type+' '+x.value+' '+x.unit;}).join(', ')+'.'; }catch(e){}
+    var prompt='I have an appointment'+(who?(' with '+who):'')+(reason?(' about '+reason):'')+'.'+extra+' In plain language, what questions should I ask, what should I bring, and how should I describe my situation to get the most from this visit?';
+    if(input){ input.value=prompt; try{input.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){} if(typeof startPipeline==='function') setTimeout(startPipeline,250); } }
+
+  function openA(){ var m=document.getElementById('mcAModal'); if(m){ m.style.display='flex'; aRender(); } var hm=document.getElementById('mcHubMenu'); if(hm) hm.style.display='none'; }
+  function closeA(){ var m=document.getElementById('mcAModal'); if(m) m.style.display='none'; }
+
+  function init(){
+    if(document.getElementById('mcAModal')) return;
+    var m=document.createElement('div'); m.id='mcAModal';
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(10,31,26,0.55);z-index:99999;align-items:center;justify-content:center;padding:18px';
+    m.innerHTML='<div role="dialog" aria-label="Appointments" style="background:var(--cream);border-radius:20px;max-width:440px;width:100%;max-height:88vh;overflow-y:auto;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,0.45)">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem"><div style="font-family:Lora,serif;font-size:22px;font-weight:700;color:var(--text-dark)">🗓️ Appointments</div><button id="mcAClose" aria-label="Close" style="background:none;border:none;font-size:28px;cursor:pointer;color:var(--text-soft);line-height:1">×</button></div>'
+      +'<div style="font-size:13px;color:var(--text-soft);margin-bottom:1rem;line-height:1.5">Keep your visits in one place — private, on this device. Tap “Prep for this” and I\'ll pull in your journal &amp; vitals.</div>'
+      +'<div id="mcAList" style="margin-bottom:1rem"></div>'
+      +'<div style="display:flex;gap:.5rem;margin-bottom:.55rem"><input id="mcADate" type="date" style="flex:1;min-width:0;padding:.65rem;border:1px solid var(--border);border-radius:12px;font-size:14px"><input id="mcATime" type="time" style="width:120px;padding:.65rem;border:1px solid var(--border);border-radius:12px;font-size:14px"></div>'
+      +'<input id="mcAWho" placeholder="Doctor / clinic (e.g. Dr. Lee, cardiology)" style="width:100%;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px;margin-bottom:.55rem">'
+      +'<input id="mcAReason" placeholder="Reason (optional)" style="width:100%;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px;margin-bottom:.6rem">'
+      +'<button id="mcAAdd" style="width:100%;background:var(--sage);color:#fff;border:none;border-radius:12px;padding:.7rem;font-weight:700;cursor:pointer">+ Add appointment</button>'
+      +'<div style="font-size:11px;color:var(--text-soft);margin-top:.7rem;text-align:center;line-height:1.5">Reminders that pop up on your phone are coming to the app — for now your visits are saved &amp; counted down here.</div>'
+      +'</div>';
+    document.body.appendChild(m);
+    m.addEventListener('click',function(e){ if(e.target===m) closeA(); });
+    document.getElementById('mcAClose').onclick=closeA;
+    document.getElementById('mcAAdd').onclick=aAdd;
+
+    var menu=document.getElementById('mcHubMenu'); var cancel=document.getElementById('mcHubCancel');
+    if(menu && cancel){
+      var item=document.createElement('button'); item.className='mcHubItem';
+      item.style.cssText='width:100%;text-align:left;display:flex;gap:.7rem;align-items:center;background:var(--lteal);border:1px solid var(--border);border-radius:14px;padding:.85rem;margin-bottom:.5rem;cursor:pointer';
+      item.innerHTML='<span style="font-size:22px">🗓️</span><span><b style="color:var(--text-dark)">Appointments</b><br><span style="font-size:12px;color:var(--text-soft)">Track visits · prep with your journal &amp; vitals</span></span>';
+      item.onclick=function(){ openA(); };
+      cancel.parentNode.insertBefore(item, cancel);
+    }
+    window.mcOpenAppts=openA;
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
