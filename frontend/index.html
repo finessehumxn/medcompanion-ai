@@ -5580,3 +5580,61 @@ document.addEventListener('DOMContentLoaded', function() {
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>
+
+<!-- ═══ APP REVIEW COMPLIANCE — AI data-sharing consent (5.1.2) + medical citations (1.4.1) ═══ -->
+<script>
+(function(){
+  /* ---- 1) AI DATA-SHARING CONSENT (Apple 5.1.1(i)/5.1.2(i)) ----
+     Disclose what's sent, to whom, and get permission BEFORE any data goes to the AI. */
+  function consented(){ try { return localStorage.getItem('mc_ai_consent')==='1'; } catch(e){ return false; } }
+  function showConsent(){
+    if(consented() || document.getElementById('mcConsent')) return;
+    var ov=document.createElement('div'); ov.id='mcConsent';
+    ov.style.cssText='position:fixed;inset:0;z-index:100001;background:rgba(10,31,26,0.75);display:flex;align-items:center;justify-content:center;padding:18px';
+    ov.innerHTML='<div role="dialog" aria-label="How MedCompanion uses AI" style="background:var(--cream,#FBF7EE);border-radius:20px;max-width:430px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 24px 70px rgba(0,0,0,0.5)">'
+      +'<div style="font-family:Lora,serif;font-size:22px;font-weight:700;color:var(--text-dark,#0A2A20);margin-bottom:8px">Before we begin — how this works</div>'
+      +'<div style="font-size:14px;color:var(--text-body,#33493F);line-height:1.6;margin-bottom:14px">To answer you in plain language, MedCompanion securely sends what you <b>type, say, or photograph</b> to our AI provider — <b>Anthropic (Claude)</b> — which generates the response. That\'s the only third party your input goes to.</div>'
+      +'<ul style="font-size:13px;color:var(--text-body,#33493F);line-height:1.6;margin:0 0 14px 1.1rem;padding:0">'
+      +'<li>We do <b>not</b> sell your data.</li>'
+      +'<li>Please don\'t include anything you\'re not comfortable having processed.</li>'
+      +'<li>Details are in our <a href="/privacy.html" target="_blank" rel="noreferrer" style="color:var(--teal,#0B3D2E);font-weight:700">Privacy Policy</a>.</li>'
+      +'</ul>'
+      +'<div style="font-size:12px;color:var(--text-soft,#6E7C72);line-height:1.5;margin-bottom:16px">MedCompanion gives general health information — it is not a doctor, diagnosis, or emergency service. In an emergency call your local emergency number.</div>'
+      +'<button id="mcConsentOk" style="width:100%;background:var(--teal,#0B3D2E);color:#fff;border:none;border-radius:12px;padding:.9rem;font-weight:800;font-size:15px;cursor:pointer">I understand &amp; agree</button>'
+      +'</div>';
+    document.body.appendChild(ov);
+    document.getElementById('mcConsentOk').onclick=function(){ try{localStorage.setItem('mc_ai_consent','1');}catch(e){} ov.remove(); };
+  }
+  // Belt & suspenders: also guard the pipeline entry point.
+  function guardPipeline(){
+    if(typeof window.startPipeline==='function' && !window._mcPipelineGuarded){
+      var orig=window.startPipeline; window._mcPipelineGuarded=true;
+      window.startPipeline=function(){ if(!consented()){ showConsent(); return; } return orig.apply(this, arguments); };
+    }
+  }
+
+  /* ---- 2) MEDICAL CITATIONS (Apple 1.4.1) ----
+     Every AI answer gets a visible "Sources & how to verify" footer with links. */
+  var SRC='<div class="mc-cite" style="margin-top:14px;padding:12px 14px;background:var(--lteal,#ECF4EF);border:1px solid var(--border,#E6DCC8);border-radius:12px">'
+    +'<div style="font-size:12px;font-weight:700;color:var(--text-dark,#0A2A20);margin-bottom:5px">📚 Sources &amp; how to verify</div>'
+    +'<div style="font-size:12px;color:var(--text-body,#33493F);line-height:1.6">This is <b>AI-generated educational information</b>, drawn from general medical knowledge — not a diagnosis. Verify anything important with these trusted sources, and always confirm with a licensed professional:</div>'
+    +'<div style="font-size:12.5px;margin-top:6px;line-height:1.9">'
+    +'<a href="https://medlineplus.gov" target="_blank" rel="noreferrer" style="color:var(--teal,#0B3D2E);font-weight:700;margin-right:12px">MedlinePlus (NIH)</a>'
+    +'<a href="https://www.cdc.gov" target="_blank" rel="noreferrer" style="color:var(--teal,#0B3D2E);font-weight:700;margin-right:12px">CDC</a>'
+    +'<a href="https://www.mayoclinic.org" target="_blank" rel="noreferrer" style="color:var(--teal,#0B3D2E);font-weight:700;margin-right:12px">Mayo Clinic</a>'
+    +'<a href="https://www.nih.gov" target="_blank" rel="noreferrer" style="color:var(--teal,#0B3D2E);font-weight:700">NIH</a>'
+    +'</div></div>';
+  function attachCitations(){
+    var out=document.getElementById('output'); if(!out) return;
+    var obs=new MutationObserver(function(){
+      if(out.textContent.trim().length>40 && !out.querySelector('.mc-cite')){
+        try{ out.insertAdjacentHTML('beforeend', SRC); }catch(e){}
+      }
+    });
+    obs.observe(out,{childList:true,subtree:true});
+  }
+
+  function init(){ showConsent(); guardPipeline(); attachCitations(); setTimeout(guardPipeline,1500); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
