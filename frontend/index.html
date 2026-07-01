@@ -5249,3 +5249,77 @@ document.addEventListener('DOMContentLoaded', function() {
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>
+
+<!-- ═══ TODAY — daily check-in: med adherence + next appointment + feeling log ═══ -->
+<script>
+(function(){
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function meds(){ try { return JSON.parse(localStorage.getItem('mc_meds')||'[]'); } catch(e){ return []; } }
+  function todayKey(){ var d=new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+  function adh(){ try{ return JSON.parse(localStorage.getItem('mc_adherence')||'{}'); }catch(e){ return {}; } }
+  function saveAdh(a){ try{ localStorage.setItem('mc_adherence', JSON.stringify(a)); }catch(e){} }
+  function takenToday(){ return adh()[todayKey()]||[]; }
+  function toggle(name){ var a=adh(), k=todayKey(), t=(a[k]||[]).slice(); var i=t.indexOf(name); if(i>=0) t.splice(i,1); else t.push(name); a[k]=t; saveAdh(a); render(); }
+  function nextAppt(){ try{ var a=JSON.parse(localStorage.getItem('mc_appts')||'[]'); var now=new Date(); now.setHours(0,0,0,0);
+    var up=a.filter(function(x){ return new Date(x.date+'T00:00:00')>=now; }).sort(function(x,y){ return (x.date||'').localeCompare(y.date||''); }); return up[0]||null; }catch(e){ return null; } }
+  function relDays(dateStr){ var d=new Date(dateStr+'T00:00:00'); var now=new Date(); now.setHours(0,0,0,0); var n=Math.round((d-now)/86400000); return n===0?'today':(n===1?'tomorrow':'in '+n+' days'); }
+  function greeting(){ var h=new Date().getHours(); return h<12?'Good morning':(h<18?'Good afternoon':'Good evening'); }
+
+  function render(){
+    var body=document.getElementById('mcTBody'); if(!body) return;
+    var m=meds(), taken=takenToday();
+    var medHtml;
+    if(!m.length){ medHtml='<div style="color:var(--text-soft);font-size:13px;line-height:1.5">No medications added yet. <button id="mcTAddMeds" style="background:none;border:none;color:var(--teal);font-weight:700;cursor:pointer;text-decoration:underline;padding:0">Add your meds →</button></div>'; }
+    else { medHtml=m.map(function(x){ var on=taken.indexOf(x.name)>=0;
+      return '<button class="mcTMed" data-n="'+esc(x.name)+'" style="width:100%;display:flex;align-items:center;gap:.7rem;text-align:left;background:'+(on?'var(--lteal)':'var(--white)')+';border:1px solid '+(on?'var(--sage)':'var(--border)')+';border-radius:12px;padding:.65rem .8rem;margin-bottom:.45rem;cursor:pointer"><span style="width:24px;height:24px;border-radius:50%;border:2px solid '+(on?'var(--sage)':'var(--border)')+';background:'+(on?'var(--sage)':'transparent')+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">'+(on?'✓':'')+'</span><span style="flex:1"><b style="color:var(--text-dark);'+(on?'':'')+'">'+esc(x.name)+'</b>'+(x.dose?' <span style="color:var(--text-soft);font-size:13px">'+esc(x.dose)+'</span>':'')+'</span></button>'; }).join('');
+    }
+    var na=nextAppt();
+    var apptHtml = na
+      ? '<div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;background:var(--lteal);border:1px solid var(--border);border-radius:12px;padding:.7rem .85rem"><span><b style="color:var(--text-dark)">'+(esc(na.who)||'Appointment')+'</b><br><span style="font-size:12px;color:var(--sage);font-weight:700">'+relDays(na.date)+'</span></span><button id="mcTPrep" style="background:var(--teal);color:#fff;border:none;border-radius:10px;padding:.5rem .8rem;font-weight:700;font-size:12px;cursor:pointer">Prep</button></div>'
+      : '<div style="color:var(--text-soft);font-size:13px">No upcoming appointments. <button id="mcTAddAppt" style="background:none;border:none;color:var(--teal);font-weight:700;cursor:pointer;text-decoration:underline;padding:0">Add one →</button></div>';
+    var doneN = m.filter(function(x){ return taken.indexOf(x.name)>=0; }).length;
+
+    body.innerHTML =
+        '<div style="margin-bottom:1.1rem"><div style="font-size:13px;color:var(--text-soft)">'+greeting()+'</div><div style="font-family:Lora,serif;font-size:22px;font-weight:700;color:var(--text-dark)">How are you today?</div></div>'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem"><div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-soft)">Today\'s medications</div>'+(m.length?'<span style="font-size:12px;font-weight:700;color:'+(doneN===m.length?'var(--sage)':'var(--text-soft)')+'">'+doneN+' of '+m.length+' taken</span>':'')+'</div>'
+      + medHtml
+      + '<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-soft);margin:1rem 0 .5rem">Next appointment</div>'
+      + apptHtml
+      + '<button id="mcTFeel" style="width:100%;background:var(--teal);color:#fff;border:none;border-radius:12px;padding:.85rem;font-weight:800;cursor:pointer;font-size:15px;margin-top:1.1rem">📓 Log how I\'m feeling</button>';
+
+    Array.prototype.forEach.call(document.querySelectorAll('.mcTMed'),function(b){ b.onclick=function(){ toggle(b.getAttribute('data-n')); }; });
+    var af=document.getElementById('mcTFeel'); if(af) af.onclick=function(){ closeT(); var it=document.querySelector('.mcHubItem[data-t=journal]'); if(it) it.click(); };
+    var pp=document.getElementById('mcTPrep'); if(pp) pp.onclick=function(){ closeT(); if(typeof window.mcOpenAppts==='function') window.mcOpenAppts(); };
+    var am=document.getElementById('mcTAddMeds'); if(am) am.onclick=function(){ closeT(); if(typeof window.mcOpenMeds==='function') window.mcOpenMeds(); };
+    var aa=document.getElementById('mcTAddAppt'); if(aa) aa.onclick=function(){ closeT(); if(typeof window.mcOpenAppts==='function') window.mcOpenAppts(); };
+  }
+  function openT(){ var m=document.getElementById('mcTModal'); if(m){ m.style.display='flex'; render(); } var hm=document.getElementById('mcHubMenu'); if(hm) hm.style.display='none'; }
+  function closeT(){ var m=document.getElementById('mcTModal'); if(m) m.style.display='none'; }
+
+  function init(){
+    if(document.getElementById('mcTModal')) return;
+    var m=document.createElement('div'); m.id='mcTModal';
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(10,31,26,0.55);z-index:99999;align-items:center;justify-content:center;padding:18px';
+    m.innerHTML='<div role="dialog" aria-label="Today" style="background:var(--cream);border-radius:20px;max-width:440px;width:100%;max-height:88vh;overflow-y:auto;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,0.45)">'
+      +'<div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:-.4rem"><button id="mcTClose" aria-label="Close" style="background:none;border:none;font-size:28px;cursor:pointer;color:var(--text-soft);line-height:1">×</button></div>'
+      +'<div id="mcTBody"></div>'
+      +'</div>';
+    document.body.appendChild(m);
+    m.addEventListener('click',function(e){ if(e.target===m) closeT(); });
+    document.getElementById('mcTClose').onclick=closeT;
+
+    // Insert as the FIRST item in the hub (daily default)
+    var menu=document.getElementById('mcHubMenu');
+    var first=menu?menu.querySelector('.mcHubItem'):null;
+    if(menu && first){
+      var item=document.createElement('button'); item.className='mcHubItem';
+      item.style.cssText='width:100%;text-align:left;display:flex;gap:.7rem;align-items:center;background:linear-gradient(180deg,#F2ECDD,#ECF4EF);border:1px solid var(--border);border-radius:14px;padding:.85rem;margin-bottom:.5rem;cursor:pointer';
+      item.innerHTML='<span style="font-size:22px">☀️</span><span><b style="color:var(--text-dark)">Today</b><br><span style="font-size:12px;color:var(--text-soft)">Meds to take · next visit · daily check-in</span></span>';
+      item.onclick=function(){ openT(); };
+      first.parentNode.insertBefore(item, first);
+    }
+    window.mcOpenToday=openT;
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
