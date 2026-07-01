@@ -67,11 +67,20 @@ workflows:
           else
             xcodebuild -resolvePackageDependencies -project ios/App/App.xcodeproj -scheme "$XCODE_SCHEME" || true
           fi
-      - name: Set up code signing (create distribution cert + App Store profile)
+      - name: Set up code signing (revoke stale certs, then one clean cert + profile)
         script: |
           keychain initialize
+          # Apple caps you at ~2 Distribution certificates per team. Minting a new one
+          # every build hits that cap, after which no usable cert/profile is produced
+          # and the archive fails with "requires a provisioning profile" (exit 65).
+          # Fix: revoke existing Distribution certs first, then create exactly ONE fresh
+          # cert + profile. Revoking is safe for App Store builds — Apple re-signs
+          # accepted uploads, so already-shipped/processed builds are unaffected.
+          for CID in $(app-store-connect certificates list --type IOS_DISTRIBUTION --json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); items=d if isinstance(d,list) else d.get('data',[]); print('\n'.join(str(c.get('id','')) for c in items))" 2>/dev/null); do
+            [ -n "$CID" ] && app-store-connect certificates delete "$CID" --ignore-not-found || true
+          done
           openssl genrsa -out /tmp/cert_key.pem 2048
-          app-store-connect certificates create --type IOS_DISTRIBUTION --certificate-key=@file:/tmp/cert_key.pem --save || true
+          app-store-connect certificates create --type IOS_DISTRIBUTION --certificate-key=@file:/tmp/cert_key.pem --save
           app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --certificate-key=@file:/tmp/cert_key.pem --create
           keychain add-certificates
           xcode-project use-profiles
