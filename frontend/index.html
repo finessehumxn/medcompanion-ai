@@ -5399,35 +5399,46 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 </script>
 
-<!-- ═══ FIRST-RUN HUB INTRO — one-time pointer so users discover the on-device Health tools ═══ -->
+<!-- ═══ FIRST-RUN INSTRUCTIONS — stepped "how to use MedCompanion" so every user knows what to do ═══ -->
 <script>
 (function(){
-  function seen(){ try { return localStorage.getItem('mc_hub_intro_seen')==='1'; } catch(e){ return false; } }
-  function markSeen(){ try { localStorage.setItem('mc_hub_intro_seen','1'); } catch(e){} }
-  function dismiss(){ var c=document.getElementById('mcIntro'); if(c) c.remove(); markSeen(); }
+  var i=0;
+  var STEPS=[
+    {icon:'💚', title:'Health, explained plainly', body:'Ask me anything — symptoms, a lab result, a new diagnosis, your meds. I explain it in plain language, like a knowledgeable friend. <span style="color:var(--text-soft)">(I\'m not a doctor — I help you understand &amp; prepare.)</span>'},
+    {icon:'①', title:'Ask anything', body:'Type or <b>speak</b> what\'s going on — or <b>snap a photo</b> of a lab result or prescription. You\'ll get a clear, calm answer with no jargon.'},
+    {icon:'②', title:'Your private Health hub', body:'Tap <b style="color:var(--teal)">🩺 My Health</b> (bottom-left) to keep your meds, symptoms, vitals &amp; appointments — all saved <b>privately on your device</b>.'},
+    {icon:'③', title:'Smart tools built in', body:'Check <b>drug interactions</b> &amp; food safety, prep the right <b>questions for your next visit</b>, and keep a <b>Medical ID</b> ready for emergencies.'}
+  ];
+  function seen(){ try{return localStorage.getItem('mc_intro_seen')==='1';}catch(e){return false;} }
+  function finish(openHub){ try{localStorage.setItem('mc_intro_seen','1');}catch(e){} var m=document.getElementById('mcIntro'); if(m) m.remove(); if(openHub && typeof window.mcOpenHub==='function') window.mcOpenHub(); }
+  function render(){
+    var m=document.getElementById('mcIntroBody'); if(!m) return; var s=STEPS[i]; var last=i===STEPS.length-1;
+    m.innerHTML=
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="display:inline-flex;align-items:center;gap:.35rem;background:var(--lteal);color:var(--teal);font-weight:700;font-size:12px;padding:.3rem .7rem;border-radius:20px">'+s.icon+' how to use · '+(i+1)+'/'+STEPS.length+'</span><button id="mcIntroSkip" style="background:none;border:none;color:var(--text-soft);font-size:12px;cursor:pointer">skip</button></div>'
+      +'<div style="font-family:Lora,serif;font-size:20px;font-weight:700;color:var(--text-dark);margin-bottom:8px">'+s.title+'</div>'
+      +'<div style="font-size:14px;color:var(--text-body);line-height:1.6;margin-bottom:18px">'+s.body+'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;display:flex;gap:5px">'+STEPS.map(function(_,n){return '<div style="width:'+(n===i?20:7)+'px;height:7px;border-radius:20px;background:'+(n===i?'var(--teal)':'var(--border)')+'"></div>';}).join('')+'</div>'
+      +(i>0?'<button id="mcIntroBack" style="background:var(--white);border:1px solid var(--border);color:var(--text-body);border-radius:20px;padding:.5rem 1rem;font-weight:600;font-size:13px;cursor:pointer">back</button>':'')
+      +'<button id="mcIntroNext" style="background:var(--teal);color:#fff;border:none;border-radius:20px;padding:.5rem 1.1rem;font-weight:700;font-size:13px;cursor:pointer">'+(last?'explore my tools →':'next')+'</button></div>';
+    document.getElementById('mcIntroSkip').onclick=function(){ finish(false); };
+    var b=document.getElementById('mcIntroBack'); if(b) b.onclick=function(){ i--; render(); };
+    document.getElementById('mcIntroNext').onclick=function(){ if(last){ finish(true); } else { i++; render(); } };
+  }
   function show(){
     if(document.getElementById('mcIntro')) return;
-    var c=document.createElement('div'); c.id='mcIntro';
-    c.style.cssText='position:fixed;left:16px;bottom:74px;z-index:9500;max-width:290px;background:var(--cream);border:1px solid var(--border);border-radius:16px;padding:14px 15px;box-shadow:0 14px 40px rgba(10,31,26,0.35);animation:mcIntroIn .25s ease both';
-    c.innerHTML='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem"><div style="font-family:Lora,serif;font-size:15px;font-weight:700;color:var(--text-dark)">👋 Your private Health hub</div><button id="mcIntroX" aria-label="Dismiss" style="background:none;border:none;font-size:18px;line-height:1;color:var(--text-soft);cursor:pointer">×</button></div>'
-      +'<div style="font-size:12.5px;color:var(--text-body);line-height:1.5;margin:.4rem 0 .7rem">Meds &amp; interaction checks, symptom journal, vitals, appointments, medical ID — all kept private on your device.</div>'
-      +'<div style="display:flex;gap:.5rem"><button id="mcIntroOpen" style="flex:1;background:var(--teal);color:#fff;border:none;border-radius:10px;padding:.55rem;font-weight:700;font-size:13px;cursor:pointer">Explore tools</button><button id="mcIntroLater" style="background:none;border:none;color:var(--text-soft);font-size:12px;cursor:pointer;padding:0 .4rem">Later</button></div>'
-      +'<div style="position:absolute;left:26px;bottom:-7px;width:14px;height:14px;background:var(--cream);border-right:1px solid var(--border);border-bottom:1px solid var(--border);transform:rotate(45deg)"></div>';
-    document.body.appendChild(c);
-    if(!document.getElementById('mcIntroKeyframes')){ var st=document.createElement('style'); st.id='mcIntroKeyframes'; st.textContent='@keyframes mcIntroIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}'; document.head.appendChild(st); }
-    document.getElementById('mcIntroX').onclick=dismiss;
-    document.getElementById('mcIntroLater').onclick=dismiss;
-    document.getElementById('mcIntroOpen').onclick=function(){ dismiss(); if(typeof window.mcOpenHub==='function') window.mcOpenHub(); };
+    var ov=document.createElement('div'); ov.id='mcIntro';
+    ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(10,31,26,0.55);display:flex;align-items:center;justify-content:center;padding:18px';
+    ov.innerHTML='<div id="mcIntroBody" style="background:var(--cream);border-radius:20px;max-width:400px;width:100%;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,0.45)"></div>';
+    document.body.appendChild(ov); render();
   }
   function maybeShow(){
     if(seen()) return;
-    // Wait for the hub launcher to exist and the persona modal to be gone, so it never overlaps.
+    // Wait until the persona modal is gone so the instructions never overlap it.
     var tries=0;
     var t=setInterval(function(){
       tries++;
-      var launcher=document.getElementById('mcHubLaunch');
       var roleOpen=(function(){ var r=document.getElementById('roleModal'); return r && getComputedStyle(r).display!=='none'; })();
-      if(launcher && !roleOpen){ clearInterval(t); show(); }
+      if(!roleOpen){ clearInterval(t); show(); }
       else if(tries>40){ clearInterval(t); } // ~20s safety cap
     }, 500);
   }
