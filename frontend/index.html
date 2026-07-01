@@ -5025,3 +5025,73 @@ document.addEventListener('DOMContentLoaded', function() {
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>
+
+<!-- ═══ VITALS & MEASUREMENTS — on-device tracker (BP, glucose, weight, temp, HR, SpO2) ═══ -->
+<script>
+(function(){
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function vitals(){ try { return JSON.parse(localStorage.getItem('mc_vitals')||'[]'); } catch(e){ return []; } }
+  function saveVitals(v){ try { localStorage.setItem('mc_vitals', JSON.stringify(v)); } catch(e){} }
+  function today(){ var d=new Date(); return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
+  var TYPES=[['Blood pressure','mmHg','120/80'],['Blood glucose','mg/dL','100'],['Weight','lb','160'],['Temperature','°F','98.6'],['Heart rate','bpm','72'],['Oxygen (SpO₂)','%','98']];
+  function unitFor(t){ for(var i=0;i<TYPES.length;i++){ if(TYPES[i][0]===t) return TYPES[i][1]; } return ''; }
+  function phFor(t){ for(var i=0;i<TYPES.length;i++){ if(TYPES[i][0]===t) return TYPES[i][2]; } return 'value'; }
+
+  function vRender(){
+    var list=document.getElementById('mcVList'); if(!list) return;
+    var v=vitals();
+    if(!v.length){ list.innerHTML='<div style="color:var(--text-soft);font-size:14px;padding:.4rem 0;line-height:1.5">No readings yet. Track your numbers over time — spotting a trend early is what matters most.</div>'; return; }
+    list.innerHTML=v.slice().reverse().slice(0,20).map(function(x){
+      return '<div style="display:flex;align-items:center;gap:.6rem;padding:.55rem .8rem;background:var(--lteal);border:1px solid var(--border);border-radius:12px;margin-bottom:.45rem"><span style="flex:1;min-width:0"><b style="color:var(--text-dark)">'+esc(x.type)+'</b> <span style="color:var(--sage);font-weight:700">'+esc(x.value)+'</span> <span style="color:var(--text-soft);font-size:12px">'+esc(x.unit)+'</span>'+(x.note?'<br><span style="font-size:12px;color:var(--text-body)">'+esc(x.note)+'</span>':'')+'</span><span style="color:var(--text-soft);font-size:12px;white-space:nowrap">'+esc(x.date)+'</span></div>';
+    }).join('');
+  }
+  function vAdd(){ var t=document.getElementById('mcVType'), val=document.getElementById('mcVVal'), o=document.getElementById('mcVNote');
+    if(!val||!val.value.trim()){ return; }
+    var v=vitals(); v.push({date:today(), type:t.value, value:val.value.trim(), unit:unitFor(t.value), note:(o&&o.value.trim())||''}); saveVitals(v);
+    val.value=''; if(o) o.value=''; vRender(); val.focus(); }
+  function vSummary(){ var v=vitals(); if(!v.length){ alert('Add a reading first.'); return; }
+    var txt=v.map(function(x){ return x.date+': '+x.type+' '+x.value+' '+x.unit+(x.note?' ('+x.note+')':''); }).join('\n');
+    var prompt='Here are my recent health measurements:\n'+txt+'\n\nIn plain language, what do these numbers mean, are any outside the normal range, what trends should I watch, and what should I ask my doctor?';
+    closeV(); var input=document.getElementById('patientInput'); if(input){ input.value=prompt; try{input.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){} if(typeof startPipeline==='function') setTimeout(startPipeline,250); } }
+
+  function openV(){ var m=document.getElementById('mcVModal'); if(m){ m.style.display='flex'; vRender(); } var hm=document.getElementById('mcHubMenu'); if(hm) hm.style.display='none'; }
+  function closeV(){ var m=document.getElementById('mcVModal'); if(m) m.style.display='none'; }
+
+  function init(){
+    if(document.getElementById('mcVModal')) return;
+    var m=document.createElement('div'); m.id='mcVModal';
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(10,31,26,0.55);z-index:99999;align-items:center;justify-content:center;padding:18px';
+    var opts=TYPES.map(function(t){ return '<option value="'+t[0]+'">'+t[0]+'</option>'; }).join('');
+    m.innerHTML='<div role="dialog" aria-label="Vitals and Measurements" style="background:var(--cream);border-radius:20px;max-width:440px;width:100%;max-height:88vh;overflow-y:auto;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,0.45)">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem"><div style="font-family:Lora,serif;font-size:22px;font-weight:700;color:var(--text-dark)">📈 Vitals &amp; Measurements</div><button id="mcVClose" aria-label="Close" style="background:none;border:none;font-size:28px;cursor:pointer;color:var(--text-soft);line-height:1">×</button></div>'
+      +'<div style="font-size:13px;color:var(--text-soft);margin-bottom:1rem;line-height:1.5">Log BP, glucose, weight and more — private, on this device. Then let the AI flag anything out of range for your doctor.</div>'
+      +'<div id="mcVList" style="margin-bottom:1rem"></div>'
+      +'<div style="display:flex;gap:.5rem;margin-bottom:.55rem"><select id="mcVType" style="flex:1;min-width:0;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px;background:var(--white)">'+opts+'</select><input id="mcVVal" placeholder="120/80" style="width:110px;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px"></div>'
+      +'<input id="mcVNote" placeholder="Note (optional) — e.g. before breakfast" style="width:100%;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px;margin-bottom:.6rem">'
+      +'<button id="mcVAdd" style="width:100%;background:var(--sage);color:#fff;border:none;border-radius:12px;padding:.7rem;font-weight:700;cursor:pointer;margin-bottom:.7rem">+ Add reading</button>'
+      +'<button id="mcVSum" style="width:100%;background:var(--teal);color:#fff;border:none;border-radius:12px;padding:.85rem;font-weight:800;cursor:pointer;font-size:15px">🩺 What do my numbers mean?</button>'
+      +'<div style="font-size:11px;color:var(--text-soft);margin-top:.7rem;text-align:center;line-height:1.5">Educational only. Normal ranges vary by person — confirm with your doctor.</div>'
+      +'</div>';
+    document.body.appendChild(m);
+    m.addEventListener('click',function(e){ if(e.target===m) closeV(); });
+    document.getElementById('mcVClose').onclick=closeV;
+    document.getElementById('mcVAdd').onclick=vAdd;
+    document.getElementById('mcVSum').onclick=vSummary;
+    var typeSel=document.getElementById('mcVType'), valIn=document.getElementById('mcVVal');
+    typeSel.addEventListener('change',function(){ valIn.placeholder=phFor(typeSel.value); });
+    valIn.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); vAdd(); } });
+
+    // Plug into the existing Health hub menu (insert before the Close button)
+    var menu=document.getElementById('mcHubMenu'); var cancel=document.getElementById('mcHubCancel');
+    if(menu && cancel){
+      var item=document.createElement('button'); item.className='mcHubItem';
+      item.style.cssText='width:100%;text-align:left;display:flex;gap:.7rem;align-items:center;background:var(--lteal);border:1px solid var(--border);border-radius:14px;padding:.85rem;margin-bottom:.5rem;cursor:pointer';
+      item.innerHTML='<span style="font-size:22px">📈</span><span><b style="color:var(--text-dark)">Vitals &amp; Measurements</b><br><span style="font-size:12px;color:var(--text-soft)">Track BP, glucose, weight · flag what\'s off</span></span>';
+      item.onclick=function(){ openV(); };
+      cancel.parentNode.insertBefore(item, cancel);
+    }
+    window.mcOpenVitals=openV;
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
