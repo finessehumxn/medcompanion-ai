@@ -5170,3 +5170,82 @@ document.addEventListener('DOMContentLoaded', function() {
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>
+
+<!-- ═══ MEDICAL ID / EMERGENCY CARD — on-device critical info for first responders ═══ -->
+<script>
+(function(){
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function id(){ try { return JSON.parse(localStorage.getItem('mc_medid')||'{}'); } catch(e){ return {}; } }
+  function saveId(o){ try { localStorage.setItem('mc_medid', JSON.stringify(o)); } catch(e){} }
+  function meds(){ try { return JSON.parse(localStorage.getItem('mc_meds')||'[]'); } catch(e){ return []; } }
+  var BLOODS=['Unknown','A+','A−','B+','B−','O+','O−','AB+','AB−'];
+
+  function loadForm(){ var d=id();
+    ['name','conditions','allergies','iceName','icePhone','notes'].forEach(function(k){ var el=document.getElementById('mcID_'+k); if(el) el.value=d[k]||''; });
+    var bs=document.getElementById('mcID_blood'); if(bs) bs.value=d.blood||'Unknown';
+  }
+  function saveForm(){ var d={};
+    ['name','conditions','allergies','iceName','icePhone','notes'].forEach(function(k){ var el=document.getElementById('mcID_'+k); d[k]=el?el.value.trim():''; });
+    var bs=document.getElementById('mcID_blood'); d.blood=bs?bs.value:'Unknown';
+    saveId(d); return d;
+  }
+  function showCard(){ var d=saveForm();
+    var m=meds(); var medTxt = m.length ? m.map(function(x){ return esc(x.name)+(x.dose?(' '+esc(x.dose)):''); }).join(', ') : 'None listed';
+    function row(label,val,big){ return '<div style="border-top:1px solid rgba(255,255,255,0.18);padding:.7rem 0"><div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#bfe6d5;font-weight:700">'+label+'</div><div style="font-size:'+(big?'22px':'17px')+';font-weight:'+(big?'800':'600')+';margin-top:.15rem;line-height:1.3">'+val+'</div></div>'; }
+    var card=document.getElementById('mcIDCard'); if(!card){ return; }
+    card.querySelector('#mcIDCardBody').innerHTML =
+        '<div style="text-align:center;margin-bottom:.4rem"><div style="font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#ffd7cf;font-weight:800">⚕ In Case of Emergency</div><div style="font-family:Lora,serif;font-size:26px;font-weight:800;margin-top:.2rem">'+(esc(d.name)||'My Medical ID')+'</div></div>'
+      + row('Blood type', esc(d.blood||'Unknown'), true)
+      + row('Medical conditions', esc(d.conditions)||'None listed')
+      + row('Allergies', '<span style="color:#ffb3a7">'+(esc(d.allergies)||'None listed')+'</span>')
+      + row('Current medications', medTxt)
+      + (d.notes ? row('Notes', esc(d.notes)) : '')
+      + (d.icePhone ? '<a href="tel:'+esc(d.icePhone)+'" style="display:block;text-align:center;background:#e0594e;color:#fff;text-decoration:none;font-weight:800;font-size:17px;padding:.9rem;border-radius:14px;margin-top:1rem">📞 Call '+(esc(d.iceName)||'emergency contact')+'</a>' : '<div style="text-align:center;color:#bfe6d5;font-size:13px;margin-top:1rem">Add an emergency contact so responders can call for you.</div>');
+    card.style.display='flex';
+  }
+  function hideCard(){ var c=document.getElementById('mcIDCard'); if(c) c.style.display='none'; }
+  function openID(){ var m=document.getElementById('mcIDModal'); if(m){ m.style.display='flex'; loadForm(); } var hm=document.getElementById('mcHubMenu'); if(hm) hm.style.display='none'; }
+  function closeID(){ var m=document.getElementById('mcIDModal'); if(m) m.style.display='none'; }
+
+  function init(){
+    if(document.getElementById('mcIDModal')) return;
+    var bloodOpts=BLOODS.map(function(b){ return '<option value="'+b+'">'+b+'</option>'; }).join('');
+    var m=document.createElement('div'); m.id='mcIDModal';
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(10,31,26,0.55);z-index:99999;align-items:center;justify-content:center;padding:18px';
+    m.innerHTML='<div role="dialog" aria-label="Medical ID" style="background:var(--cream);border-radius:20px;max-width:440px;width:100%;max-height:88vh;overflow-y:auto;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,0.45)">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem"><div style="font-family:Lora,serif;font-size:22px;font-weight:700;color:var(--text-dark)">🆘 Medical ID</div><button id="mcIDClose" aria-label="Close" style="background:none;border:none;font-size:28px;cursor:pointer;color:var(--text-soft);line-height:1">×</button></div>'
+      +'<div style="font-size:13px;color:var(--text-soft);margin-bottom:1rem;line-height:1.5">The info a first responder needs if you can\'t speak for yourself — private, on this device. Your medications fill in automatically.</div>'
+      +'<input id="mcID_name" placeholder="Your full name" style="width:100%;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px;margin-bottom:.5rem">'
+      +'<div style="display:flex;gap:.5rem;margin-bottom:.5rem"><select id="mcID_blood" style="flex:1;min-width:0;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px;background:var(--white)">'+bloodOpts+'</select></div>'
+      +'<input id="mcID_conditions" placeholder="Conditions (e.g. diabetes, asthma)" style="width:100%;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px;margin-bottom:.5rem">'
+      +'<input id="mcID_allergies" placeholder="Allergies (e.g. penicillin, peanuts)" style="width:100%;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px;margin-bottom:.5rem">'
+      +'<div style="display:flex;gap:.5rem;margin-bottom:.5rem"><input id="mcID_iceName" placeholder="Emergency contact" style="flex:1;min-width:0;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px"><input id="mcID_icePhone" type="tel" placeholder="Their phone" style="flex:1;min-width:0;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px"></div>'
+      +'<input id="mcID_notes" placeholder="Notes (e.g. pacemaker, on blood thinners)" style="width:100%;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px;margin-bottom:.7rem">'
+      +'<button id="mcIDShow" style="width:100%;background:var(--teal);color:#fff;border:none;border-radius:12px;padding:.85rem;font-weight:800;cursor:pointer;font-size:15px">🆘 Show my Emergency Card</button>'
+      +'<div style="font-size:11px;color:var(--text-soft);margin-top:.7rem;text-align:center;line-height:1.5">Saved on this device. On-phone lock-screen access is coming to the app.</div>'
+      +'</div>';
+    document.body.appendChild(m);
+    m.addEventListener('click',function(e){ if(e.target===m) closeID(); });
+    document.getElementById('mcIDClose').onclick=closeID;
+    document.getElementById('mcIDShow').onclick=showCard;
+
+    // Full-screen emergency card (high-contrast, responder-facing)
+    var card=document.createElement('div'); card.id='mcIDCard';
+    card.style.cssText='display:none;position:fixed;inset:0;background:linear-gradient(160deg,#0B3D2E,#0A1F1A);z-index:100000;flex-direction:column;color:#fff;padding:22px;overflow-y:auto';
+    card.innerHTML='<button id="mcIDCardClose" aria-label="Close" style="align-self:flex-end;background:rgba(255,255,255,0.14);border:none;color:#fff;font-size:22px;width:38px;height:38px;border-radius:50%;cursor:pointer">×</button><div id="mcIDCardBody" style="max-width:440px;width:100%;margin:0 auto"></div>';
+    document.body.appendChild(card);
+    document.getElementById('mcIDCardClose').onclick=hideCard;
+
+    var menu=document.getElementById('mcHubMenu'); var cancel=document.getElementById('mcHubCancel');
+    if(menu && cancel){
+      var item=document.createElement('button'); item.className='mcHubItem';
+      item.style.cssText='width:100%;text-align:left;display:flex;gap:.7rem;align-items:center;background:#fbeae6;border:1px solid #f2c4bb;border-radius:14px;padding:.85rem;margin-bottom:.5rem;cursor:pointer';
+      item.innerHTML='<span style="font-size:22px">🆘</span><span><b style="color:#a3372a">Medical ID / Emergency</b><br><span style="font-size:12px;color:#b06a5f">Conditions, allergies, meds, ICE contact</span></span>';
+      item.onclick=function(){ openID(); };
+      cancel.parentNode.insertBefore(item, cancel);
+    }
+    window.mcOpenMedID=openID;
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
