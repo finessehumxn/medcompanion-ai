@@ -4933,3 +4933,95 @@ document.addEventListener('DOMContentLoaded', function() {
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>
+
+<!-- ═══ MY HEALTH HUB — unifies on-device tools (Medications + Symptom Journal + Visit Prep) ═══ -->
+<script>
+(function(){
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function syms(){ try { return JSON.parse(localStorage.getItem('mc_symptoms')||'[]'); } catch(e){ return []; } }
+  function saveSyms(s){ try { localStorage.setItem('mc_symptoms', JSON.stringify(s)); } catch(e){} }
+  function today(){ var d=new Date(); return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
+  var sev = 0;
+
+  /* ── Symptom Journal ── */
+  function jRender(){
+    var list=document.getElementById('mcJList'); if(!list) return;
+    var s=syms();
+    if(!s.length){ list.innerHTML='<div style="color:var(--text-soft);font-size:14px;padding:.4rem 0;line-height:1.5">No entries yet. Logging symptoms over time helps you spot patterns and gives your doctor the real picture.</div>'; return; }
+    list.innerHTML=s.slice().reverse().map(function(x){ var dots='●●●●●'.slice(0,x.severity)+'○○○○○'.slice(0,5-x.severity);
+      return '<div style="padding:.6rem .8rem;background:var(--lteal);border:1px solid var(--border);border-radius:12px;margin-bottom:.5rem"><div style="display:flex;justify-content:space-between;gap:.5rem"><b>'+esc(x.symptom)+'</b><span style="color:var(--text-soft);font-size:12px;white-space:nowrap">'+esc(x.date)+'</span></div><div style="font-size:12px;color:var(--sage);letter-spacing:1px;margin-top:.2rem">'+dots+'</div>'+(x.note?'<div style="font-size:13px;color:var(--text-body);margin-top:.3rem">'+esc(x.note)+'</div>':'')+'</div>'; }).join('');
+  }
+  function jAdd(){ var n=document.getElementById('mcJSym'), o=document.getElementById('mcJNote'); if(!n||!n.value.trim()||!sev){ if(!sev) alert('Tap how severe it felt (1–5).'); return; }
+    var s=syms(); s.push({date:today(), symptom:n.value.trim(), severity:sev, note:(o&&o.value.trim())||''}); saveSyms(s);
+    n.value=''; if(o) o.value=''; sev=0; paintSev(); jRender(); }
+  function paintSev(){ for(var i=1;i<=5;i++){ var b=document.getElementById('mcSev'+i); if(b){ b.style.background=i<=sev?'var(--sage)':'var(--white)'; b.style.color=i<=sev?'#fff':'var(--text-soft)'; } } }
+  function jSummary(){ var s=syms(); if(!s.length){ alert('Log a symptom first.'); return; }
+    var txt=s.map(function(x){ return x.date+': '+x.symptom+' (severity '+x.severity+'/5)'+(x.note?' — '+x.note:''); }).join('\n');
+    var prompt='Here is my symptom log:\n'+txt+'\n\nIn plain language, summarize what my doctor should know, note any patterns, and list the most important questions I should ask at my next visit.';
+    closeAll(); var input=document.getElementById('patientInput'); if(input){ input.value=prompt; try{input.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){} if(typeof startPipeline==='function') setTimeout(startPipeline,250); } }
+
+  function openJournal(){ closeMenu(); var mo=document.getElementById('mcJModal'); if(mo){ mo.style.display='flex'; sev=0; paintSev(); jRender(); } }
+  function closeJournal(){ var mo=document.getElementById('mcJModal'); if(mo) mo.style.display='none'; }
+
+  /* ── Visit Prep (AI, reuses pipeline) ── */
+  function visitPrep(){ closeMenu(); var input=document.getElementById('patientInput');
+    if(input){ input.value='Help me prepare for a doctor visit. What questions should I ask, what information should I bring, and how do I describe my concerns clearly so I get the most out of the appointment?'; try{input.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){} if(typeof startPipeline==='function') setTimeout(startPipeline,250); } }
+
+  function closeMenu(){ var m=document.getElementById('mcHubMenu'); if(m) m.style.display='none'; }
+  function closeAll(){ closeMenu(); closeJournal(); if(typeof window.mcCloseMeds==='function') window.mcCloseMeds(); var mm=document.getElementById('mcMedModal'); if(mm) mm.style.display='none'; }
+  function openMenu(){ var m=document.getElementById('mcHubMenu'); if(m) m.style.display='flex'; }
+
+  function init(){
+    if(document.getElementById('mcHubLaunch')) return;
+    // remove the standalone meds launcher — the hub owns the entry point now
+    var old=document.getElementById('mcMedLaunch'); if(old) old.remove();
+
+    // Journal modal
+    var jm=document.createElement('div'); jm.id='mcJModal';
+    jm.style.cssText='display:none;position:fixed;inset:0;background:rgba(10,31,26,0.55);z-index:99999;align-items:center;justify-content:center;padding:18px';
+    jm.innerHTML='<div role="dialog" aria-label="Symptom Journal" style="background:var(--cream);border-radius:20px;max-width:440px;width:100%;max-height:88vh;overflow-y:auto;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,0.45)">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem"><div style="font-family:Lora,serif;font-size:22px;font-weight:700;color:var(--text-dark)">📓 Symptom Journal</div><button id="mcJClose" aria-label="Close" style="background:none;border:none;font-size:28px;cursor:pointer;color:var(--text-soft);line-height:1">×</button></div>'
+      +'<div style="font-size:13px;color:var(--text-soft);margin-bottom:1rem;line-height:1.5">Track how you feel over time — private, on this device. Bring the summary to your next appointment.</div>'
+      +'<div id="mcJList" style="margin-bottom:1rem"></div>'
+      +'<input id="mcJSym" placeholder="Symptom (e.g. headache, nausea)" style="width:100%;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px;margin-bottom:.55rem">'
+      +'<div style="font-size:12px;color:var(--text-soft);margin-bottom:.35rem">How severe? (1 mild – 5 severe)</div>'
+      +'<div style="display:flex;gap:.4rem;margin-bottom:.55rem">'+[1,2,3,4,5].map(function(i){return '<button id="mcSev'+i+'" data-s="'+i+'" class="mcSevBtn" style="flex:1;padding:.55rem;border:1px solid var(--border);border-radius:10px;background:var(--white);color:var(--text-soft);font-weight:700;cursor:pointer">'+i+'</button>';}).join('')+'</div>'
+      +'<input id="mcJNote" placeholder="Note (optional) — when, triggers, how long…" style="width:100%;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px;margin-bottom:.6rem">'
+      +'<button id="mcJAdd" style="width:100%;background:var(--sage);color:#fff;border:none;border-radius:12px;padding:.7rem;font-weight:700;cursor:pointer;margin-bottom:.7rem">+ Add entry</button>'
+      +'<button id="mcJSum" style="width:100%;background:var(--teal);color:#fff;border:none;border-radius:12px;padding:.85rem;font-weight:800;cursor:pointer;font-size:15px">🩺 Summarize for my doctor</button>'
+      +'</div>';
+    document.body.appendChild(jm);
+    jm.addEventListener('click',function(e){ if(e.target===jm) closeJournal(); });
+    document.getElementById('mcJClose').onclick=closeJournal;
+    document.getElementById('mcJAdd').onclick=jAdd;
+    document.getElementById('mcJSum').onclick=jSummary;
+    document.getElementById('mcJSym').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); jAdd(); } });
+    Array.prototype.forEach.call(document.querySelectorAll('.mcSevBtn'),function(b){ b.onclick=function(){ sev=+b.getAttribute('data-s'); paintSev(); }; });
+
+    // Hub menu
+    var menu=document.createElement('div'); menu.id='mcHubMenu';
+    menu.style.cssText='display:none;position:fixed;inset:0;background:rgba(10,31,26,0.5);z-index:99998;align-items:flex-end;justify-content:center;padding:0 0 84px';
+    menu.innerHTML='<div style="background:var(--cream);border-radius:20px;max-width:440px;width:calc(100% - 28px);padding:16px;box-shadow:0 24px 70px rgba(0,0,0,0.45)">'
+      +'<div style="font-family:Lora,serif;font-size:19px;font-weight:700;color:var(--text-dark);margin-bottom:.7rem;padding:0 .3rem">🩺 My Health tools</div>'
+      +'<button class="mcHubItem" data-t="meds" style="width:100%;text-align:left;display:flex;gap:.7rem;align-items:center;background:var(--lteal);border:1px solid var(--border);border-radius:14px;padding:.85rem;margin-bottom:.5rem;cursor:pointer"><span style="font-size:22px">💊</span><span><b style="color:var(--text-dark)">My Medications</b><br><span style="font-size:12px;color:var(--text-soft)">List your meds · check interactions &amp; food safety</span></span></button>'
+      +'<button class="mcHubItem" data-t="journal" style="width:100%;text-align:left;display:flex;gap:.7rem;align-items:center;background:var(--lteal);border:1px solid var(--border);border-radius:14px;padding:.85rem;margin-bottom:.5rem;cursor:pointer"><span style="font-size:22px">📓</span><span><b style="color:var(--text-dark)">Symptom Journal</b><br><span style="font-size:12px;color:var(--text-soft)">Track how you feel · summarize for your doctor</span></span></button>'
+      +'<button class="mcHubItem" data-t="visit" style="width:100%;text-align:left;display:flex;gap:.7rem;align-items:center;background:var(--lteal);border:1px solid var(--border);border-radius:14px;padding:.85rem;margin-bottom:.5rem;cursor:pointer"><span style="font-size:22px">📋</span><span><b style="color:var(--text-dark)">Prep for a visit</b><br><span style="font-size:12px;color:var(--text-soft)">Questions to ask &amp; what to bring</span></span></button>'
+      +'<button id="mcHubCancel" style="width:100%;background:none;border:none;color:var(--text-soft);padding:.6rem;cursor:pointer;font-size:14px">Close</button>'
+      +'<div style="font-size:11px;color:var(--text-soft);text-align:center;margin-top:.2rem">Private &amp; on-device · syncs to your account later</div>'
+      +'</div>';
+    document.body.appendChild(menu);
+    menu.addEventListener('click',function(e){ if(e.target===menu) closeMenu(); });
+    document.getElementById('mcHubCancel').onclick=closeMenu;
+    Array.prototype.forEach.call(document.querySelectorAll('.mcHubItem'),function(b){ b.onclick=function(){ var t=b.getAttribute('data-t'); if(t==='meds'){ closeMenu(); if(typeof window.mcOpenMeds==='function') window.mcOpenMeds(); } else if(t==='journal'){ openJournal(); } else { visitPrep(); } }; });
+
+    // Single hub launcher
+    var launch=document.createElement('button'); launch.id='mcHubLaunch'; launch.setAttribute('aria-label','My Health tools');
+    launch.textContent='🩺 My Health';
+    launch.style.cssText='position:fixed;left:16px;bottom:20px;z-index:9000;display:inline-flex;align-items:center;gap:.35rem;background:var(--white);color:var(--teal);border:1.5px solid var(--teal);border-radius:100px;padding:.6rem 1rem;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 20px rgba(11,61,46,0.28)';
+    launch.onclick=openMenu;
+    document.body.appendChild(launch);
+    window.mcOpenHub=openMenu;
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
