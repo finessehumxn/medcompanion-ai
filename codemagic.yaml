@@ -91,3 +91,69 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
+
+  # ── GOOGLE PLAY (Android) ─────────────────────────────────────────────────────
+  # SETUP (one time) — full steps in the chat:
+  #   1. Google Play Developer account; create the app (com.medcompanionai.app).
+  #   2. Generate an upload keystore; add these to a Codemagic env group named
+  #      "google_play" (mark all Secure):
+  #        CM_KEYSTORE (base64 of the .jks), CM_KEYSTORE_PASSWORD,
+  #        CM_KEY_ALIAS, CM_KEY_PASSWORD,
+  #        GCLOUD_SERVICE_ACCOUNT_CREDENTIALS (the Play service-account JSON).
+  #   3. Run "android-release" -> builds a signed .aab and uploads to the internal track.
+  # Mirrors the iOS job: reconstructs Capacitor tooling, then builds the committed android/.
+  android-release:
+    name: MedCompanion AI Android Release
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      groups:
+        - google_play
+      vars:
+        PACKAGE_NAME: "com.medcompanionai.app"
+      node: 22
+    scripts:
+      - name: Reconstruct Capacitor tooling
+        script: |
+          cat > package.json <<'EOF'
+          {
+            "name": "medcompanion-ai",
+            "version": "1.0.0",
+            "private": true,
+            "devDependencies": { "@capacitor/cli": "^8.4.0" },
+            "dependencies": { "@capacitor/core": "^8.4.0", "@capacitor/android": "^8.4.0" }
+          }
+          EOF
+          npm install --no-audit --no-fund
+      - name: Capacitor sync (copies frontend/ into the Android app)
+        script: npx cap sync android
+      - name: Set the MedCompanion app icon
+        script: |
+          npx --yes @capacitor/assets generate --android \
+            --iconBackgroundColor '#034730' --iconBackgroundColorDark '#034730' || true
+      - name: Set up Android signing (from Codemagic secrets)
+        script: |
+          echo "$CM_KEYSTORE" | base64 --decode > "$CM_BUILD_DIR/upload-keystore.jks"
+          cat > android/keystore.properties <<EOF
+          storeFile=$CM_BUILD_DIR/upload-keystore.jks
+          storePassword=$CM_KEYSTORE_PASSWORD
+          keyAlias=$CM_KEY_ALIAS
+          keyPassword=$CM_KEY_PASSWORD
+          EOF
+      - name: Bump versionCode (monotonic)
+        script: |
+          cd android
+          sed -i "s/versionCode .*/versionCode $(date +%s)/" app/build.gradle
+      - name: Build signed AAB
+        script: |
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/**/*.aab
+      - android/app/build/outputs/**/mapping.txt
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true
