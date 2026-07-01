@@ -4877,3 +4877,59 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 </script>
+<!-- ═══ MY MEDICATIONS — on-device med list + AI interaction/food-safety check (syncs to account later) ═══ -->
+<script>
+(function(){
+  function meds(){ try { return JSON.parse(localStorage.getItem('mc_meds')||'[]'); } catch(e){ return []; } }
+  function saveMeds(m){ try { localStorage.setItem('mc_meds', JSON.stringify(m)); } catch(e){} }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function render(){
+    var list = document.getElementById('mcMedList'); if(!list) return;
+    var m = meds();
+    var badge = document.getElementById('mcMedCount'); if(badge){ badge.textContent = m.length ? m.length : ''; badge.style.display = m.length ? 'inline-flex' : 'none'; }
+    if(!m.length){ list.innerHTML = '<div style="color:var(--text-soft);font-size:14px;padding:.4rem 0;line-height:1.5">No medications yet. Add what you take — it stays private on this device.</div>'; return; }
+    list.innerHTML = m.map(function(x,i){ return '<div style="display:flex;align-items:center;gap:.6rem;padding:.6rem .8rem;background:var(--lteal);border:1px solid var(--border);border-radius:12px;margin-bottom:.5rem"><span style="flex:1;min-width:0"><b>'+esc(x.name)+'</b>'+(x.dose?' <span style="color:var(--text-soft)">· '+esc(x.dose)+'</span>':'')+'</span><button data-i="'+i+'" class="mcRm" aria-label="Remove" style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:20px;line-height:1">×</button></div>'; }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('.mcRm'), function(b){ b.onclick=function(){ var m=meds(); m.splice(+b.getAttribute('data-i'),1); saveMeds(m); render(); }; });
+  }
+  function openM(){ var mo=document.getElementById('mcMedModal'); if(mo){ mo.style.display='flex'; render(); var n=document.getElementById('mcMedName'); if(n) setTimeout(function(){n.focus();},50); } }
+  function closeM(){ var mo=document.getElementById('mcMedModal'); if(mo) mo.style.display='none'; }
+  function addM(){ var n=document.getElementById('mcMedName'), d=document.getElementById('mcMedDose'); if(!n||!n.value.trim()) return; var m=meds(); m.push({name:n.value.trim(), dose:(d&&d.value.trim())||''}); saveMeds(m); n.value=''; if(d) d.value=''; n.focus(); render(); }
+  function checkM(){ var m=meds(); if(!m.length){ alert('Add at least one medication first.'); return; }
+    var listTxt = m.map(function(x){ return x.name + (x.dose?(' ('+x.dose+')'):''); }).join(', ');
+    var prompt = 'I take these medications: ' + listTxt + '. In plain language, are there any interactions between them, and any foods, drinks, or over-the-counter medicines I should avoid? What warning signs should I watch for?';
+    closeM();
+    var input = document.getElementById('patientInput');
+    if(input){ input.value = prompt; try { input.scrollIntoView({behavior:'smooth', block:'center'}); } catch(e){} if(typeof startPipeline==='function'){ setTimeout(startPipeline, 250); } }
+  }
+  function init(){
+    if(document.getElementById('mcMedModal')) return;
+    var modal = document.createElement('div');
+    modal.id='mcMedModal';
+    modal.style.cssText='display:none;position:fixed;inset:0;background:rgba(10,31,26,0.55);z-index:99999;align-items:center;justify-content:center;padding:18px';
+    modal.innerHTML = '<div role="dialog" aria-label="My Medications" style="background:var(--cream);border-radius:20px;max-width:440px;width:100%;max-height:88vh;overflow-y:auto;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,0.45)">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem"><div style="font-family:Lora,serif;font-size:22px;font-weight:700;color:var(--text-dark)">💊 My Medications</div><button id="mcMedClose" aria-label="Close" style="background:none;border:none;font-size:28px;cursor:pointer;color:var(--text-soft);line-height:1">×</button></div>'
+      + '<div style="font-size:13px;color:var(--text-soft);margin-bottom:1rem;line-height:1.5">Kept private on this device — nothing is uploaded until you choose to sync an account. Then get interactions &amp; food warnings in plain language.</div>'
+      + '<div id="mcMedList" style="margin-bottom:1rem"></div>'
+      + '<div style="display:flex;gap:.5rem;margin-bottom:.6rem"><input id="mcMedName" placeholder="Medication name" style="flex:2;min-width:0;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px"><input id="mcMedDose" placeholder="Dose (opt)" style="flex:1;min-width:0;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px"></div>'
+      + '<button id="mcMedAdd" style="width:100%;background:var(--sage);color:#fff;border:none;border-radius:12px;padding:.7rem;font-weight:700;cursor:pointer;margin-bottom:.7rem">+ Add medication</button>'
+      + '<button id="mcMedCheck" style="width:100%;background:var(--teal);color:#fff;border:none;border-radius:12px;padding:.85rem;font-weight:800;cursor:pointer;font-size:15px">🔎 Check interactions &amp; food safety</button>'
+      + '<div style="font-size:11px;color:var(--text-soft);margin-top:.7rem;text-align:center;line-height:1.5">Educational, not a diagnosis or prescription. Always confirm with your pharmacist or doctor.</div>'
+      + '</div>';
+    document.body.appendChild(modal);
+    modal.addEventListener('click', function(e){ if(e.target===modal) closeM(); });
+    document.getElementById('mcMedClose').onclick=closeM;
+    document.getElementById('mcMedAdd').onclick=addM;
+    document.getElementById('mcMedCheck').onclick=checkM;
+    document.getElementById('mcMedName').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); addM(); } });
+    var launch = document.createElement('button');
+    launch.id='mcMedLaunch'; launch.setAttribute('aria-label','My Medications');
+    launch.innerHTML='💊 My Meds <span id="mcMedCount" style="display:none;align-items:center;justify-content:center;background:var(--gold);color:#3a2e08;border-radius:100px;min-width:18px;height:18px;font-size:11px;font-weight:800;padding:0 5px;margin-left:2px"></span>';
+    launch.style.cssText='position:fixed;left:16px;bottom:20px;z-index:9000;display:inline-flex;align-items:center;gap:.35rem;background:var(--white);color:var(--teal);border:1.5px solid var(--teal);border-radius:100px;padding:.6rem 1rem;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 20px rgba(11,61,46,0.28)';
+    launch.onclick=openM;
+    document.body.appendChild(launch);
+    window.mcOpenMeds = openM;
+    render();
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
