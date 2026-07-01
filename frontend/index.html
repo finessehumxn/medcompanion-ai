@@ -5323,3 +5323,78 @@ document.addEventListener('DOMContentLoaded', function() {
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>
+
+<!-- ═══ CARE CIRCLE — on-device profiles for loved ones you care for + caregiver AI guidance ═══ -->
+<script>
+(function(){
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function circle(){ try { return JSON.parse(localStorage.getItem('mc_carecircle')||'[]'); } catch(e){ return []; } }
+  function saveCircle(c){ try { localStorage.setItem('mc_carecircle', JSON.stringify(c)); } catch(e){} }
+  var editing=null;
+
+  function cRender(){
+    var list=document.getElementById('mcCList'); if(!list) return;
+    var c=circle();
+    if(!c.length){ list.innerHTML='<div style="color:var(--text-soft);font-size:14px;padding:.4rem 0;line-height:1.5">No one added yet. Keep a loved one\'s health details in one place — so you\'re ready when they need you.</div>'; }
+    else { list.innerHTML=c.map(function(p){
+      var bits=[]; if(p.conditions) bits.push('<b>Conditions:</b> '+esc(p.conditions)); if(p.meds) bits.push('<b>Meds:</b> '+esc(p.meds)); if(p.allergies) bits.push('<b>Allergies:</b> <span style="color:#b5533f">'+esc(p.allergies)+'</span>'); if(p.notes) bits.push(esc(p.notes));
+      return '<div style="padding:.8rem;background:var(--lteal);border:1px solid var(--border);border-radius:14px;margin-bottom:.6rem">'
+        +'<div style="display:flex;align-items:center;gap:.6rem"><span style="font-size:26px">'+(p.emoji||'🧑')+'</span><span style="flex:1"><b style="color:var(--text-dark);font-size:15px">'+esc(p.name)+'</b>'+(p.relation?' <span style="color:var(--text-soft);font-size:13px">· '+esc(p.relation)+'</span>':'')+'</span></div>'
+        +(bits.length?'<div style="font-size:13px;color:var(--text-body);line-height:1.6;margin-top:.5rem">'+bits.join('<br>')+'</div>':'')
+        +'<div style="display:flex;gap:.5rem;margin-top:.7rem"><button class="mcCAsk" data-id="'+esc(p.id)+'" style="flex:1;background:var(--teal);color:#fff;border:none;border-radius:10px;padding:.55rem;font-weight:700;font-size:12px;cursor:pointer">💬 Guidance for their care</button><button class="mcCDel" data-id="'+esc(p.id)+'" style="background:var(--white);border:1px solid var(--border);color:#c0392b;border-radius:10px;padding:.55rem .8rem;cursor:pointer;font-size:12px">Remove</button></div>'
+        +'</div>';
+    }).join(''); }
+    Array.prototype.forEach.call(document.querySelectorAll('.mcCDel'),function(b){ b.onclick=function(){ saveCircle(circle().filter(function(x){ return String(x.id)!==b.getAttribute('data-id'); })); cRender(); }; });
+    Array.prototype.forEach.call(document.querySelectorAll('.mcCAsk'),function(b){ b.onclick=function(){ askCare(b.getAttribute('data-id')); }; });
+  }
+  function cAdd(){ var f={}; ['name','relation','conditions','meds','allergies','notes'].forEach(function(k){ var el=document.getElementById('mcC_'+k); f[k]=el?el.value.trim():''; });
+    if(!f.name){ alert('Add their name.'); return; }
+    var EM={mother:'👩',father:'👨',mom:'👩',dad:'👨',son:'👦',daughter:'👧',wife:'👩',husband:'👨',grandma:'👵',grandmother:'👵',grandpa:'👴',grandfather:'👴',partner:'🧑',child:'🧒'};
+    f.emoji=EM[(f.relation||'').toLowerCase()]||'🧑';
+    f.id=''+Date.now()+Math.floor(Math.random()*1000);
+    var c=circle(); c.push(f); saveCircle(c);
+    ['name','relation','conditions','meds','allergies','notes'].forEach(function(k){ var el=document.getElementById('mcC_'+k); if(el) el.value=''; });
+    cRender();
+  }
+  function askCare(id){ var p=circle().filter(function(x){ return String(x.id)===String(id); })[0]; if(!p) return;
+    var parts=[]; if(p.conditions) parts.push('conditions: '+p.conditions); if(p.meds) parts.push('medications: '+p.meds); if(p.allergies) parts.push('allergies: '+p.allergies); if(p.notes) parts.push('notes: '+p.notes);
+    var prompt='I am a caregiver for my '+(p.relation||'loved one')+', '+p.name+'. '+(parts.length?('Their '+parts.join('; ')+'. '):'')+'In plain language, what should I keep an eye on, what questions should I ask their doctor, and how can I best support them day to day?';
+    closeC(); var input=document.getElementById('patientInput'); if(input){ input.value=prompt; try{input.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){} if(typeof startPipeline==='function') setTimeout(startPipeline,250); } }
+
+  function openC(){ var m=document.getElementById('mcCModal'); if(m){ m.style.display='flex'; cRender(); } var hm=document.getElementById('mcHubMenu'); if(hm) hm.style.display='none'; }
+  function closeC(){ var m=document.getElementById('mcCModal'); if(m) m.style.display='none'; }
+
+  function init(){
+    if(document.getElementById('mcCModal')) return;
+    var m=document.createElement('div'); m.id='mcCModal';
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(10,31,26,0.55);z-index:99999;align-items:center;justify-content:center;padding:18px';
+    m.innerHTML='<div role="dialog" aria-label="Care Circle" style="background:var(--cream);border-radius:20px;max-width:440px;width:100%;max-height:88vh;overflow-y:auto;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,0.45)">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem"><div style="font-family:Lora,serif;font-size:22px;font-weight:700;color:var(--text-dark)">👨‍👩‍👧 Care Circle</div><button id="mcCClose" aria-label="Close" style="background:none;border:none;font-size:28px;cursor:pointer;color:var(--text-soft);line-height:1">×</button></div>'
+      +'<div style="font-size:13px;color:var(--text-soft);margin-bottom:1rem;line-height:1.5">For the people you care for — a parent, a child, a partner. Keep their health details handy and get caregiver guidance. Private, on this device.</div>'
+      +'<div id="mcCList" style="margin-bottom:1rem"></div>'
+      +'<div style="border-top:1px solid var(--border);padding-top:.9rem"><div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-soft);margin-bottom:.55rem">Add someone</div>'
+      +'<div style="display:flex;gap:.5rem;margin-bottom:.5rem"><input id="mcC_name" placeholder="Name" style="flex:2;min-width:0;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px"><input id="mcC_relation" placeholder="Relation" style="flex:1;min-width:0;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px"></div>'
+      +'<input id="mcC_conditions" placeholder="Conditions" style="width:100%;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px;margin-bottom:.5rem">'
+      +'<input id="mcC_meds" placeholder="Medications" style="width:100%;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px;margin-bottom:.5rem">'
+      +'<input id="mcC_allergies" placeholder="Allergies" style="width:100%;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px;margin-bottom:.5rem">'
+      +'<input id="mcC_notes" placeholder="Notes (mobility, diet, who else helps…)" style="width:100%;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px;margin-bottom:.6rem">'
+      +'<button id="mcCAdd" style="width:100%;background:var(--sage);color:#fff;border:none;border-radius:12px;padding:.7rem;font-weight:700;cursor:pointer">+ Add to my Care Circle</button></div>'
+      +'</div>';
+    document.body.appendChild(m);
+    m.addEventListener('click',function(e){ if(e.target===m) closeC(); });
+    document.getElementById('mcCClose').onclick=closeC;
+    document.getElementById('mcCAdd').onclick=cAdd;
+
+    var menu=document.getElementById('mcHubMenu'); var cancel=document.getElementById('mcHubCancel');
+    if(menu && cancel){
+      var item=document.createElement('button'); item.className='mcHubItem';
+      item.style.cssText='width:100%;text-align:left;display:flex;gap:.7rem;align-items:center;background:var(--lteal);border:1px solid var(--border);border-radius:14px;padding:.85rem;margin-bottom:.5rem;cursor:pointer';
+      item.innerHTML='<span style="font-size:22px">👨‍👩‍👧</span><span><b style="color:var(--text-dark)">Care Circle</b><br><span style="font-size:12px;color:var(--text-soft)">Care for a loved one · caregiver guidance</span></span>';
+      item.onclick=function(){ openC(); };
+      cancel.parentNode.insertBefore(item, cancel);
+    }
+    window.mcOpenCare=openC;
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
