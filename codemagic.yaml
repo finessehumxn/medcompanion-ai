@@ -164,6 +164,10 @@ workflows:
         script: |
           cd android
           chmod +x gradlew
+          # Capacitor 8 Android compiles against Java 21; the Mac image defaults to 17
+          # ("invalid source release: 21"). Point Gradle at JDK 21.
+          export JAVA_HOME="$(/usr/libexec/java_home -v 21)"
+          echo "Using JAVA_HOME=$JAVA_HOME"; java -version
           ./gradlew bundleRelease
     artifacts:
       - android/app/build/outputs/**/*.aab
