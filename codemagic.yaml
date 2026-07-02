@@ -168,8 +168,8 @@ workflows:
     artifacts:
       - android/app/build/outputs/**/*.aab
       - android/app/build/outputs/**/mapping.txt
-    publishing:
-      google_play:
-        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
-        track: internal
-        submit_as_draft: true
+    # No auto-publish to Google Play: Codemagic builds the signed .aab and exposes it
+    # as the artifact above. Download it and upload it in Play Console (this fits
+    # Managed Publishing, where you press Publish yourself). To auto-upload later,
+    # add a valid Play service-account JSON as GCLOUD_SERVICE_ACCOUNT_CREDENTIALS and
+    # restore a `publishing: google_play:` block here.
