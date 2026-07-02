@@ -118,7 +118,9 @@ workflows:
   # Mirrors the iOS job: reconstructs Capacitor tooling, then builds the committed android/.
   android-release:
     name: MedCompanion AI Android Release
-    instance_type: linux_x2
+    # Build Android on the Mac instance too — the free plan only includes mac_mini_m2
+    # (linux_x2 requires a paid plan). macOS machines have the Android SDK + JDK.
+    instance_type: mac_mini_m2
     max_build_duration: 60
     environment:
       groups:
@@ -147,7 +149,7 @@ workflows:
             --iconBackgroundColor '#034730' --iconBackgroundColorDark '#034730' || true
       - name: Set up Android signing (from Codemagic secrets)
         script: |
-          echo "$CM_KEYSTORE" | base64 --decode > "$CM_BUILD_DIR/upload-keystore.jks"
+          echo "$CM_KEYSTORE" | openssl base64 -d -A > "$CM_BUILD_DIR/upload-keystore.jks"
           cat > android/keystore.properties <<EOF
           storeFile=$CM_BUILD_DIR/upload-keystore.jks
           storePassword=$CM_KEYSTORE_PASSWORD
@@ -157,7 +159,7 @@ workflows:
       - name: Bump versionCode (monotonic)
         script: |
           cd android
-          sed -i "s/versionCode .*/versionCode $(date +%s)/" app/build.gradle
+          sed -i.bak "s/versionCode .*/versionCode $(date +%s)/" app/build.gradle && rm -f app/build.gradle.bak
       - name: Build signed AAB
         script: |
           cd android
