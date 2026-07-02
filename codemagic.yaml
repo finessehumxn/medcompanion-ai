@@ -101,7 +101,10 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
-        submit_to_testflight: true
+        # Upload to App Store Connect for App Review, but DON'T auto-submit to
+        # TestFlight external beta (that needs a one-time Beta test-info form and
+        # was showing "post-processing failed" on every otherwise-successful build).
+        submit_to_testflight: false
 
   # ── GOOGLE PLAY (Android) ─────────────────────────────────────────────────────
   # SETUP (one time) — full steps in the chat:
