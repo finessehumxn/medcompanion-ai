@@ -164,11 +164,16 @@ workflows:
         script: |
           cd android
           chmod +x gradlew
-          # Capacitor 8 Android compiles against Java 21; the Mac image defaults to 17
-          # ("invalid source release: 21"). Point Gradle at JDK 21.
-          export JAVA_HOME="$(/usr/libexec/java_home -v 21)"
-          echo "Using JAVA_HOME=$JAVA_HOME"; java -version
-          ./gradlew bundleRelease
+          # Capacitor 8 Android compiles source release 21, but the Mac image defaults
+          # to Java 17 ("invalid source release: 21"). Resolve JDK 21 robustly (M2/arm64)
+          # and force Gradle to use it.
+          echo "=== JDKs available ==="; /usr/libexec/java_home -V 2>&1 || true
+          JH="$(/usr/libexec/java_home -v 21 2>/dev/null || /usr/libexec/java_home -v 21 --arch arm64 2>/dev/null)"
+          [ -z "$JH" ] && JH="$(ls -d /Library/Java/JavaVirtualMachines/*21*/Contents/Home 2>/dev/null | head -1)"
+          if [ -z "$JH" ]; then echo "ERROR: no JDK 21 found on this machine"; exit 1; fi
+          export JAVA_HOME="$JH"
+          echo "Using JAVA_HOME=$JAVA_HOME"; "$JAVA_HOME/bin/java" -version
+          ./gradlew bundleRelease -Dorg.gradle.java.home="$JAVA_HOME"
     artifacts:
       - android/app/build/outputs/**/*.aab
       - android/app/build/outputs/**/mapping.txt
