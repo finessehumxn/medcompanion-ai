@@ -1,7 +1,11 @@
-﻿{
+{
   "appId": "com.medcompanionai.app",
   "appName": "MedCompanion AI",
   "webDir": "frontend",
+  "server": {
+    "url": "https://medcompanion-ai.up.railway.app",
+    "cleartext": true
+  },
   "android": {
     "allowMixedContent": true
   }
