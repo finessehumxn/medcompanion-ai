@@ -20,3 +20,4 @@ python-dotenv>=1.0.0
 
 # Robust JSON repair for LLM-generated briefings
 json-repair>=0.30.0
+httpx>=0.27

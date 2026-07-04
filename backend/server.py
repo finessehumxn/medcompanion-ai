@@ -164,6 +164,43 @@ async def translate(req: TranslateRequest):
         logger.error(f"translate error: {e}")
         return {"translated": text}
 
+class SpeakRequest(BaseModel):
+    text: str
+    lang: Optional[str] = None
+
+@app.post("/speak")
+async def speak(req: SpeakRequest):
+    """Read aloud in OUR cloned voice (ElevenLabs) instead of the robotic
+    device voice. Returns MP3 the app plays. If unconfigured or it fails,
+    the client falls back to the device voice — so it never breaks."""
+    import httpx
+    from fastapi.responses import Response
+    key = os.getenv("ELEVENLABS_API_KEY")
+    voice = os.getenv("ELEVENLABS_VOICE_ID")
+    if not key or not voice:
+        raise HTTPException(503, "Voice not configured")
+    text = (req.text or "").strip()[:2500]
+    if not text:
+        raise HTTPException(400, "No text to read")
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            r = await client.post(
+                f"https://api.elevenlabs.io/v1/text-to-speech/{voice}",
+                headers={"xi-api-key": key, "accept": "audio/mpeg", "content-type": "application/json"},
+                json={
+                    "text": text,
+                    "model_id": "eleven_multilingual_v2",
+                    "voice_settings": {"stability": 0.5, "similarity_boost": 0.85, "style": 0.3, "use_speaker_boost": True},
+                },
+            )
+    except Exception as e:
+        logger.error(f"speak error: {e}")
+        raise HTTPException(502, "Voice service unavailable")
+    if r.status_code != 200:
+        logger.error(f"elevenlabs {r.status_code}: {r.text[:200]}")
+        raise HTTPException(502, "Voice generation failed")
+    return Response(content=r.content, media_type="audio/mpeg", headers={"Cache-Control": "public, max-age=86400"})
+
 class VisitPrepRequest(BaseModel):
     user_id: str
     lang: Optional[str] = None

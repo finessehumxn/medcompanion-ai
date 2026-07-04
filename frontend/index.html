@@ -3419,20 +3419,43 @@ function readableBriefingText(b) {
   if (b.closing) parts.push(b.closing);
   return parts.join(' ');
 }
-function stopSpeaking() { try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch(e){} window._speaking = false; }
-function toggleReadAloud(btn) {
-  if (!('speechSynthesis' in window)) { if (btn) btn.innerHTML = '<i class="ti ti-volume-off"></i> Not supported'; return; }
-  if (window._speaking) { stopSpeaking(); if (btn) btn.innerHTML = '<i class="ti ti-volume"></i> Listen'; return; }
-  var text = window._translatedText || readableBriefingText(window.lastBriefing);
-  if (!text) return;
+function _listenBtn(html) { var b = document.getElementById('listenBtn'); if (b) b.innerHTML = html; }
+function stopSpeaking() {
+  try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch(e){}
+  try { if (window._voiceAudio) { window._voiceAudio.pause(); window._voiceAudio = null; } } catch(e){}
+  window._speaking = false;
+}
+function _deviceSpeak(text) {
+  if (!('speechSynthesis' in window)) { _listenBtn('<i class="ti ti-volume-off"></i> Not supported'); window._speaking = false; return; }
   var u = new SpeechSynthesisUtterance(text);
   u.rate = 0.98; u.pitch = 1.0;
   if (window.currentLang) u.lang = window.currentLang;
-  u.onend = function(){ window._speaking = false; var b = document.getElementById('listenBtn'); if (b) b.innerHTML = '<i class="ti ti-volume"></i> Listen'; };
+  u.onend = function(){ window._speaking = false; _listenBtn('<i class="ti ti-volume"></i> Listen'); };
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(u);
   window._speaking = true;
-  if (btn) btn.innerHTML = '<i class="ti ti-player-stop"></i> Stop';
+  _listenBtn('<i class="ti ti-player-stop"></i> Stop');
+}
+async function toggleReadAloud(btn) {
+  if (window._speaking) { stopSpeaking(); _listenBtn('<i class="ti ti-volume"></i> Listen'); return; }
+  var text = window._translatedText || readableBriefingText(window.lastBriefing);
+  if (!text) return;
+  window._speaking = true;
+  _listenBtn('<i class="ti ti-loader-2"></i> Loading…');
+  // Try OUR cloned voice (ElevenLabs via backend). Falls back to device voice.
+  try {
+    var res = await fetch('/speak', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text.slice(0, 2500), lang: window.currentLang || null }) });
+    if (res.ok) {
+      var url = URL.createObjectURL(await res.blob());
+      var audio = new Audio(url); window._voiceAudio = audio;
+      audio.onended = function(){ window._speaking = false; _listenBtn('<i class="ti ti-volume"></i> Listen'); try { URL.revokeObjectURL(url); } catch(e){} };
+      _listenBtn('<i class="ti ti-player-stop"></i> Stop');
+      await audio.play();
+      return;
+    }
+  } catch(e) { /* fall through to device voice */ }
+  _deviceSpeak(text);
 }
 
 /* ══ Conversational walk-through: explains it WITH you, one piece at a time ══ */
