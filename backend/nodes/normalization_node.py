@@ -52,8 +52,9 @@ def normalization_node(state: PatientState) -> dict:
             f"Extracted entities: {json.dumps(extraction)}\n\n"
             f"Map to clinical terms and provide full differential."
         )
-        resp = get_client().messages.create(
-            model="claude-sonnet-4-6",
+        from ._fast import fast_create
+        resp = fast_create(
+            get_client(),
             max_tokens=1200,
             system=SYSTEM,
             messages=[{"role": "user", "content": prompt}]

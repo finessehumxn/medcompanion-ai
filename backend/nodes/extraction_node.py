@@ -45,8 +45,9 @@ def extraction_node(state: PatientState) -> dict:
 
     logger.info(f"extraction_node: {raw[:60]}")
     try:
-        resp = get_client().messages.create(
-            model="claude-sonnet-4-6",
+        from ._fast import fast_create
+        resp = fast_create(
+            get_client(),
             max_tokens=600,
             system=SYSTEM,
             messages=[{"role": "user", "content": raw}]
