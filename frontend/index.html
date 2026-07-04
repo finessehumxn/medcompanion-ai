@@ -3525,10 +3525,17 @@ async function ccSend() {
   } catch(e) { var log = document.getElementById('ccLog'); if (log && log.lastChild) log.removeChild(log.lastChild); ccBubble("That is a good one to bring to your doctor too.", 'ai'); }
 }
 function ccVoice(btn) {
-  var SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) return;
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var ta = document.getElementById('ccInput');
+  if (!SR) {
+    // In-app Android WebView has no Web Speech API — hand off to the keyboard's built-in voice typing (reliable everywhere)
+    if (ta) { ta.focus(); ta.setAttribute('placeholder', 'Tap the mic on your keyboard, then speak…'); }
+    return;
+  }
   var rec = new SR(); rec.lang = window.currentLang || 'en-US'; rec.interimResults = false;
   if (btn) btn.innerHTML = '<i class="ti ti-microphone-2"></i>';
-  rec.onresult = function(e){ var t = e.results[0][0].transcript; var ta = document.getElementById('ccInput'); if (ta) ta.value = (ta.value ? ta.value + ' ' : '') + t; };
+  rec.onresult = function(e){ var t = e.results[0][0].transcript; if (ta) ta.value = (ta.value ? ta.value + ' ' : '') + t; };
+  rec.onerror = function(){ if (btn) btn.innerHTML = '<i class="ti ti-microphone"></i>'; };
   rec.onend = function(){ if (btn) btn.innerHTML = '<i class="ti ti-microphone"></i>'; };
   try { rec.start(); } catch(e) {}
 }
@@ -3720,10 +3727,16 @@ async function vcSend() {
 function vcUseQuestion(el) { try { if (navigator.clipboard) navigator.clipboard.writeText(el.textContent); } catch(e){} el.style.background = 'rgba(46,196,140,.25)'; }
 function vcVoice(btn) {
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return;
+  var ta = document.getElementById('vcInput');
+  if (!SR) {
+    // In-app Android WebView has no Web Speech API — hand off to the keyboard's built-in voice typing (reliable everywhere)
+    if (ta) { ta.focus(); ta.setAttribute('placeholder', 'Tap the mic on your keyboard, then speak…'); }
+    return;
+  }
   var rec = new SR(); rec.lang = window.currentLang || 'en-US'; rec.interimResults = false;
   if (btn) btn.innerHTML = '<i class="ti ti-microphone-2"></i>';
-  rec.onresult = function(e){ var t = e.results[0][0].transcript; var ta = document.getElementById('vcInput'); if (ta) ta.value = (ta.value ? ta.value + ' ' : '') + t; };
+  rec.onresult = function(e){ var t = e.results[0][0].transcript; if (ta) ta.value = (ta.value ? ta.value + ' ' : '') + t; };
+  rec.onerror = function(){ if (btn) btn.innerHTML = '<i class="ti ti-microphone"></i>'; };
   rec.onend = function(){ if (btn) btn.innerHTML = '<i class="ti ti-microphone"></i>'; };
   try { rec.start(); } catch(e){}
 }
