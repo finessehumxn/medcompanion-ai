@@ -3283,11 +3283,34 @@ function removeImage() {
 /* ── Role / Intent picker + "customizing" banner ── */
 window.currentIntent = window.currentIntent || null;
 
+/* Live "typing" narration during the wait — honest, advancing status of
+   what the AI is actually doing, so it's clear it's working (not stuck). */
+var _narrTimer = null;
+var _NARR = [
+  'Reading what you shared',
+  'Checking live sources — NIH, Mayo Clinic & the FDA',
+  'Pulling out the parts that matter for you',
+  'Writing your briefing in plain language',
+  'Double-checking it’s clear and safe',
+  'Almost ready'
+];
+function _startNarration() {
+  _stopNarration();
+  var i = 0, dots = 0;
+  var set = function(){ var s = document.getElementById('customizingSub'); if (s) s.textContent = _NARR[i] + '.'.repeat(dots); };
+  set();
+  _narrTimer = setInterval(function(){
+    dots = (dots + 1) % 4;
+    if (dots === 0 && i < _NARR.length - 1) i++;
+    set();
+  }, 650);
+}
+function _stopNarration() { if (_narrTimer) { clearInterval(_narrTimer); _narrTimer = null; } }
 function showCustomizing(on, sub) {
   var b = document.getElementById('customizingBanner');
   if (!b) return;
-  if (sub) { var s = document.getElementById('customizingSub'); if (s) s.textContent = sub; }
   b.classList.toggle('show', !!on);
+  if (on) _startNarration(); else _stopNarration();
 }
 
 function applyIntentCopy() {
