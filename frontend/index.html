@@ -2960,6 +2960,28 @@ document.addEventListener('DOMContentLoaded', function() {
 ══════════════════════════════════════ */
 
 const API = 'https://medcompanionai.com';
+/* Resilient fetch for the AI calls: a real timeout + one automatic retry,
+   so a dropped phone connection or a slow briefing recovers instead of
+   showing "something went wrong". */
+async function aiFetch(url, opts, tries, timeoutMs) {
+  tries = tries || 2; timeoutMs = timeoutMs || 75000;
+  let lastErr;
+  for (let i = 0; i < tries; i++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(function(){ ctrl.abort(); }, timeoutMs);
+    try {
+      const res = await fetch(url, Object.assign({}, opts, { signal: ctrl.signal }));
+      clearTimeout(timer);
+      if (res.status >= 500 && i < tries - 1) { lastErr = new Error('server ' + res.status); await new Promise(function(r){ setTimeout(r, 900); }); continue; }
+      return res;
+    } catch (e) {
+      clearTimeout(timer);
+      lastErr = e;
+      if (i < tries - 1) await new Promise(function(r){ setTimeout(r, 900); });
+    }
+  }
+  throw lastErr || new Error('request failed');
+}
 let threadId = null;
 let currentUser = null;
 let authMode = 'signup';
@@ -3506,7 +3528,7 @@ async function wkCompanion(message) {
   var w = window._wk; if (!w) return;
   wkControls('<div style="color:#9fbfbb;font-size:13px;padding:.4rem">One moment, I am right here…</div>');
   try {
-    var res = await fetch(API + '/companion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: message, context: w.topic, lang: window.currentLang || null }) });
+    var res = await aiFetch(API + '/companion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: message, context: w.topic, lang: window.currentLang || null }) });
     var d = await res.json(); wkBubble(clean(d.reply), 'ai'); wkSpeak(d.reply);
   } catch(e) { wkBubble("That is a good one to bring to your doctor too.", 'ai'); }
   var last = w.i >= w.chunks.length - 1;
@@ -3542,7 +3564,7 @@ async function ccSend() {
   var inp = document.getElementById('ccInput'); if (!inp) return; var q = inp.value.trim(); if (!q) return; inp.value = '';
   ccBubble(clean(q), 'you'); ccBubble('<span style="opacity:.55">…</span>', 'ai');
   try {
-    var res = await fetch(API + '/companion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: q, context: window._cc.topic, lang: window.currentLang || null }) });
+    var res = await aiFetch(API + '/companion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: q, context: window._cc.topic, lang: window.currentLang || null }) });
     var d = await res.json(); var log = document.getElementById('ccLog'); if (log && log.lastChild) log.removeChild(log.lastChild);
     ccBubble(clean(d.reply), 'ai'); wkSpeak(d.reply);
   } catch(e) { var log = document.getElementById('ccLog'); if (log && log.lastChild) log.removeChild(log.lastChild); ccBubble("That is a good one to bring to your doctor too.", 'ai'); }
@@ -3613,7 +3635,7 @@ async function bhSubmit() {
   try {
     var payload = { task: task, text: text, finance: finance, lang: window.currentLang || null };
     if (window._bhImg) { payload.image_data = window._bhImg.data; payload.image_media_type = window._bhImg.media; }
-    var res = await fetch(API + '/advocate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    var res = await aiFetch(API + '/advocate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     bhRender(await res.json());
   } catch(e) { body.innerHTML = '<div class="vc-empty">I could not process that just now. Please try again.</div>'; }
 }
@@ -3643,7 +3665,7 @@ async function translateBriefingTo(lang) {
   panel.innerHTML = '<div style="opacity:.7;font-size:13px">Translating… 🌍</div>';
   var text = readableBriefingText(window.lastBriefing);
   try {
-    var res = await fetch(API + '/translate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: text, target: lang }) });
+    var res = await aiFetch(API + '/translate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: text, target: lang }) });
     var data = await res.json();
     var out = data && data.translated ? data.translated : text;
     window._translatedText = out;
@@ -3740,7 +3762,7 @@ async function vcSend() {
   vcRenderLog();
   try {
     var ctx = (window.lastBriefing && (window.lastBriefing.condition_name || window.lastBriefing.plain_name)) || '';
-    var res = await fetch(API + '/visit-assist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: txt, lang: window.currentLang || null, context: ctx }) });
+    var res = await aiFetch(API + '/visit-assist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: txt, lang: window.currentLang || null, context: ctx }) });
     turn.ai = await res.json();
   } catch(e) {
     turn.ai = { plain: 'I could not reach the server just now — you can ask your doctor to repeat that.', jargon: [], questions: [], note: '' };
@@ -3974,7 +3996,7 @@ async function generateVisitPrep() {
   ov.innerHTML = '<div class="vc-modal"><div class="vc-head"><div class="vc-title"><i class="ti ti-clipboard-data"></i> Visit Prep</div><div class="vc-sub">From your log — plain for you, clinical for your doctor.</div><button class="vc-close" onclick="closeVisitPrep()" aria-label="Close">×</button></div><div class="vc-log" id="vpBody"><div class="vc-empty">Building your visit prep from your log… 🧩</div></div></div>';
   ov.classList.add('show');
   try {
-    var res = await fetch(API + '/visit-prep', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: currentUser.user_id, lang: window.currentLang || null }) });
+    var res = await aiFetch(API + '/visit-prep', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: currentUser.user_id, lang: window.currentLang || null }) });
     renderVisitPrep(await res.json());
   } catch(e) { var b = document.getElementById('vpBody'); if (b) b.innerHTML = '<div class="vc-empty">Could not build it right now. Try again in a moment.</div>'; }
 }
@@ -4136,7 +4158,7 @@ async function erSend() {
   var log = document.getElementById('erLog');
   log.innerHTML = '<div class="vc-you">' + clean(txt) + '</div><div class="vc-ai"><div class="vc-plain" style="opacity:.7">Checking…</div></div>';
   try {
-    var res = await fetch(API + '/triage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: txt, lang: window.currentLang || null }) });
+    var res = await aiFetch(API + '/triage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: txt, lang: window.currentLang || null }) });
     erRender(txt, await res.json());
   } catch(e) {
     erRender(txt, { level: 'urgent', headline: 'If you are worried, it is okay to get checked.', action: 'If this feels serious or is getting worse, call your doctor or 911 now.', signs: [], note: '' });
@@ -4207,7 +4229,7 @@ async function startPipeline() {
   step(0,'run'); step(1,''); step(2,''); step(3,'');
 
   try {
-    var res = await fetch(API + '/session/start', {
+    var res = await aiFetch(API + '/session/start', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
@@ -4250,7 +4272,7 @@ async function startPipeline() {
     showCustomizing(false); // waiting on the user to confirm now, not on us
 
   } catch(err) {
-    out('<div class="err-box"><strong>Something went wrong:</strong> ' + clean(err.message) + '</div>' +
+    out('<div class="err-box"><strong>That took too long or the connection dropped.</strong> This can happen on a slow network — please try again.</div>' +
         '<div class="reset-row"><button class="reset-btn" onclick="reset()"><i class="ti ti-refresh"></i> Try again</button></div>');
     [0,1,2,3].forEach(function(n) { step(n,''); });
     showCustomizing(false);
@@ -4489,7 +4511,7 @@ async function confirmCondition(useAI) {
   })();
 
   try {
-    var res = await fetch(API + '/session/' + threadId + '/confirm', {
+    var res = await aiFetch(API + '/session/' + threadId + '/confirm', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ confirmed: useAI, override: override || null, user_id: currentUser ? currentUser.user_id : null })
