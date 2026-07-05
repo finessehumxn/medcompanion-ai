@@ -2982,6 +2982,21 @@ async function aiFetch(url, opts, tries, timeoutMs) {
   }
   throw lastErr || new Error('request failed');
 }
+/* Poll for the background briefing — short requests, so nothing can drop
+   mid-generation. Tolerates transient network blips by just polling again. */
+async function pollBriefing(tid) {
+  for (var i = 0; i < 50; i++) {           // up to ~2.5 min
+    await new Promise(function(r){ setTimeout(r, 3000); });
+    try {
+      var res = await fetch(API + '/session/' + tid + '/result', { headers: { 'Accept': 'application/json' } });
+      if (res.ok) {
+        var d = await res.json();
+        if (d.status === 'complete' || d.status === 'error') return d;
+      }
+    } catch (e) { /* transient — keep polling */ }
+  }
+  return { status: 'error', error: 'This is taking longer than usual. Please try again.' };
+}
 let threadId = null;
 let currentUser = null;
 let authMode = 'signup';
@@ -4541,6 +4556,11 @@ async function confirmCondition(useAI) {
     });
     var data = await res.json();
     if (data.status === 'error') throw new Error(data.error);
+    // Briefing now runs in the background — poll for it (short requests, nothing to drop).
+    if (data.status === 'processing') {
+      data = await pollBriefing(threadId);
+    }
+    if (data.status === 'error') throw new Error(data.error || 'Briefing failed');
     clearInterval(_snakeLoop); _snakeRunning = false;
     showCustomizing(false);
     window.lastBriefing = data.briefing;

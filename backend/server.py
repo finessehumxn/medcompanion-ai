@@ -1,5 +1,5 @@
 ﻿"""server.py â€” MedCompanion AI v2"""
-import os, logging, uuid
+import os, logging, uuid, asyncio
 from typing import Optional
 from dotenv import load_dotenv
 load_dotenv()
@@ -679,16 +679,45 @@ async def session_start(req: StartRequest):
         logger.error(f"session_start error: {e}")
         raise HTTPException(500, str(e))
 
+# In-memory briefing jobs (thread_id -> {status, briefing/error}). The
+# briefing runs in the background so the client never holds a 40s request
+# open (which drops on flaky networks). Single uvicorn worker -> shared.
+_briefing_jobs = {}
+
+async def _briefing_task(thread_id, config, confirmed, override, user_id, raw_input, final_condition):
+    try:
+        # graph.invoke is blocking -> run it off the event loop
+        result = await asyncio.to_thread(
+            graph.invoke,
+            Command(resume={"confirmed": confirmed, "override": override}),
+            config,
+        )
+        if result.get("error"):
+            _briefing_jobs[thread_id] = {"status": "error", "error": result["error"]}
+            return
+        briefing = result.get("briefing")
+        if not briefing:
+            logger.error(f"No briefing returned. State: {list(result.keys())}")
+            _briefing_jobs[thread_id] = {"status": "error", "error": "Briefing generation failed. Please try again."}
+            return
+        if user_id and SUPABASE_ENABLED:
+            try:
+                await save_session(user_id=user_id, raw_input=raw_input, condition=final_condition, briefing=briefing)
+            except Exception as se:
+                logger.warning(f"save_session failed (non-fatal): {se}")
+        _briefing_jobs[thread_id] = {"status": "complete", "briefing": briefing}
+    except Exception as e:
+        logger.error(f"briefing task error: {e}", exc_info=True)
+        _briefing_jobs[thread_id] = {"status": "error", "error": "Something went wrong generating your briefing. Please try again."}
+
 @app.post("/session/{thread_id}/confirm")
 async def session_confirm(thread_id: str, req: ConfirmRequest):
     config = {"configurable": {"thread_id": thread_id}}
     try:
-        # Get current state to extract the condition
         state_snapshot = graph.get_state(config)
         if not state_snapshot:
             raise HTTPException(404, "Session not found")
 
-        # Determine final condition from override or normalization
         override = (req.override or "").strip()
         if override:
             final_condition = override
@@ -696,40 +725,32 @@ async def session_confirm(thread_id: str, req: ConfirmRequest):
             norm = state_snapshot.values.get("normalization", {})
             final_condition = norm.get("primary_condition", "") or norm.get("plain_condition_name", "")
 
-        logger.info(f"confirm: final_condition='{final_condition}'")
-
-        # Update state with final_condition BEFORE resuming
+        logger.info(f"confirm: final_condition='{final_condition}' (async)")
         graph.update_state(config, {"final_condition": final_condition}, as_node="confirmation")
 
-        # Resume with Command
-        result = graph.invoke(
-            Command(resume={"confirmed": req.confirmed, "override": override}),
-            config
-        )
-
-        if result.get("error"):
-            return {"status": "error", "error": result["error"]}
-
-        briefing = result.get("briefing")
-        if not briefing:
-            logger.error(f"No briefing returned. State: {result.keys()}")
-            return {"status": "error", "error": "Briefing generation failed. Please try again."}
-
-        if req.user_id and SUPABASE_ENABLED:
-            await save_session(
-                user_id=req.user_id,
-                raw_input=state_snapshot.values.get("raw_input", ""),
-                condition=final_condition,
-                briefing=briefing
-            )
-
-        return {"status": "complete", "briefing": briefing}
+        raw_input = state_snapshot.values.get("raw_input", "")
+        _briefing_jobs[thread_id] = {"status": "processing"}
+        asyncio.create_task(_briefing_task(thread_id, config, req.confirmed, override, req.user_id, raw_input, final_condition))
+        return {"status": "processing"}
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"session_confirm error: {e}", exc_info=True)
         raise HTTPException(500, str(e))
+
+@app.get("/session/{thread_id}/result")
+async def session_result(thread_id: str):
+    """Poll for the background briefing. Short + cheap — the app calls this
+    every few seconds until the briefing is ready."""
+    job = _briefing_jobs.get(thread_id)
+    if not job:
+        return {"status": "unknown"}
+    if job["status"] == "complete":
+        return {"status": "complete", "briefing": job["briefing"]}
+    if job["status"] == "error":
+        return {"status": "error", "error": job.get("error", "Briefing failed. Please try again.")}
+    return {"status": "processing"}
 
 @app.post("/analyze/image")
 async def analyze_image(req: StartRequest):
