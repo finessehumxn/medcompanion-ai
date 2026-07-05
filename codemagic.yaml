@@ -84,10 +84,19 @@ workflows:
           app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --certificate-key=@file:/tmp/cert_key.pem --create
           keychain add-certificates
           xcode-project use-profiles
-      - name: Increment build number
+      - name: Set marketing version + build number
         script: |
-          # Full unix timestamp = always increases (the old % 100000 could wrap lower).
-          cd ios/App && agvtool new-version -all $(date +%s) || true
+          # Marketing version MUST be higher than the live App Store version (1.0),
+          # or upload fails with 90062/90186. Date-based = always increases, never
+          # conflicts across days, and is set-and-forget for every future build.
+          MV="1.0.$(date +%y%m%d)"
+          cd ios/App
+          agvtool new-marketing-version "$MV" || true
+          # also force it in the Info.plist in case it's a literal value
+          plutil -replace CFBundleShortVersionString -string "$MV" App/Info.plist 2>/dev/null || true
+          echo "Marketing version -> $MV"
+          # Full unix timestamp for the build number = always increases.
+          agvtool new-version -all $(date +%s) || true
       - name: Build IPA (workspace if CocoaPods, else project)
         script: |
           if [ -d ios/App/App.xcworkspace ]; then
