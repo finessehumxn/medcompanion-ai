@@ -40,17 +40,57 @@ def extraction_node(state: PatientState) -> dict:
     if state.get("guardrail_status") not in ("pass", None):
         return {"current_node": "extraction"}
     raw = state.get("raw_input", "")
-    if not raw:
+    image_data = state.get("image_data")
+    if not raw and not image_data:
         return {"extraction": {}, "current_node": "extraction", "error": "No input"}
 
-    logger.info(f"extraction_node: {raw[:60]}")
+    updates = {"current_node": "extraction", "error": None}
+
+    # If a photo was attached, actually READ it (vision). Otherwise the image is
+    # invisible to extraction, normalization, and the final briefing — which is
+    # why "photograph a lab result and understand it" produced nothing.
+    image_findings = ""
+    if image_data:
+        try:
+            from ._fast import STRONG_MODEL
+            media = state.get("image_media_type") or "image/jpeg"
+            vresp = get_client().messages.create(
+                model=STRONG_MODEL,  # vision reading of a medical doc — use the strong model
+                max_tokens=700,
+                system=(
+                    "You read a photo of a lab result, prescription, or medical document. "
+                    "In plain language, say what the document is and list the key items — "
+                    "test names with their values and normal ranges if shown, medication "
+                    "names and doses, or the main findings. Do NOT diagnose or give medical "
+                    "advice. If the image is not a medical document, say that briefly."
+                ),
+                messages=[{"role": "user", "content": [
+                    {"type": "image", "source": {"type": "base64", "media_type": media, "data": image_data}},
+                    {"type": "text", "text": (raw or "Please read this and list what it shows.")}
+                ]}]
+            )
+            for block in vresp.content:
+                if hasattr(block, "text") and block.text:
+                    image_findings = block.text.strip()
+                    break
+        except Exception as e:
+            logger.error(f"extraction_node image read error: {e}")
+
+    # What the rest of the pipeline reasons about = user's text + what the photo shows.
+    effective_raw = raw
+    if image_findings:
+        effective_raw = (raw + "\n\nFrom the attached document:\n" + image_findings).strip()
+        updates["raw_input"] = effective_raw          # normalization + briefing now see it
+        updates["image_analysis"] = {"summary": image_findings}
+
+    logger.info(f"extraction_node: {effective_raw[:60]}")
     try:
         from ._fast import fast_create
         resp = fast_create(
             get_client(),
             max_tokens=600,
             system=SYSTEM,
-            messages=[{"role": "user", "content": raw}]
+            messages=[{"role": "user", "content": effective_raw}]
         )
 
         # Safe content extraction - handle tool use blocks
@@ -62,14 +102,14 @@ def extraction_node(state: PatientState) -> dict:
 
         if not text:
             logger.warning("extraction_node: no text block in response")
-            return {"extraction": {}, "current_node": "extraction", "error": None}
+            return {**updates, "extraction": {}}
 
         text = text.strip().replace("```json", "").replace("```", "")
         start = text.find("{")
         end = text.rfind("}") + 1
         if start == -1:
             logger.warning(f"extraction_node: no JSON found in: {text[:100]}")
-            return {"extraction": {}, "current_node": "extraction", "error": None}
+            return {**updates, "extraction": {}}
 
         extraction = json.loads(text[start:end])
 
@@ -78,12 +118,12 @@ def extraction_node(state: PatientState) -> dict:
             extraction["symptoms"] = extraction["conditions_mentioned"]
 
         logger.info(f"extraction_node done: {len(extraction.get('symptoms', []))} items")
-        return {"extraction": extraction, "current_node": "extraction", "error": None}
+        return {**updates, "extraction": extraction}
 
     except Exception as e:
         logger.error(f"extraction_node error: {e}")
         # Return empty extraction instead of crashing - let pipeline continue
-        return {"extraction": {}, "current_node": "extraction", "error": None}
+        return {**updates, "extraction": {}}
 
 
 

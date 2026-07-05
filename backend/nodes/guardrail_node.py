@@ -31,12 +31,15 @@ Respond ONLY with valid JSON: {"status": "<category>", "message": "<warm human m
 @traceable(name="guardrail_node", tags=["safety"])
 def guardrail_node(state: PatientState) -> dict:
     raw = state.get("raw_input", "").strip()
-    if not raw:
+    has_image = bool(state.get("image_data"))
+    # An attached photo (lab result / document) IS the content — so empty or thin
+    # text is fine when an image is present. Only reject truly-empty requests.
+    if not raw and not has_image:
         return {"guardrail_status": "invalid", "guardrail_message": "Please share what's on your mind.", "current_node": "guardrail"}
     # Medication-interaction mode: a bare list of meds/foods is a valid health
     # question here, so tell the classifier not to treat it as "too vague".
     system = SYSTEM
-    user_content = raw
+    user_content = raw or "Please explain the attached image."
     if (state.get("intent") or "").lower() in ("medication", "pharmacist"):
         system = SYSTEM + (
             "\n\nCONTEXT: The user is using a medication-interaction checker. "
@@ -45,6 +48,15 @@ def guardrail_node(state: PatientState) -> dict:
             "emergency, crisis, gibberish, or clearly unrelated to health."
         )
         user_content = f"Medication/interaction check: {raw}"
+    if has_image:
+        system = system + (
+            "\n\nCONTEXT: The user has ATTACHED AN IMAGE (a photo of a lab result, "
+            "prescription, or medical document) along with their text. The image IS "
+            "the content to explain, so brief or vague text such as 'explain this' or "
+            "'what does this mean' is a valid 'pass' — do NOT classify it as invalid "
+            "or off_topic just because the text is short. Only use emergency or crisis "
+            "for a genuine safety issue in the text."
+        )
     try:
         resp = get_client().messages.create(
             model="claude-sonnet-4-6",
@@ -53,7 +65,14 @@ def guardrail_node(state: PatientState) -> dict:
             messages=[{"role": "user", "content": user_content}]
         )
         result = json.loads(resp.content[0].text.strip())
-        return {"guardrail_status": result.get("status", "pass"), "guardrail_message": result.get("message", ""), "current_node": "guardrail", "error": None}
+        status = result.get("status", "pass")
+        # Safety net: never let an attached image get bounced as vague/unrelated.
+        # Emergency/crisis still take priority (real safety), but invalid/off_topic
+        # on an image-bearing request becomes a pass so the photo gets analyzed.
+        if has_image and status in ("invalid", "off_topic"):
+            status = "pass"
+        message = "" if status == "pass" else result.get("message", "")
+        return {"guardrail_status": status, "guardrail_message": message, "current_node": "guardrail", "error": None}
     except Exception as e:
         logger.error(f"guardrail_node error: {e}")
         return {"guardrail_status": "pass", "current_node": "guardrail", "error": None}
