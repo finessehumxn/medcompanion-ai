@@ -30,7 +30,7 @@ workflows:
             "version": "1.0.0",
             "private": true,
             "devDependencies": { "@capacitor/cli": "^8.4.0" },
-            "dependencies": { "@capacitor/core": "^8.4.0", "@capacitor/ios": "^8.4.0" }
+            "dependencies": { "@capacitor/core": "^8.4.0", "@capacitor/ios": "^8.4.0", "@capacitor-community/speech-recognition": "^7.0.1" }
           }
           EOF
           npm install --no-audit --no-fund
@@ -44,6 +44,7 @@ workflows:
           set_str NSCameraUsageDescription "MedCompanion uses your camera so you can photograph a lab result, prescription, or document and understand it in plain language."
           set_str NSPhotoLibraryUsageDescription "MedCompanion lets you upload a photo of a lab result or document so it can explain it in plain language."
           set_str NSMicrophoneUsageDescription "MedCompanion can use your microphone for voice input of your symptoms."
+          set_str NSSpeechRecognitionUsageDescription "MedCompanion transcribes your spoken symptoms into text so you can talk instead of type."
           plutil -replace ITSAppUsesNonExemptEncryption -bool false "$PLIST" 2>/dev/null || plutil -insert ITSAppUsesNonExemptEncryption -bool false "$PLIST"
       - name: Capacitor sync (copies frontend/ into the app)
         script: npx cap sync ios
@@ -146,7 +147,7 @@ workflows:
             "version": "1.0.0",
             "private": true,
             "devDependencies": { "@capacitor/cli": "^8.4.0" },
-            "dependencies": { "@capacitor/core": "^8.4.0", "@capacitor/android": "^8.4.0" }
+            "dependencies": { "@capacitor/core": "^8.4.0", "@capacitor/android": "^8.4.0", "@capacitor-community/speech-recognition": "^7.0.1" }
           }
           EOF
           npm install --no-audit --no-fund

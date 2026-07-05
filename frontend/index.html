@@ -3202,7 +3202,61 @@ document.addEventListener('keydown', function(e) {
 var recognition = null;
 var isRecording = false;
 
+/* Real in-app speech-to-text via the native Capacitor SpeechRecognition plugin.
+   Runs inside the iOS/Android app (the WebView has no Web Speech API). Returns
+   true if it handled the tap; false when not running natively (browser). */
+window._srActive = false;
+async function nativeDictate(input, btn, label, activeIcon, idleIcon, restLabel) {
+  var SR = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition);
+  if (!SR) return false;
+  if (window._srActive) { try { await SR.stop(); } catch (e) {} return true; } // tap again = stop
+  try {
+    var perm = await SR.checkPermissions();
+    if (!perm || perm.speechRecognition !== 'granted') { perm = await SR.requestPermissions(); }
+    if (!perm || perm.speechRecognition !== 'granted') {
+      if (label) label.textContent = '🎤 Allow microphone access to use voice';
+      if (btn) btn.innerHTML = idleIcon;
+      return true;
+    }
+    var existing = input ? input.value.trim() : '';
+    window._srActive = true;
+    if (btn) { btn.classList.add('recording'); btn.innerHTML = activeIcon; }
+    if (label) label.textContent = '🔴 Listening… speak now';
+    try { await SR.removeAllListeners(); } catch (e) {}
+    await SR.addListener('partialResults', function (data) {
+      var m = (data && data.matches && data.matches.length) ? data.matches[0] : '';
+      if (m && input) input.value = existing ? (existing + ' ' + m) : m;
+    });
+    await SR.addListener('listeningState', function (data) {
+      if (data && data.status === 'stopped') {
+        window._srActive = false;
+        if (btn) { btn.classList.remove('recording'); btn.innerHTML = idleIcon; }
+        if (label && restLabel !== undefined) label.textContent = restLabel;
+      }
+    });
+    await SR.start({ language: (window.currentLang || navigator.language || 'en-US'), maxResults: 1, partialResults: true, popup: false });
+    return true;
+  } catch (e) {
+    window._srActive = false;
+    if (btn) { btn.classList.remove('recording'); btn.innerHTML = idleIcon; }
+    if (input) input.focus(); // last-ditch: fall back to the keyboard's dictation
+    if (label) label.innerHTML = '🎤 <strong>Tap the microphone on your keyboard</strong> and speak.';
+    return true;
+  }
+}
+
 function toggleVoice() {
+  // Native app: real in-app recorder
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) {
+    nativeDictate(
+      document.getElementById('patientInput'),
+      document.getElementById('voiceBtn'),
+      document.querySelector('.input-extra-label'),
+      '<i class="ti ti-microphone-off"></i>', '<i class="ti ti-microphone"></i>',
+      '🎤 Speak your symptoms | 📷 Upload a lab result or photo'
+    );
+    return;
+  }
   var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRec) {
     // In-app Android WebView has no Web Speech API — hand off to the keyboard's built-in voice typing (reliable everywhere)
@@ -3608,6 +3662,11 @@ async function ccSend() {
   } catch(e) { var log = document.getElementById('ccLog'); if (log && log.lastChild) log.removeChild(log.lastChild); ccBubble("That is a good one to bring to your doctor too.", 'ai'); }
 }
 function ccVoice(btn) {
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) {
+    nativeDictate(document.getElementById('ccInput'), btn, null,
+      '<i class="ti ti-microphone-2"></i>', '<i class="ti ti-microphone"></i>', '');
+    return;
+  }
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   var ta = document.getElementById('ccInput');
   if (!SR) {
@@ -3809,6 +3868,11 @@ async function vcSend() {
 }
 function vcUseQuestion(el) { try { if (navigator.clipboard) navigator.clipboard.writeText(el.textContent); } catch(e){} el.style.background = 'rgba(46,196,140,.25)'; }
 function vcVoice(btn) {
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) {
+    nativeDictate(document.getElementById('vcInput'), btn, null,
+      '<i class="ti ti-microphone-2"></i>', '<i class="ti ti-microphone"></i>', '');
+    return;
+  }
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   var ta = document.getElementById('vcInput');
   if (!SR) {
