@@ -3206,6 +3206,57 @@ var isRecording = false;
    Runs inside the iOS/Android app (the WebView has no Web Speech API). Returns
    true if it handled the tap; false when not running natively (browser). */
 window._srActive = false;
+/* ── In-app mic that works on the LIVE build over the network ──
+   Records audio in the WebView and sends it to /transcribe, then drops the
+   text into the field. No native plugin needed, so it works via server.url on
+   the already-shipped build. Returns true if it handled the tap. */
+window._rec = null;
+function _blobToB64(blob){ return new Promise(function(res,rej){ var r=new FileReader(); r.onloadend=function(){ res(String(r.result).split(',')[1]); }; r.onerror=rej; r.readAsDataURL(blob); }); }
+async function recordAndTranscribe(input, btn, label, activeIcon, idleIcon, restLabel) {
+  if (window._rec && window._rec.state === 'recording') { try { window._rec.stop(); } catch(e){} return true; } // tap again = stop
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) return false; // unsupported → fall back
+  var stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch(e){ if (label) label.textContent = '🎤 Allow microphone access to use voice'; return true; }
+  try {
+    var mime = ['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/aac'].find(function(m){ try { return MediaRecorder.isTypeSupported(m); } catch(e){ return false; } }) || '';
+    var rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+    var chunks = [];
+    window._rec = rec;
+    rec.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstart = function(){ if (btn){ btn.classList.add('recording'); btn.innerHTML = activeIcon; } if (label) label.textContent = '🔴 Listening… tap the mic again to stop'; };
+    rec.onstop = async function(){
+      try { stream.getTracks().forEach(function(t){ t.stop(); }); } catch(e){}
+      if (btn){ btn.classList.remove('recording'); btn.innerHTML = idleIcon; }
+      if (label) label.textContent = '⏳ Transcribing…';
+      window._rec = null;
+      try {
+        var type = rec.mimeType || mime || 'audio/webm';
+        var blob = new Blob(chunks, { type: type });
+        if (!blob.size) { if (label) label.textContent = '🎤 Didn’t catch that — try again'; return; }
+        var b64 = await _blobToB64(blob);
+        var res = await aiFetch(API + '/transcribe', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ audio: b64, mime: type }) });
+        if (!res.ok) { if (label) label.textContent = (res.status===503 ? '🎤 Voice isn’t set up on the server yet' : '🎤 Couldn’t transcribe — try again'); return; }
+        var d = await res.json();
+        var t = (d && d.text ? d.text : '').trim();
+        if (t && input) { input.value = (input.value ? input.value.trim() + ' ' : '') + t; }
+        if (label) label.textContent = t ? (restLabel || '') : '🎤 Didn’t catch that — try again';
+      } catch(e){ if (label) label.textContent = '🎤 Couldn’t transcribe — try again'; }
+    };
+    rec.start();
+    return true;
+  } catch(e){ try { stream.getTracks().forEach(function(t){ t.stop(); }); } catch(_){}; return false; }
+}
+
+function toggleVoice() {
+  var input = document.getElementById('patientInput');
+  var btn = document.getElementById('voiceBtn');
+  var label = document.querySelector('.input-extra-label');
+  var rest = '🎤 Speak your symptoms | 📷 Upload a lab result or photo';
+  recordAndTranscribe(input, btn, label, '<i class="ti ti-microphone-off"></i>', '<i class="ti ti-microphone"></i>', rest)
+    .then(function(handled){ if (!handled) toggleVoiceFallback(); });
+}
+
 async function nativeDictate(input, btn, label, activeIcon, idleIcon, restLabel) {
   var SR = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition);
   if (!SR) return false;
@@ -3245,7 +3296,7 @@ async function nativeDictate(input, btn, label, activeIcon, idleIcon, restLabel)
   }
 }
 
-function toggleVoice() {
+function toggleVoiceFallback() {
   // Native app: real in-app recorder
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) {
     nativeDictate(
@@ -3662,6 +3713,10 @@ async function ccSend() {
   } catch(e) { var log = document.getElementById('ccLog'); if (log && log.lastChild) log.removeChild(log.lastChild); ccBubble("That is a good one to bring to your doctor too.", 'ai'); }
 }
 function ccVoice(btn) {
+  recordAndTranscribe(document.getElementById('ccInput'), btn, null, '<i class="ti ti-microphone-2"></i>', '<i class="ti ti-microphone"></i>', '')
+    .then(function(handled){ if (!handled) ccVoiceFallback(btn); });
+}
+function ccVoiceFallback(btn) {
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) {
     nativeDictate(document.getElementById('ccInput'), btn, null,
       '<i class="ti ti-microphone-2"></i>', '<i class="ti ti-microphone"></i>', '');
@@ -3868,6 +3923,10 @@ async function vcSend() {
 }
 function vcUseQuestion(el) { try { if (navigator.clipboard) navigator.clipboard.writeText(el.textContent); } catch(e){} el.style.background = 'rgba(46,196,140,.25)'; }
 function vcVoice(btn) {
+  recordAndTranscribe(document.getElementById('vcInput'), btn, null, '<i class="ti ti-microphone-2"></i>', '<i class="ti ti-microphone"></i>', '')
+    .then(function(handled){ if (!handled) vcVoiceFallback(btn); });
+}
+function vcVoiceFallback(btn) {
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) {
     nativeDictate(document.getElementById('vcInput'), btn, null,
       '<i class="ti ti-microphone-2"></i>', '<i class="ti ti-microphone"></i>', '');

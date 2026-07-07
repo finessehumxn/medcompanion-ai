@@ -201,6 +201,76 @@ async def speak(req: SpeakRequest):
         raise HTTPException(502, "Voice generation failed")
     return Response(content=r.content, media_type="audio/mpeg", headers={"Cache-Control": "public, max-age=86400"})
 
+class TranscribeRequest(BaseModel):
+    audio: str                       # base64 (optionally a data: URL)
+    mime: Optional[str] = "audio/webm"
+
+@app.post("/transcribe")
+async def transcribe(req: TranscribeRequest):
+    """Speech-to-text for the in-app mic. The app records audio in the WebView
+    and posts it here; we transcribe via whichever provider is configured
+    (Groq Whisper → OpenAI Whisper → ElevenLabs Scribe) and return the text.
+    This works on the LIVE build over the network — no native plugin needed."""
+    import base64, httpx
+    b64 = req.audio or ""
+    if "," in b64[:64]:
+        b64 = b64.split(",", 1)[1]
+    try:
+        audio = base64.b64decode(b64)
+    except Exception:
+        raise HTTPException(400, "Bad audio data")
+    if not audio:
+        raise HTTPException(400, "No audio")
+
+    mime = (req.mime or "audio/webm").split(";")[0].strip()
+    ext = {"audio/webm": "webm", "audio/mp4": "mp4", "audio/aac": "aac", "audio/mpeg": "mp3",
+           "audio/wav": "wav", "audio/x-m4a": "m4a", "audio/mp4a-latm": "mp4",
+           "video/mp4": "mp4", "audio/ogg": "ogg"}.get(mime, "webm")
+    fname = f"audio.{ext}"
+
+    groq = os.getenv("GROQ_API_KEY")
+    openai_key = os.getenv("OPENAI_API_KEY")
+    eleven = os.getenv("ELEVENLABS_API_KEY")
+    if not (groq or openai_key or eleven):
+        raise HTTPException(503, "Transcription not configured")
+
+    try:
+        async with httpx.AsyncClient(timeout=90) as client:
+            if groq:
+                r = await client.post(
+                    "https://api.groq.com/openai/v1/audio/transcriptions",
+                    headers={"Authorization": f"Bearer {groq}"},
+                    files={"file": (fname, audio, mime)},
+                    data={"model": "whisper-large-v3-turbo", "response_format": "json"},
+                )
+                if r.status_code == 200:
+                    return {"text": (r.json().get("text") or "").strip()}
+                logger.error(f"groq stt {r.status_code}: {r.text[:200]}")
+            if openai_key:
+                r = await client.post(
+                    "https://api.openai.com/v1/audio/transcriptions",
+                    headers={"Authorization": f"Bearer {openai_key}"},
+                    files={"file": (fname, audio, mime)},
+                    data={"model": "whisper-1", "response_format": "json"},
+                )
+                if r.status_code == 200:
+                    return {"text": (r.json().get("text") or "").strip()}
+                logger.error(f"openai stt {r.status_code}: {r.text[:200]}")
+            if eleven:
+                r = await client.post(
+                    "https://api.elevenlabs.io/v1/speech-to-text",
+                    headers={"xi-api-key": eleven},
+                    files={"file": (fname, audio, mime)},
+                    data={"model_id": "scribe_v1"},
+                )
+                if r.status_code == 200:
+                    return {"text": (r.json().get("text") or "").strip()}
+                logger.error(f"eleven stt {r.status_code}: {r.text[:200]}")
+    except Exception as e:
+        logger.error(f"transcribe error: {e}")
+        raise HTTPException(502, "Transcription unavailable")
+    raise HTTPException(502, "Transcription failed")
+
 class VisitPrepRequest(BaseModel):
     user_id: str
     lang: Optional[str] = None
