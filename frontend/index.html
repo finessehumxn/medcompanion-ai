@@ -3249,24 +3249,8 @@ async function recordAndTranscribe(input, btn, label, activeIcon, idleIcon, rest
 }
 
 function toggleVoice() {
-  // TEMP one-time diagnostic: shows what the WebView actually exposes so we can
-  // fix the mic definitively. Remove after diagnosis.
-  try {
-    if (!window._micDbgShown) {
-      window._micDbgShown = true;
-      alert('MIC DEBUG — tell Claude what this says:\n' +
-        'Capacitor = ' + (typeof window.Capacitor) + '\n' +
-        'registerPlugin = ' + (window.Capacitor && typeof window.Capacitor.registerPlugin) + '\n' +
-        'Plugins.SpeechRecognition = ' + (window.Capacitor && window.Capacitor.Plugins && typeof window.Capacitor.Plugins.SpeechRecognition) + '\n' +
-        'mediaDevices = ' + (!!navigator.mediaDevices) + '\n' +
-        'getUserMedia = ' + (!!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) + '\n' +
-        'MediaRecorder = ' + (typeof window.MediaRecorder) + '\n' +
-        'webSpeech = ' + (!!(window.SpeechRecognition || window.webkitSpeechRecognition)));
-    }
-  } catch (e) {}
-  // Never lead with getUserMedia — it hangs in the app's WebView with no prompt.
-  // The fallback resolves: native speech plugin → web speech (desktop) → the
-  // keyboard's own dictation. Always ends in a working path.
+  // Web Speech works in this WebView (one-tap dictation); the fallback uses it,
+  // with the keyboard's dictation as a guaranteed backstop on any error.
   toggleVoiceFallback();
 }
 
@@ -3326,7 +3310,7 @@ async function nativeDictate(input, btn, label, activeIcon, idleIcon, restLabel)
 
 function toggleVoiceFallback() {
   // Native app: real in-app recorder
-  if (window.Capacitor) {
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) {
     nativeDictate(
       document.getElementById('patientInput'),
       document.getElementById('voiceBtn'),
@@ -3390,12 +3374,16 @@ function toggleVoiceFallback() {
     if (btn) { btn.classList.remove('recording'); btn.innerHTML = '<i class="ti ti-microphone"></i>'; }
     if (e.error === 'no-speech') {
       if (label) label.textContent = '🎤 No speech detected — try again';
+    } else if (['not-allowed','service-not-allowed','audio-capture','network'].indexOf(e.error) !== -1) {
+      // Web Speech blocked in the WebView — fall back to the keyboard's dictation.
+      keyboardDictation(input, label);
     } else if (e.error !== 'aborted') {
       if (label) label.textContent = '🎤 Speak your symptoms | 📷 Upload a lab result or photo';
     }
   };
 
-  recognition.start();
+  try { recognition.start(); }
+  catch (e) { keyboardDictation(input, label); }
 }
 
 /* ── Image Upload ── */
@@ -3744,7 +3732,7 @@ function ccVoice(btn) {
   ccVoiceFallback(btn);
 }
 function ccVoiceFallback(btn) {
-  if (window.Capacitor) {
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) {
     nativeDictate(document.getElementById('ccInput'), btn, null,
       '<i class="ti ti-microphone-2"></i>', '<i class="ti ti-microphone"></i>', '');
     return;
@@ -3759,9 +3747,9 @@ function ccVoiceFallback(btn) {
   var rec = new SR(); rec.lang = window.currentLang || 'en-US'; rec.interimResults = false;
   if (btn) btn.innerHTML = '<i class="ti ti-microphone-2"></i>';
   rec.onresult = function(e){ var t = e.results[0][0].transcript; if (ta) ta.value = (ta.value ? ta.value + ' ' : '') + t; };
-  rec.onerror = function(){ if (btn) btn.innerHTML = '<i class="ti ti-microphone"></i>'; };
+  rec.onerror = function(e){ if (btn) btn.innerHTML = '<i class="ti ti-microphone"></i>'; if (e && ['not-allowed','service-not-allowed','audio-capture','network'].indexOf(e.error) !== -1) keyboardDictation(ta, null); };
   rec.onend = function(){ if (btn) btn.innerHTML = '<i class="ti ti-microphone"></i>'; };
-  try { rec.start(); } catch(e) {}
+  try { rec.start(); } catch(e) { keyboardDictation(ta, null); }
 }
 
 /* ══ Bills & Insurance Helper — decode a bill/EOB/denial, flag overcharges, draft a letter (first of its kind) ══ */
@@ -3953,7 +3941,7 @@ function vcVoice(btn) {
   vcVoiceFallback(btn);
 }
 function vcVoiceFallback(btn) {
-  if (window.Capacitor) {
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) {
     nativeDictate(document.getElementById('vcInput'), btn, null,
       '<i class="ti ti-microphone-2"></i>', '<i class="ti ti-microphone"></i>', '');
     return;
@@ -3968,9 +3956,9 @@ function vcVoiceFallback(btn) {
   var rec = new SR(); rec.lang = window.currentLang || 'en-US'; rec.interimResults = false;
   if (btn) btn.innerHTML = '<i class="ti ti-microphone-2"></i>';
   rec.onresult = function(e){ var t = e.results[0][0].transcript; if (ta) ta.value = (ta.value ? ta.value + ' ' : '') + t; };
-  rec.onerror = function(){ if (btn) btn.innerHTML = '<i class="ti ti-microphone"></i>'; };
+  rec.onerror = function(e){ if (btn) btn.innerHTML = '<i class="ti ti-microphone"></i>'; if (e && ['not-allowed','service-not-allowed','audio-capture','network'].indexOf(e.error) !== -1) keyboardDictation(ta, null); };
   rec.onend = function(){ if (btn) btn.innerHTML = '<i class="ti ti-microphone"></i>'; };
-  try { rec.start(); } catch(e){}
+  try { rec.start(); } catch(e){ keyboardDictation(ta, null); }
 }
 function vcSaveSummary() {
   if (!window.vcTurns.length) return;
