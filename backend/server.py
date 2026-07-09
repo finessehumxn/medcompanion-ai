@@ -184,36 +184,65 @@ class SpeakRequest(BaseModel):
 
 @app.post("/speak")
 async def speak(req: SpeakRequest):
-    """Read aloud in OUR cloned voice (ElevenLabs) instead of the robotic
-    device voice. Returns MP3 the app plays. If unconfigured or it fails,
-    the client falls back to the device voice — so it never breaks."""
+    """Read the answer aloud. Uses whichever text-to-speech provider is
+    configured — ElevenLabs (cloned voice) -> OpenAI -> Groq — and returns the
+    audio the app plays. Add ANY one of these keys and read-aloud works:
+    ELEVENLABS_API_KEY (+ ELEVENLABS_VOICE_ID), OPENAI_API_KEY, or GROQ_API_KEY.
+    If none work, the client falls back to the device voice — it never breaks."""
     import httpx
     from fastapi.responses import Response
-    key = os.getenv("ELEVENLABS_API_KEY")
-    voice = os.getenv("ELEVENLABS_VOICE_ID")
-    if not key or not voice:
-        raise HTTPException(503, "Voice not configured")
     text = (req.text or "").strip()[:2500]
     if not text:
         raise HTTPException(400, "No text to read")
+
+    el_key = os.getenv("ELEVENLABS_API_KEY")
+    el_voice = os.getenv("ELEVENLABS_VOICE_ID")
+    openai_key = os.getenv("OPENAI_API_KEY")
+    groq_key = os.getenv("GROQ_API_KEY")
+    if not (el_key and el_voice) and not openai_key and not groq_key:
+        raise HTTPException(503, "Voice not configured")
+
+    cache = {"Cache-Control": "public, max-age=86400"}
     try:
         async with httpx.AsyncClient(timeout=60) as client:
-            r = await client.post(
-                f"https://api.elevenlabs.io/v1/text-to-speech/{voice}",
-                headers={"xi-api-key": key, "accept": "audio/mpeg", "content-type": "application/json"},
-                json={
-                    "text": text,
-                    "model_id": "eleven_multilingual_v2",
-                    "voice_settings": {"stability": 0.5, "similarity_boost": 0.85, "style": 0.3, "use_speaker_boost": True},
-                },
-            )
+            # 1) ElevenLabs — the cloned voice, if fully configured
+            if el_key and el_voice:
+                r = await client.post(
+                    f"https://api.elevenlabs.io/v1/text-to-speech/{el_voice}",
+                    headers={"xi-api-key": el_key, "accept": "audio/mpeg", "content-type": "application/json"},
+                    json={"text": text, "model_id": "eleven_multilingual_v2",
+                          "voice_settings": {"stability": 0.5, "similarity_boost": 0.85, "style": 0.3, "use_speaker_boost": True}},
+                )
+                if r.status_code == 200:
+                    return Response(content=r.content, media_type="audio/mpeg", headers=cache)
+                logger.error(f"elevenlabs {r.status_code}: {r.text[:200]}")
+
+            # 2) OpenAI TTS — rock-solid, one key
+            if openai_key:
+                r = await client.post(
+                    "https://api.openai.com/v1/audio/speech",
+                    headers={"Authorization": f"Bearer {openai_key}", "content-type": "application/json"},
+                    json={"model": "tts-1", "input": text, "voice": "alloy", "response_format": "mp3"},
+                )
+                if r.status_code == 200:
+                    return Response(content=r.content, media_type="audio/mpeg", headers=cache)
+                logger.error(f"openai tts {r.status_code}: {r.text[:200]}")
+
+            # 3) Groq PlayAI TTS — same Groq key as transcription
+            if groq_key:
+                r = await client.post(
+                    "https://api.groq.com/openai/v1/audio/speech",
+                    headers={"Authorization": f"Bearer {groq_key}", "content-type": "application/json"},
+                    json={"model": "playai-tts", "input": text, "voice": "Celeste-PlayAI", "response_format": "wav"},
+                )
+                if r.status_code == 200:
+                    return Response(content=r.content, media_type="audio/wav", headers=cache)
+                logger.error(f"groq tts {r.status_code}: {r.text[:200]}")
     except Exception as e:
         logger.error(f"speak error: {e}")
         raise HTTPException(502, "Voice service unavailable")
-    if r.status_code != 200:
-        logger.error(f"elevenlabs {r.status_code}: {r.text[:200]}")
-        raise HTTPException(502, "Voice generation failed")
-    return Response(content=r.content, media_type="audio/mpeg", headers={"Cache-Control": "public, max-age=86400"})
+
+    raise HTTPException(502, "Voice generation failed")
 
 class TranscribeRequest(BaseModel):
     audio: str                       # base64 (optionally a data: URL)
