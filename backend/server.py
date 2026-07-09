@@ -203,6 +203,7 @@ async def speak(req: SpeakRequest):
         raise HTTPException(503, "Voice not configured")
 
     cache = {"Cache-Control": "public, max-age=86400"}
+    errors = []
     try:
         async with httpx.AsyncClient(timeout=60) as client:
             # 1) ElevenLabs — the cloned voice, if fully configured
@@ -215,7 +216,7 @@ async def speak(req: SpeakRequest):
                 )
                 if r.status_code == 200:
                     return Response(content=r.content, media_type="audio/mpeg", headers=cache)
-                logger.error(f"elevenlabs {r.status_code}: {r.text[:200]}")
+                errors.append(f"elevenlabs {r.status_code}: {r.text[:300]}")
 
             # 2) OpenAI TTS — rock-solid, one key
             if openai_key:
@@ -226,7 +227,7 @@ async def speak(req: SpeakRequest):
                 )
                 if r.status_code == 200:
                     return Response(content=r.content, media_type="audio/mpeg", headers=cache)
-                logger.error(f"openai tts {r.status_code}: {r.text[:200]}")
+                errors.append(f"openai {r.status_code}: {r.text[:300]}")
 
             # 3) Groq PlayAI TTS — same Groq key as transcription
             if groq_key:
@@ -237,12 +238,14 @@ async def speak(req: SpeakRequest):
                 )
                 if r.status_code == 200:
                     return Response(content=r.content, media_type="audio/wav", headers=cache)
-                logger.error(f"groq tts {r.status_code}: {r.text[:200]}")
+                errors.append(f"groq {r.status_code}: {r.text[:300]}")
     except Exception as e:
         logger.error(f"speak error: {e}")
-        raise HTTPException(502, "Voice service unavailable")
+        raise HTTPException(502, f"Voice service unavailable: {e}")
 
-    raise HTTPException(502, "Voice generation failed")
+    detail = " | ".join(errors) or "no provider attempted"
+    logger.error(f"speak failed: {detail}")
+    raise HTTPException(502, f"Voice generation failed — {detail}")
 
 class TranscribeRequest(BaseModel):
     audio: str                       # base64 (optionally a data: URL)
