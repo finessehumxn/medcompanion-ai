@@ -3253,16 +3253,33 @@ function toggleVoice() {
   var btn = document.getElementById('voiceBtn');
   var label = document.querySelector('.input-extra-label');
   var rest = '🎤 Speak your symptoms | 📷 Upload a lab result or photo';
-  // On the native app, use the reliable native speech plugin FIRST — getUserMedia
-  // hangs with no prompt in the remote-loaded WKWebView, so never lead with it.
-  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) { toggleVoiceFallback(); return; }
+  // On the native app, never use getUserMedia (it hangs in the remote-loaded
+  // WebView). Route to the fallback, which uses the native speech plugin if it's
+  // actually registered, and otherwise the keyboard's dictation — reliable on
+  // both iOS and Android.
+  if (window.Capacitor) { toggleVoiceFallback(); return; }
   recordAndTranscribe(input, btn, label, '<i class="ti ti-microphone-off"></i>', '<i class="ti ti-microphone"></i>', rest)
     .then(function(handled){ if (!handled) toggleVoiceFallback(); });
 }
 
+function keyboardDictation(input, label) {
+  // 100%-reliable everywhere: focus the field so the user can tap the mic key
+  // on the on-screen keyboard (iOS dictation / Android voice typing).
+  if (input) { try { input.focus(); input.click(); } catch (e) {} }
+  if (label) {
+    label.innerHTML = '🎤 <strong>Tap the microphone key on your keyboard</strong> and speak.';
+    setTimeout(function () { try { if (label) label.textContent = ''; } catch (e) {} }, 9000);
+  }
+}
 async function nativeDictate(input, btn, label, activeIcon, idleIcon, restLabel) {
-  var SR = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition);
-  if (!SR) return false;
+  // The plugin's JS wrapper isn't on the remote page, so Plugins.SpeechRecognition
+  // is usually undefined — but the native plugin IS compiled into the app, so grab
+  // a proxy to it directly via registerPlugin. If that isn't possible, use the
+  // keyboard's own dictation.
+  var SR = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition)
+        || (window.Capacitor && typeof window.Capacitor.registerPlugin === 'function' && window.Capacitor.registerPlugin('SpeechRecognition'))
+        || null;
+  if (!SR) { keyboardDictation(input, label); return true; }
   if (window._srActive) { try { await SR.stop(); } catch (e) {} return true; } // tap again = stop
   try {
     var perm = await SR.checkPermissions();
@@ -3301,7 +3318,7 @@ async function nativeDictate(input, btn, label, activeIcon, idleIcon, restLabel)
 
 function toggleVoiceFallback() {
   // Native app: real in-app recorder
-  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) {
+  if (window.Capacitor) {
     nativeDictate(
       document.getElementById('patientInput'),
       document.getElementById('voiceBtn'),
@@ -3716,12 +3733,12 @@ async function ccSend() {
   } catch(e) { var log = document.getElementById('ccLog'); if (log && log.lastChild) log.removeChild(log.lastChild); ccBubble("That is a good one to bring to your doctor too.", 'ai'); }
 }
 function ccVoice(btn) {
-  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) { ccVoiceFallback(btn); return; }
+  if (window.Capacitor) { ccVoiceFallback(btn); return; }
   recordAndTranscribe(document.getElementById('ccInput'), btn, null, '<i class="ti ti-microphone-2"></i>', '<i class="ti ti-microphone"></i>', '')
     .then(function(handled){ if (!handled) ccVoiceFallback(btn); });
 }
 function ccVoiceFallback(btn) {
-  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) {
+  if (window.Capacitor) {
     nativeDictate(document.getElementById('ccInput'), btn, null,
       '<i class="ti ti-microphone-2"></i>', '<i class="ti ti-microphone"></i>', '');
     return;
@@ -3927,12 +3944,12 @@ async function vcSend() {
 }
 function vcUseQuestion(el) { try { if (navigator.clipboard) navigator.clipboard.writeText(el.textContent); } catch(e){} el.style.background = 'rgba(46,196,140,.25)'; }
 function vcVoice(btn) {
-  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) { vcVoiceFallback(btn); return; }
+  if (window.Capacitor) { vcVoiceFallback(btn); return; }
   recordAndTranscribe(document.getElementById('vcInput'), btn, null, '<i class="ti ti-microphone-2"></i>', '<i class="ti ti-microphone"></i>', '')
     .then(function(handled){ if (!handled) vcVoiceFallback(btn); });
 }
 function vcVoiceFallback(btn) {
-  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) {
+  if (window.Capacitor) {
     nativeDictate(document.getElementById('vcInput'), btn, null,
       '<i class="ti ti-microphone-2"></i>', '<i class="ti ti-microphone"></i>', '');
     return;
