@@ -3214,10 +3214,16 @@ window._rec = null;
 function _blobToB64(blob){ return new Promise(function(res,rej){ var r=new FileReader(); r.onloadend=function(){ res(String(r.result).split(',')[1]); }; r.onerror=rej; r.readAsDataURL(blob); }); }
 async function recordAndTranscribe(input, btn, label, activeIcon, idleIcon, restLabel) {
   if (window._rec && window._rec.state === 'recording') { try { window._rec.stop(); } catch(e){} return true; } // tap again = stop
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) return false; // unsupported → fall back
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) { keyboardDictation(input, label); return true; }
   var stream;
-  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
-  catch(e){ if (label) label.textContent = '🎤 Allow microphone access to use voice'; return true; }
+  if (label) label.textContent = '🎤 Allow the microphone when asked…';
+  try {
+    // If the WebView never grants/prompts, don't hang — fall back to the keyboard.
+    stream = await Promise.race([
+      navigator.mediaDevices.getUserMedia({ audio: true }),
+      new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('timeout')); }, 9000); })
+    ]);
+  } catch(e){ keyboardDictation(input, label); return true; }
   try {
     var mime = ['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/aac'].find(function(m){ try { return MediaRecorder.isTypeSupported(m); } catch(e){ return false; } }) || '';
     var rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
@@ -3235,7 +3241,7 @@ async function recordAndTranscribe(input, btn, label, activeIcon, idleIcon, rest
         var blob = new Blob(chunks, { type: type });
         if (!blob.size) { if (label) label.textContent = '🎤 Didn’t catch that — try again'; return; }
         var b64 = await _blobToB64(blob);
-        var res = await aiFetch(API + '/transcribe', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ audio: b64, mime: type }) });
+        var res = await aiFetch('/transcribe', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ audio: b64, mime: type }) });
         if (!res.ok) { if (label) label.textContent = (res.status===503 ? '🎤 Voice isn’t set up on the server yet' : '🎤 Couldn’t transcribe — try again'); return; }
         var d = await res.json();
         var t = (d && d.text ? d.text : '').trim();
@@ -3249,10 +3255,15 @@ async function recordAndTranscribe(input, btn, label, activeIcon, idleIcon, rest
 }
 
 function toggleVoice() {
-  // In the app, the WebView's speech APIs exist but never actually run, so use the
-  // OS keyboard's dictation (always works). In a real browser, use Web Speech.
-  if (window.Capacitor) { keyboardDictation(document.getElementById('patientInput'), document.querySelector('.input-extra-label')); return; }
-  toggleVoiceFallback();
+  // Record in the WebView (getUserMedia works here) → transcribe on our backend
+  // via Groq Whisper. Falls back to keyboard dictation if the mic can't be captured.
+  recordAndTranscribe(
+    document.getElementById('patientInput'),
+    document.getElementById('voiceBtn'),
+    document.querySelector('.input-extra-label'),
+    '<i class="ti ti-microphone-off"></i>', '<i class="ti ti-microphone"></i>',
+    '🎤 Speak your symptoms | 📷 Upload a lab result or photo'
+  );
 }
 
 function keyboardDictation(input, label) {
@@ -3733,8 +3744,7 @@ async function ccSend() {
   } catch(e) { var log = document.getElementById('ccLog'); if (log && log.lastChild) log.removeChild(log.lastChild); ccBubble("That is a good one to bring to your doctor too.", 'ai'); }
 }
 function ccVoice(btn) {
-  if (window.Capacitor) { keyboardDictation(document.getElementById('ccInput'), null); return; }
-  ccVoiceFallback(btn);
+  recordAndTranscribe(document.getElementById('ccInput'), btn, null, '<i class="ti ti-microphone-2"></i>', '<i class="ti ti-microphone"></i>', '');
 }
 function ccVoiceFallback(btn) {
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) {
@@ -3943,8 +3953,7 @@ async function vcSend() {
 }
 function vcUseQuestion(el) { try { if (navigator.clipboard) navigator.clipboard.writeText(el.textContent); } catch(e){} el.style.background = 'rgba(46,196,140,.25)'; }
 function vcVoice(btn) {
-  if (window.Capacitor) { keyboardDictation(document.getElementById('vcInput'), null); return; }
-  vcVoiceFallback(btn);
+  recordAndTranscribe(document.getElementById('vcInput'), btn, null, '<i class="ti ti-microphone-2"></i>', '<i class="ti ti-microphone"></i>', '');
 }
 function vcVoiceFallback(btn) {
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) {
