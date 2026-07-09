@@ -3249,18 +3249,22 @@ async function recordAndTranscribe(input, btn, label, activeIcon, idleIcon, rest
 }
 
 function toggleVoice() {
-  // Web Speech works in this WebView (one-tap dictation); the fallback uses it,
-  // with the keyboard's dictation as a guaranteed backstop on any error.
+  // In the app, the WebView's speech APIs exist but never actually run, so use the
+  // OS keyboard's dictation (always works). In a real browser, use Web Speech.
+  if (window.Capacitor) { keyboardDictation(document.getElementById('patientInput'), document.querySelector('.input-extra-label')); return; }
   toggleVoiceFallback();
 }
 
 function keyboardDictation(input, label) {
   // 100%-reliable everywhere: focus the field so the user can tap the mic key
-  // on the on-screen keyboard (iOS dictation / Android voice typing).
+  // on the on-screen keyboard (iOS dictation / Android voice typing). The WebView's
+  // own speech APIs don't function here, so this is the dependable path.
   if (input) { try { input.focus(); input.click(); } catch (e) {} }
   if (label) {
-    label.innerHTML = '🎤 <strong>Tap the microphone key on your keyboard</strong> and speak.';
-    setTimeout(function () { try { if (label) label.textContent = ''; } catch (e) {} }, 9000);
+    label.innerHTML = '🎤 <strong>Tap the microphone key on your keyboard</strong> and speak — your words type into the box.';
+    setTimeout(function () { try { if (label) label.textContent = ''; } catch (e) {} }, 10000);
+  } else if (input) {
+    try { input.setAttribute('placeholder', 'Tap the 🎤 on your keyboard, then speak…'); } catch (e) {}
   }
 }
 async function nativeDictate(input, btn, label, activeIcon, idleIcon, restLabel) {
@@ -3729,6 +3733,7 @@ async function ccSend() {
   } catch(e) { var log = document.getElementById('ccLog'); if (log && log.lastChild) log.removeChild(log.lastChild); ccBubble("That is a good one to bring to your doctor too.", 'ai'); }
 }
 function ccVoice(btn) {
+  if (window.Capacitor) { keyboardDictation(document.getElementById('ccInput'), null); return; }
   ccVoiceFallback(btn);
 }
 function ccVoiceFallback(btn) {
@@ -3938,6 +3943,7 @@ async function vcSend() {
 }
 function vcUseQuestion(el) { try { if (navigator.clipboard) navigator.clipboard.writeText(el.textContent); } catch(e){} el.style.background = 'rgba(46,196,140,.25)'; }
 function vcVoice(btn) {
+  if (window.Capacitor) { keyboardDictation(document.getElementById('vcInput'), null); return; }
   vcVoiceFallback(btn);
 }
 function vcVoiceFallback(btn) {
