@@ -3253,6 +3253,9 @@ function toggleVoice() {
   var btn = document.getElementById('voiceBtn');
   var label = document.querySelector('.input-extra-label');
   var rest = '🎤 Speak your symptoms | 📷 Upload a lab result or photo';
+  // On the native app, use the reliable native speech plugin FIRST — getUserMedia
+  // hangs with no prompt in the remote-loaded WKWebView, so never lead with it.
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) { toggleVoiceFallback(); return; }
   recordAndTranscribe(input, btn, label, '<i class="ti ti-microphone-off"></i>', '<i class="ti ti-microphone"></i>', rest)
     .then(function(handled){ if (!handled) toggleVoiceFallback(); });
 }
@@ -3713,6 +3716,7 @@ async function ccSend() {
   } catch(e) { var log = document.getElementById('ccLog'); if (log && log.lastChild) log.removeChild(log.lastChild); ccBubble("That is a good one to bring to your doctor too.", 'ai'); }
 }
 function ccVoice(btn) {
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) { ccVoiceFallback(btn); return; }
   recordAndTranscribe(document.getElementById('ccInput'), btn, null, '<i class="ti ti-microphone-2"></i>', '<i class="ti ti-microphone"></i>', '')
     .then(function(handled){ if (!handled) ccVoiceFallback(btn); });
 }
@@ -3923,6 +3927,7 @@ async function vcSend() {
 }
 function vcUseQuestion(el) { try { if (navigator.clipboard) navigator.clipboard.writeText(el.textContent); } catch(e){} el.style.background = 'rgba(46,196,140,.25)'; }
 function vcVoice(btn) {
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition) { vcVoiceFallback(btn); return; }
   recordAndTranscribe(document.getElementById('vcInput'), btn, null, '<i class="ti ti-microphone-2"></i>', '<i class="ti ti-microphone"></i>', '')
     .then(function(handled){ if (!handled) vcVoiceFallback(btn); });
 }
