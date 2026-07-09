@@ -3249,17 +3249,25 @@ async function recordAndTranscribe(input, btn, label, activeIcon, idleIcon, rest
 }
 
 function toggleVoice() {
-  var input = document.getElementById('patientInput');
-  var btn = document.getElementById('voiceBtn');
-  var label = document.querySelector('.input-extra-label');
-  var rest = '🎤 Speak your symptoms | 📷 Upload a lab result or photo';
-  // On the native app, never use getUserMedia (it hangs in the remote-loaded
-  // WebView). Route to the fallback, which uses the native speech plugin if it's
-  // actually registered, and otherwise the keyboard's dictation — reliable on
-  // both iOS and Android.
-  if (window.Capacitor) { toggleVoiceFallback(); return; }
-  recordAndTranscribe(input, btn, label, '<i class="ti ti-microphone-off"></i>', '<i class="ti ti-microphone"></i>', rest)
-    .then(function(handled){ if (!handled) toggleVoiceFallback(); });
+  // TEMP one-time diagnostic: shows what the WebView actually exposes so we can
+  // fix the mic definitively. Remove after diagnosis.
+  try {
+    if (!window._micDbgShown) {
+      window._micDbgShown = true;
+      alert('MIC DEBUG — tell Claude what this says:\n' +
+        'Capacitor = ' + (typeof window.Capacitor) + '\n' +
+        'registerPlugin = ' + (window.Capacitor && typeof window.Capacitor.registerPlugin) + '\n' +
+        'Plugins.SpeechRecognition = ' + (window.Capacitor && window.Capacitor.Plugins && typeof window.Capacitor.Plugins.SpeechRecognition) + '\n' +
+        'mediaDevices = ' + (!!navigator.mediaDevices) + '\n' +
+        'getUserMedia = ' + (!!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) + '\n' +
+        'MediaRecorder = ' + (typeof window.MediaRecorder) + '\n' +
+        'webSpeech = ' + (!!(window.SpeechRecognition || window.webkitSpeechRecognition)));
+    }
+  } catch (e) {}
+  // Never lead with getUserMedia — it hangs in the app's WebView with no prompt.
+  // The fallback resolves: native speech plugin → web speech (desktop) → the
+  // keyboard's own dictation. Always ends in a working path.
+  toggleVoiceFallback();
 }
 
 function keyboardDictation(input, label) {
@@ -3733,9 +3741,7 @@ async function ccSend() {
   } catch(e) { var log = document.getElementById('ccLog'); if (log && log.lastChild) log.removeChild(log.lastChild); ccBubble("That is a good one to bring to your doctor too.", 'ai'); }
 }
 function ccVoice(btn) {
-  if (window.Capacitor) { ccVoiceFallback(btn); return; }
-  recordAndTranscribe(document.getElementById('ccInput'), btn, null, '<i class="ti ti-microphone-2"></i>', '<i class="ti ti-microphone"></i>', '')
-    .then(function(handled){ if (!handled) ccVoiceFallback(btn); });
+  ccVoiceFallback(btn);
 }
 function ccVoiceFallback(btn) {
   if (window.Capacitor) {
@@ -3944,9 +3950,7 @@ async function vcSend() {
 }
 function vcUseQuestion(el) { try { if (navigator.clipboard) navigator.clipboard.writeText(el.textContent); } catch(e){} el.style.background = 'rgba(46,196,140,.25)'; }
 function vcVoice(btn) {
-  if (window.Capacitor) { vcVoiceFallback(btn); return; }
-  recordAndTranscribe(document.getElementById('vcInput'), btn, null, '<i class="ti ti-microphone-2"></i>', '<i class="ti ti-microphone"></i>', '')
-    .then(function(handled){ if (!handled) vcVoiceFallback(btn); });
+  vcVoiceFallback(btn);
 }
 function vcVoiceFallback(btn) {
   if (window.Capacitor) {
