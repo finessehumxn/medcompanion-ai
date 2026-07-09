@@ -110,7 +110,21 @@ async def serve_icon_512():
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "version": "2.0.0", "langsmith": bool(os.getenv("LANGCHAIN_API_KEY")), "supabase": SUPABASE_ENABLED}
+    return {
+        "status": "ok", "version": "2.0.0",
+        "langsmith": bool(os.getenv("LANGCHAIN_API_KEY")),
+        "supabase": SUPABASE_ENABLED,
+        # STT diagnostic: which transcription keys the server can actually see
+        # (booleans only — never exposes the key). Helps debug env-var issues.
+        "stt": {
+            "groq": bool(os.getenv("GROQ_API_KEY")),
+            "openai": bool(os.getenv("OPENAI_API_KEY")),
+            "elevenlabs": bool(os.getenv("ELEVENLABS_API_KEY")),
+        },
+        # also surface any env var names that LOOK like a groq key but are
+        # misnamed (e.g. trailing space) — shows the raw keys present.
+        "groq_env_names": [k for k in os.environ if "GROQ" in k.upper()],
+    }
 
 class StartRequest(BaseModel):
     raw_input: str
