@@ -198,9 +198,8 @@ async def speak(req: SpeakRequest):
     el_key = os.getenv("ELEVENLABS_API_KEY")
     el_voice = os.getenv("ELEVENLABS_VOICE_ID")
     openai_key = os.getenv("OPENAI_API_KEY")
-    groq_key = os.getenv("GROQ_API_KEY")
-    if not (el_key and el_voice) and not openai_key and not groq_key:
-        raise HTTPException(503, "Voice not configured")
+    if not (el_key and el_voice) and not openai_key:
+        raise HTTPException(503, "Voice not configured — add OPENAI_API_KEY or ELEVENLABS_API_KEY")
 
     cache = {"Cache-Control": "public, max-age=86400"}
     errors = []
@@ -229,16 +228,7 @@ async def speak(req: SpeakRequest):
                     return Response(content=r.content, media_type="audio/mpeg", headers=cache)
                 errors.append(f"openai {r.status_code}: {r.text[:300]}")
 
-            # 3) Groq PlayAI TTS — same Groq key as transcription
-            if groq_key:
-                r = await client.post(
-                    "https://api.groq.com/openai/v1/audio/speech",
-                    headers={"Authorization": f"Bearer {groq_key}", "content-type": "application/json"},
-                    json={"model": "playai-tts", "input": text, "voice": "Celeste-PlayAI", "response_format": "wav"},
-                )
-                if r.status_code == 200:
-                    return Response(content=r.content, media_type="audio/wav", headers=cache)
-                errors.append(f"groq {r.status_code}: {r.text[:300]}")
+            # (Groq's PlayAI TTS was decommissioned — no longer an option.)
     except Exception as e:
         logger.error(f"speak error: {e}")
         raise HTTPException(502, f"Voice service unavailable: {e}")
