@@ -2383,6 +2383,8 @@ document.addEventListener('DOMContentLoaded', function() {
   <div class="nav-links">
     <a href="#start" class="nav-link"><i class="ti ti-message-circle-heart" aria-hidden="true"></i> Talk to me</a>
     <a href="javascript:void(0)" class="nav-link" onclick="openJournal()"><i class="ti ti-notebook" aria-hidden="true"></i> Health Journal</a>
+    <a href="javascript:void(0)" class="nav-link" onclick="openRecords()"><i class="ti ti-file-text" aria-hidden="true"></i> My Records</a>
+    <a href="javascript:void(0)" class="nav-link" onclick="openVisit()"><i class="ti ti-clipboard-heart" aria-hidden="true"></i> Prep for my visit</a>
     <a href="#crisis-help" class="nav-link nav-link-crisis"><i class="ti ti-life-buoy" aria-hidden="true"></i> Need help now</a>
     <a href="#questions" class="nav-link"><i class="ti ti-help-circle" aria-hidden="true"></i> Common questions</a>
     <a href="/about.html" class="nav-link"><i class="ti ti-rosette-discount-check" aria-hidden="true"></i> Our standards</a>
@@ -2408,6 +2410,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="mobile-menu" id="mobileMenu" role="navigation" aria-label="Mobile navigation" aria-hidden="true">
   <a href="#start" class="mobile-link" onclick="toggleMobileMenu()"><i class="ti ti-message-circle-heart"></i> Talk to me</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openJournal()"><i class="ti ti-notebook"></i> Health Journal</a>
+  <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openRecords()"><i class="ti ti-file-text"></i> My Records</a>
+  <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openVisit()"><i class="ti ti-clipboard-heart"></i> Prep for my visit</a>
   <a href="#crisis-help" class="mobile-link mobile-link-crisis" onclick="toggleMobileMenu()"><i class="ti ti-life-buoy"></i> Need help right now</a>
   <a href="#questions" class="mobile-link" onclick="toggleMobileMenu()"><i class="ti ti-help-circle"></i> Common questions</a>
   <a href="/about.html" class="mobile-link" onclick="toggleMobileMenu()"><i class="ti ti-rosette-discount-check"></i> Our standards</a>
@@ -6030,6 +6034,163 @@ document.addEventListener('DOMContentLoaded', function() {
         box.innerHTML=h||'<div class="mcj-inssum">Not enough to go on yet &mdash; keep logging.</div>';
       })
       .catch(function(){ box.innerHTML='<div class="mcj-inssum">Couldn\'t analyze just now &mdash; try again in a moment.</div>'; });
+  };
+})();
+</script>
+
+<!-- ══ MedCompanion v1.1 — My Records + Prep for my visit ══ -->
+<style>
+  .mcj-screen{ position:fixed; inset:0; z-index:9000; background:#0b1f18; color:#eaf3ee; display:none; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .mcj-screen.show{ display:block; }
+  .mcr-rec{ display:flex; align-items:center; gap:10px; padding:9px 0; border-top:1px solid rgba(255,255,255,.07); }
+  .mcr-rec:first-child{ border-top:none; }
+  .mcr-rt{ font-size:10px; font-weight:800; text-transform:uppercase; color:#8fbfa8; background:rgba(255,255,255,.07); border-radius:5px; padding:2px 6px; flex:none; }
+  .mcr-rn{ flex:1; font-size:13.5px; min-width:0; }
+  .mcr-del{ background:none; border:none; color:#8fbfa8; cursor:pointer; font-size:18px; line-height:1; flex:none; }
+  .mcr-lab{ padding:10px 0; border-top:1px solid rgba(255,255,255,.07); }
+  .mcr-lab:first-child{ border-top:none; }
+  .mcr-labtop{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .mcr-badge{ font-size:10px; font-weight:800; text-transform:uppercase; border-radius:5px; padding:2px 7px; flex:none; }
+  .mcr-labn{ font-weight:700; font-size:14px; }
+  .mcr-labp{ font-size:13px; color:#cfe3d8; margin-top:3px; line-height:1.5; }
+  .mcv-sum{ font-size:14px; line-height:1.6; color:#eaf3ee; background:#12281f; border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:16px; margin-top:14px; }
+  .mcv-reason{ font-weight:700; color:#7fe6b4; margin-bottom:6px; }
+  .mcv-copy{ width:100%; margin-top:14px; background:rgba(255,255,255,.1); color:#eaf3ee; border:none; font-weight:700; font-size:14px; padding:12px; border-radius:11px; cursor:pointer; }
+</style>
+<div id="mcRecords" class="mcj-screen" role="dialog" aria-label="My Records">
+  <div class="mcj-wrap">
+    <div class="mcj-top"><div class="mcj-title">My Records</div><button class="mcj-x" onclick="closeRecords()" aria-label="Close">&times;</button></div>
+    <p class="mcj-sub">Your labs, meds &amp; conditions &mdash; explained in plain language, with what to ask your doctor. Kept private on your device.</p>
+    <button class="mcj-analyze" style="margin-bottom:14px" onclick="mcrConnect()">&#128279; Connect your MyChart</button>
+    <div class="mcj-card">
+      <div class="mcj-h">Add a result</div>
+      <div class="mcj-chips" id="mcrType">
+        <button type="button" class="mcj-chip on" data-v="lab" onclick="mcjPick(this,'mcrType')">Lab</button>
+        <button type="button" class="mcj-chip" data-v="med" onclick="mcjPick(this,'mcrType')">Medication</button>
+        <button type="button" class="mcj-chip" data-v="condition" onclick="mcjPick(this,'mcrType')">Condition</button>
+      </div>
+      <div class="mcj-lbl">Name</div>
+      <input type="text" class="mcj-input" id="mcrName" placeholder="e.g. Hemoglobin A1c &middot; Metformin &middot; Type 2 Diabetes">
+      <div class="mcj-lbl">Value &amp; range (labs only)</div>
+      <input type="text" class="mcj-input" id="mcrVal" placeholder="7.8 % (range 4.0-5.6)">
+      <button class="mcj-save" onclick="mcrAdd()">Add</button>
+      <button class="mcj-analyze" style="margin-top:10px" onclick="mcrSample()">Load a sample chart</button>
+    </div>
+    <div class="mcj-card">
+      <div class="mcj-h">Your records</div>
+      <div id="mcrList"></div>
+    </div>
+    <button class="mcj-analyze" onclick="mcrExplain()">&#10022; Explain my records</button>
+    <div id="mcrOut"></div>
+    <p class="mcj-disc">Information from your records &mdash; not a diagnosis or medical advice.</p>
+  </div>
+</div>
+<div id="mcVisit" class="mcj-screen" role="dialog" aria-label="Prep for my visit">
+  <div class="mcj-wrap">
+    <div class="mcj-top"><div class="mcj-title">Prep for my visit</div><button class="mcj-x" onclick="closeVisit()" aria-label="Close">&times;</button></div>
+    <p class="mcj-sub">One tap turns your check-ins &amp; records into a sheet your doctor can read in 20 seconds &mdash; plus your questions. Share it or bring it in.</p>
+    <div class="mcj-card">
+      <div class="mcj-lbl">What's the visit about?</div>
+      <textarea class="mcj-area" id="mcvReason" placeholder="Headaches almost every day for 2 weeks&hellip;"></textarea>
+      <div class="mcj-sub" id="mcvCounts" style="margin:12px 0 0"></div>
+    </div>
+    <button class="mcj-analyze" onclick="mcvBuild()">&#10022; Build my visit sheet</button>
+    <div id="mcvOut"></div>
+    <p class="mcj-disc">This is patient-reported information you choose to share &mdash; not a clinical assessment.</p>
+  </div>
+</div>
+<script>
+(function(){
+  var RKEY='mc_records';
+  function rload(){ try{ return JSON.parse(localStorage.getItem(RKEY)||'[]'); }catch(e){ return []; } }
+  function rsave(a){ try{ localStorage.setItem(RKEY, JSON.stringify(a)); }catch(e){} }
+  function tload(){ try{ return JSON.parse(localStorage.getItem('mc_track')||'[]'); }catch(e){ return []; } }
+  function base(){ return (typeof API!=='undefined')?API:''; }
+  function pick(g){ var el=document.querySelector('#'+g+' .mcj-chip.on'); return el?el.getAttribute('data-v'):''; }
+  function esc(x){ return String(x).replace(/</g,'&lt;'); }
+  function splitRecords(a){
+    var labs=[], meds=[], conds=[];
+    a.forEach(function(r){
+      if(r.type==='lab') labs.push({name:r.name, value:r.value||''});
+      else if(r.type==='med') meds.push({name:r.name});
+      else conds.push({name:r.name});
+    });
+    return {labs:labs, medications:meds, conditions:conds};
+  }
+  window.openRecords=function(){ var m=document.getElementById('mcRecords'); if(m){ m.classList.add('show'); mcrRender(); } };
+  window.closeRecords=function(){ var m=document.getElementById('mcRecords'); if(m) m.classList.remove('show'); };
+  window.mcrConnect=function(){ alert("Connecting your MyChart is coming soon — you'll link your hospital through Apple Health or a secure connection and your labs, meds and conditions import automatically. For now, add a few results or load a sample to see it work."); };
+  window.mcrAdd=function(){
+    var t=pick('mcrType'), n=(document.getElementById('mcrName').value||'').trim(), v=(document.getElementById('mcrVal').value||'').trim();
+    if(!n) return;
+    var a=rload(); a.push({type:t, name:n, value:v}); rsave(a);
+    document.getElementById('mcrName').value=''; document.getElementById('mcrVal').value=''; mcrRender();
+  };
+  window.mcrSample=function(){
+    rsave([
+      {type:'lab',name:'Hemoglobin A1c',value:'7.8 % (range 4.0-5.6)'},
+      {type:'lab',name:'LDL Cholesterol',value:'165 mg/dL (range <100)'},
+      {type:'lab',name:'eGFR',value:'88 mL/min (range >60)'},
+      {type:'med',name:'Metformin 500mg'},
+      {type:'med',name:'Lisinopril 10mg'},
+      {type:'condition',name:'Type 2 Diabetes'}]);
+    mcrRender();
+  };
+  window.mcrDel=function(i){ var a=rload(); a.splice(i,1); rsave(a); mcrRender(); };
+  function mcrRender(){
+    var a=rload(), l=document.getElementById('mcrList'); if(!l) return;
+    if(!a.length){ l.innerHTML='<div class="mcj-empty">No records yet. Add one above, load a sample, or connect your MyChart.</div>'; return; }
+    l.innerHTML=a.map(function(r,i){ return '<div class="mcr-rec"><span class="mcr-rt">'+esc(r.type)+'</span><span class="mcr-rn">'+esc(r.name)+(r.value?' <span style="color:#8fbfa8">'+esc(r.value)+'</span>':'')+'</span><button class="mcr-del" onclick="mcrDel('+i+')" aria-label="Remove">&times;</button></div>'; }).join('');
+  }
+  window.mcrExplain=function(){
+    var a=rload(), out=document.getElementById('mcrOut');
+    if(!a.length){ out.innerHTML='<div class="mcj-inssum">Add a few records first — or load a sample.</div>'; return; }
+    out.innerHTML='<div class="mcj-inssum">Reading your records&hellip;</div>';
+    var body=splitRecords(a); body.lang=(window.currentLang||null);
+    fetch(base()+'/explain-records',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(function(r){return r.json();}).then(function(d){
+        var h='';
+        if(d.summary) h+='<div class="mcj-inssum">'+esc(d.summary)+'</div>';
+        if(d.labs&&d.labs.length){ h+='<div class="mcj-insh">🧪 Labs</div><div class="mcj-card">'; d.labs.forEach(function(l){
+          var st=(l.status||'unknown'), col=(st==='high'?'#e0574d':(st==='low'?'#e0a63f':(st==='normal'?'#34c78c':'#8fbfa8')));
+          h+='<div class="mcr-lab"><div class="mcr-labtop"><span class="mcr-badge" style="background:'+col+'22;color:'+col+'">'+esc(st)+'</span><span class="mcr-labn">'+esc(l.name)+(l.value?' — '+esc(l.value):'')+'</span></div><div class="mcr-labp">'+esc(l.plain||'')+'</div></div>';
+        }); h+='</div>'; }
+        function sec(title,icon,arr){ if(!arr||!arr.length) return ''; return '<div class="mcj-insh">'+icon+' '+title+'</div><ul class="mcj-il">'+arr.map(function(x){return '<li><b>'+esc(x.name||'')+'</b> — '+esc(x.plain||'')+'</li>';}).join('')+'</ul>'; }
+        h+=sec('Medications','💊',d.medications);
+        h+=sec('Conditions','📋',d.conditions);
+        if(d.questions&&d.questions.length){ h+='<div class="mcj-insh">🩺 Ask your doctor</div><ul class="mcj-il">'+d.questions.map(function(q){return '<li>'+esc(q)+'</li>';}).join('')+'</ul>'; }
+        out.innerHTML=h;
+      }).catch(function(){ out.innerHTML='<div class="mcj-inssum">Couldn\'t read your records just now — try again.</div>'; });
+  };
+  window.openVisit=function(){ var m=document.getElementById('mcVisit'); if(m){ m.classList.add('show'); var c=document.getElementById('mcvCounts'); if(c) c.textContent='Using '+tload().length+' check-in(s) and '+rload().length+' record(s).'; } };
+  window.closeVisit=function(){ var m=document.getElementById('mcVisit'); if(m) m.classList.remove('show'); };
+  window._mcvText='';
+  window.mcvBuild=function(){
+    var out=document.getElementById('mcvOut');
+    out.innerHTML='<div class="mcv-sum">Building your sheet&hellip;</div>';
+    var rec=splitRecords(rload());
+    var body={reason:(document.getElementById('mcvReason').value||'').trim(), checkins:tload(), labs:rec.labs, medications:rec.medications, conditions:rec.conditions, lang:(window.currentLang||null)};
+    fetch(base()+'/visit-summary',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(function(r){return r.json();}).then(function(d){
+        var h='';
+        if(d.patient_note) h+='<div class="mcj-inssum">'+esc(d.patient_note)+'</div>';
+        h+='<div class="mcv-sum">';
+        if(d.reason) h+='<div class="mcv-reason">'+esc(d.reason)+'</div>';
+        if(d.summary) h+='<div>'+esc(d.summary)+'</div>';
+        if(d.highlights&&d.highlights.length){ h+='<ul class="mcj-il" style="margin-top:10px">'+d.highlights.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>'; }
+        h+='</div>';
+        if(d.questions&&d.questions.length){ h+='<div class="mcj-insh">🩺 Your questions</div><ul class="mcj-il">'+d.questions.map(function(q){return '<li>'+esc(q)+'</li>';}).join('')+'</ul>'; }
+        var txt='MedCompanion — Visit sheet\n\n'+(d.reason||'')+'\n\n'+(d.summary||'')+'\n\n'+(d.highlights||[]).map(function(x){return '• '+x;}).join('\n')+'\n\nMy questions:\n'+(d.questions||[]).map(function(q){return '• '+q;}).join('\n')+'\n\n(Patient-reported via MedCompanion.)';
+        window._mcvText=txt;
+        h+='<button class="mcv-copy" onclick="mcvCopy()">📋 Copy / share this sheet</button>';
+        out.innerHTML=h;
+      }).catch(function(){ out.innerHTML='<div class="mcv-sum">Couldn\'t build your sheet just now — try again.</div>'; });
+  };
+  window.mcvCopy=function(){
+    var t=window._mcvText||'';
+    if(navigator.share){ navigator.share({title:'My visit sheet', text:t}).catch(function(){}); }
+    else if(navigator.clipboard){ navigator.clipboard.writeText(t).then(function(){ alert('Copied — paste it into your portal message or notes.'); }); }
+    else { alert(t); }
   };
 })();
 </script>
