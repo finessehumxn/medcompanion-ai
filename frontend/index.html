@@ -2959,7 +2959,11 @@ document.addEventListener('DOMContentLoaded', function() {
    MEDCOMPANION AI — MAIN SCRIPT
 ══════════════════════════════════════ */
 
-const API = 'https://medcompanionai.com';
+// Point at the fully-configured Railway service (adequate-presence). The custom
+// domain medcompanionai.com resolves to a SEPARATE service that is missing the
+// GROQ/OPENAI keys, so /transcribe + /speak fail there. This service has every
+// key (Anthropic, Groq, OpenAI, Supabase) and serves the same app.
+const API = 'https://medcompanion-ai.up.railway.app';
 /* Resilient fetch for the AI calls: a real timeout + one automatic retry,
    so a dropped phone connection or a slow briefing recovers instead of
    showing "something went wrong". */
