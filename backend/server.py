@@ -247,6 +247,73 @@ async def insights(req: InsightsRequest):
         empty["summary"] = "Couldn't analyze your patterns just now — please try again in a moment."
         return empty
 
+class RecordsRequest(BaseModel):
+    labs: list = []            # [{name, value, unit, range, date}]  (from FHIR Observation)
+    medications: list = []     # [{name, dose, reason}]              (from FHIR MedicationRequest)
+    conditions: list = []      # [{name, date}]                      (from FHIR Condition)
+    lang: Optional[str] = None
+
+@app.post("/explain-records")
+async def explain_records(req: RecordsRequest):
+    """Explain a person's REAL medical records — labs, meds, conditions imported
+    from their hospital's MyChart / Epic via FHIR — in plain language, flag what's
+    out of range, and prep questions for their doctor. Information, not diagnosis.
+    Stateless: records are analyzed, not stored. Fails soft to a valid empty shape."""
+    import json as _json
+    labs, meds, conds = req.labs or [], req.medications or [], req.conditions or []
+    empty = {"summary": "", "labs": [], "medications": [], "conditions": [], "questions": []}
+    if not (labs or meds or conds):
+        empty["summary"] = "No records yet — connect your MyChart or add a few to get plain-language explanations."
+        return empty
+
+    def fmt(items, keys):
+        rows = []
+        for it in items[:80]:
+            if isinstance(it, dict):
+                rows.append(", ".join(f"{k}={it.get(k)}" for k in keys if it.get(k) not in (None, "", [])))
+            else:
+                rows.append(str(it))
+        return "\n".join(rows)
+    payload = ""
+    if labs:  payload += "LABS:\n" + fmt(labs, ["name", "value", "unit", "range", "date"]) + "\n\n"
+    if meds:  payload += "MEDICATIONS:\n" + fmt(meds, ["name", "dose", "reason"]) + "\n\n"
+    if conds: payload += "CONDITIONS:\n" + fmt(conds, ["name", "date"]) + "\n\n"
+    lang_line = f"\nWrite everything in this language (code): {req.lang}." if req.lang else ""
+    try:
+        import anthropic
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=2400,
+            system=(
+                "You are MedCompanion. A person imported their real medical records (from their hospital's "
+                "MyChart / Epic, via FHIR). Explain them warmly and in plain language so they walk into their "
+                "appointment understanding their own chart. HARD RULES: information, NEVER a diagnosis or a "
+                "treatment change; never alarm; when a value is out of range, say what that generally can indicate "
+                "and to discuss it with their clinician — without concluding what's wrong. "
+                "Return ONLY a JSON object with keys: summary (2-3 warm sentences), labs (array of "
+                "{name, value, status: 'normal'|'high'|'low'|'unknown', plain: one plain sentence}), medications "
+                "(array of {name, plain: what it's typically for in plain words}), conditions (array of {name, "
+                "plain: what it means in plain words}), questions (array of specific things to ask the doctor). "
+                "No prose outside the JSON."
+            ),
+            messages=[{"role": "user", "content": f"Here are my records:\n\n{payload}{lang_line}"}],
+        )
+        out = "".join(getattr(b, "text", "") for b in resp.content).strip()
+        if out.startswith("```"):
+            out = out.strip("`")
+            if out[:4].lower() == "json":
+                out = out[4:]
+            out = out.strip()
+        data = _json.loads(out)
+        for k, dflt in empty.items():
+            data.setdefault(k, dflt)
+        return data
+    except Exception as e:
+        logger.error(f"explain-records error: {e}")
+        empty["summary"] = "Couldn't explain your records just now — please try again in a moment."
+        return empty
+
 class SpeakRequest(BaseModel):
     text: str
     lang: Optional[str] = None
