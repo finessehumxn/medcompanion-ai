@@ -2382,6 +2382,7 @@ document.addEventListener('DOMContentLoaded', function() {
   </a>
   <div class="nav-links">
     <a href="#start" class="nav-link"><i class="ti ti-message-circle-heart" aria-hidden="true"></i> Talk to me</a>
+    <a href="javascript:void(0)" class="nav-link" onclick="openJournal()"><i class="ti ti-notebook" aria-hidden="true"></i> Health Journal</a>
     <a href="#crisis-help" class="nav-link nav-link-crisis"><i class="ti ti-life-buoy" aria-hidden="true"></i> Need help now</a>
     <a href="#questions" class="nav-link"><i class="ti ti-help-circle" aria-hidden="true"></i> Common questions</a>
     <a href="/about.html" class="nav-link"><i class="ti ti-rosette-discount-check" aria-hidden="true"></i> Our standards</a>
@@ -2406,6 +2407,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Mobile menu (hidden by default) -->
 <div class="mobile-menu" id="mobileMenu" role="navigation" aria-label="Mobile navigation" aria-hidden="true">
   <a href="#start" class="mobile-link" onclick="toggleMobileMenu()"><i class="ti ti-message-circle-heart"></i> Talk to me</a>
+  <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openJournal()"><i class="ti ti-notebook"></i> Health Journal</a>
   <a href="#crisis-help" class="mobile-link mobile-link-crisis" onclick="toggleMobileMenu()"><i class="ti ti-life-buoy"></i> Need help right now</a>
   <a href="#questions" class="mobile-link" onclick="toggleMobileMenu()"><i class="ti ti-help-circle"></i> Common questions</a>
   <a href="/about.html" class="mobile-link" onclick="toggleMobileMenu()"><i class="ti ti-rosette-discount-check"></i> Our standards</a>
@@ -5898,5 +5900,136 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function init(){ showConsent(); guardPipeline(); attachCitations(); setTimeout(guardPipeline,1500); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
+
+<!-- ══ MedCompanion v1.1 — Health Journal (on-device check-ins + AI insights) ══ -->
+<style>
+  #mcJournal{ position:fixed; inset:0; z-index:400; background:#0b1f18; color:#eaf3ee; display:none; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  #mcJournal.show{ display:block; }
+  .mcj-wrap{ max-width:620px; margin:0 auto; padding:calc(18px + env(safe-area-inset-top)) 18px calc(40px + env(safe-area-inset-bottom)); }
+  .mcj-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .mcj-title{ font-size:22px; font-weight:800; }
+  .mcj-x{ width:40px; height:40px; border-radius:11px; border:none; background:rgba(255,255,255,.1); color:#eaf3ee; font-size:22px; line-height:1; cursor:pointer; }
+  .mcj-sub{ color:#9fc2b2; font-size:13.5px; line-height:1.5; margin:0 0 18px; }
+  .mcj-card{ background:#12281f; border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:16px; margin-bottom:16px; }
+  .mcj-h{ font-size:12px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:#8fbfa8; margin:0 0 12px; }
+  .mcj-lbl{ font-size:13px; font-weight:600; color:#cfe3d8; margin:14px 0 7px; }
+  .mcj-card .mcj-lbl:first-of-type{ margin-top:0; }
+  .mcj-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .mcj-chip{ font-size:13px; font-weight:600; color:#cfe3d8; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:999px; padding:8px 14px; cursor:pointer; }
+  .mcj-chip.on{ background:rgba(52,199,140,.2); border-color:rgba(52,199,140,.5); color:#7fe6b4; }
+  .mcj-range{ width:100%; accent-color:#34c78c; }
+  .mcj-rangeval{ font-family:monospace; font-weight:700; color:#7fe6b4; float:right; }
+  .mcj-input,.mcj-area{ width:100%; box-sizing:border-box; background:#0b1f18; border:1px solid rgba(255,255,255,.14); color:#eaf3ee; border-radius:11px; padding:11px 13px; font-size:14px; font-family:inherit; }
+  .mcj-area{ resize:vertical; min-height:56px; }
+  .mcj-save{ width:100%; margin-top:16px; background:#34c78c; color:#062418; border:none; font-weight:800; font-size:15px; padding:14px; border-radius:12px; cursor:pointer; }
+  .mcj-entry{ display:flex; gap:12px; padding:11px 0; border-top:1px solid rgba(255,255,255,.07); }
+  .mcj-entry:first-child{ border-top:none; }
+  .mcj-sev{ width:34px; height:34px; border-radius:9px; display:grid; place-items:center; font-weight:800; font-family:monospace; flex:none; }
+  .mcj-ebody{ flex:1; min-width:0; }
+  .mcj-edate{ font-size:12px; color:#8fbfa8; }
+  .mcj-esym{ font-size:13.5px; color:#eaf3ee; }
+  .mcj-empty{ color:#8fbfa8; font-size:13.5px; text-align:center; padding:16px 0; }
+  .mcj-analyze{ width:100%; background:rgba(52,199,140,.14); color:#7fe6b4; border:1px solid rgba(52,199,140,.4); font-weight:800; font-size:14.5px; padding:14px; border-radius:12px; cursor:pointer; }
+  .mcj-insh{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800; color:#7fe6b4; margin:16px 0 8px; }
+  .mcj-inssum{ font-size:14px; line-height:1.6; color:#eaf3ee; background:rgba(52,199,140,.08); border:1px solid rgba(52,199,140,.25); border-radius:12px; padding:14px; margin-top:14px; }
+  .mcj-il{ margin:0; padding-left:18px; }
+  .mcj-il li{ font-size:13.5px; line-height:1.55; color:#dcebe3; margin-bottom:6px; }
+  .mcj-disc{ font-size:11.5px; color:#8fbfa8; font-style:italic; margin-top:16px; line-height:1.5; }
+</style>
+<div id="mcJournal" role="dialog" aria-label="Health Journal">
+  <div class="mcj-wrap">
+    <div class="mcj-top"><div class="mcj-title">Health Journal</div><button class="mcj-x" onclick="closeJournal()" aria-label="Close">&times;</button></div>
+    <p class="mcj-sub">A quick daily check-in &mdash; how you feel, sleep, symptoms. Kept private on your device. After a few days I'll spot patterns and what to raise with your doctor.</p>
+    <div class="mcj-card">
+      <div class="mcj-h">Today's check-in</div>
+      <div class="mcj-lbl">How rough was today? <span class="mcj-rangeval" id="mcjSevV">0</span></div>
+      <input type="range" class="mcj-range" id="mcjSev" min="0" max="10" value="0" oninput="document.getElementById('mcjSevV').textContent=this.value">
+      <div class="mcj-lbl">Mood</div>
+      <div class="mcj-chips" id="mcjMood">
+        <button type="button" class="mcj-chip" data-v="low" onclick="mcjPick(this,'mcjMood')">&#128577; Low</button>
+        <button type="button" class="mcj-chip" data-v="okay" onclick="mcjPick(this,'mcjMood')">&#128528; Okay</button>
+        <button type="button" class="mcj-chip" data-v="good" onclick="mcjPick(this,'mcjMood')">&#128578; Good</button>
+      </div>
+      <div class="mcj-lbl">Energy</div>
+      <div class="mcj-chips" id="mcjEnergy">
+        <button type="button" class="mcj-chip" data-v="low" onclick="mcjPick(this,'mcjEnergy')">Low</button>
+        <button type="button" class="mcj-chip" data-v="medium" onclick="mcjPick(this,'mcjEnergy')">Medium</button>
+        <button type="button" class="mcj-chip" data-v="high" onclick="mcjPick(this,'mcjEnergy')">High</button>
+      </div>
+      <div class="mcj-lbl">Hours of sleep</div>
+      <input type="number" class="mcj-input" id="mcjSleep" min="0" max="16" step="0.5" placeholder="e.g. 7">
+      <div class="mcj-lbl">Symptoms (comma-separated)</div>
+      <input type="text" class="mcj-input" id="mcjSym" placeholder="headache, nausea&hellip;">
+      <div class="mcj-lbl">Anything else? (food, stress, meds&hellip;)</div>
+      <textarea class="mcj-area" id="mcjNotes" placeholder="Skipped lunch, stressful day, took ibuprofen&hellip;"></textarea>
+      <button class="mcj-save" id="mcjSave" onclick="mcjSaveCheckin()">Save today's check-in</button>
+    </div>
+    <div class="mcj-card">
+      <div class="mcj-h">Your timeline</div>
+      <div id="mcjTimeline"></div>
+    </div>
+    <button class="mcj-analyze" onclick="mcjAnalyze()">&#10022; See my patterns &amp; triggers</button>
+    <div id="mcjInsights"></div>
+    <p class="mcj-disc">This is information from your own logs &mdash; not a diagnosis or medical advice. Bring anything concerning to your clinician.</p>
+  </div>
+</div>
+<script>
+(function(){
+  var KEY='mc_track';
+  function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){ return []; } }
+  function save(a){ try{ localStorage.setItem(KEY, JSON.stringify(a)); }catch(e){} }
+  window.openJournal=function(){ var m=document.getElementById('mcJournal'); if(m){ m.classList.add('show'); mcjRender(); } };
+  window.closeJournal=function(){ var m=document.getElementById('mcJournal'); if(m) m.classList.remove('show'); };
+  window.mcjPick=function(btn,group){ var g=document.getElementById(group); [].forEach.call(g.querySelectorAll('.mcj-chip'),function(c){c.classList.remove('on');}); btn.classList.add('on'); };
+  function picked(group){ var el=document.querySelector('#'+group+' .mcj-chip.on'); return el?el.getAttribute('data-v'):''; }
+  window.mcjSaveCheckin=function(){
+    var sym=(document.getElementById('mcjSym').value||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
+    var e={ date:new Date().toISOString().slice(0,10),
+      severity:Number(document.getElementById('mcjSev').value||0),
+      mood:picked('mcjMood'), energy:picked('mcjEnergy'),
+      sleep:document.getElementById('mcjSleep').value||'',
+      symptoms:sym, notes:(document.getElementById('mcjNotes').value||'').trim() };
+    var a=load(); a.push(e); save(a);
+    document.getElementById('mcjSev').value=0; document.getElementById('mcjSevV').textContent='0';
+    document.getElementById('mcjSleep').value=''; document.getElementById('mcjSym').value=''; document.getElementById('mcjNotes').value='';
+    [].forEach.call(document.querySelectorAll('#mcJournal .mcj-chip.on'),function(c){c.classList.remove('on');});
+    mcjRender();
+    var btn=document.getElementById('mcjSave'); btn.textContent='✓ Saved'; setTimeout(function(){ btn.textContent="Save today's check-in"; },1400);
+  };
+  function sevColor(s){ if(s>=7) return '#e0574d'; if(s>=4) return '#e0a63f'; return '#34c78c'; }
+  function mcjRender(){
+    var a=load(); var t=document.getElementById('mcjTimeline'); if(!t) return;
+    if(!a.length){ t.innerHTML='<div class="mcj-empty">No check-ins yet. Save your first above &mdash; even a quick one helps.</div>'; return; }
+    t.innerHTML=a.slice().reverse().slice(0,30).map(function(e){
+      var c=sevColor(e.severity||0);
+      var sym=(e.symptoms&&e.symptoms.length)?e.symptoms.join(', '):(e.notes?e.notes.slice(0,60):'check-in logged');
+      return '<div class="mcj-entry"><div class="mcj-sev" style="background:'+c+'22;color:'+c+'">'+(e.severity||0)+'</div>'+
+        '<div class="mcj-ebody"><div class="mcj-edate">'+e.date+(e.mood?' · '+e.mood:'')+(e.sleep?' · '+e.sleep+'h sleep':'')+'</div>'+
+        '<div class="mcj-esym">'+sym+'</div></div></div>';
+    }).join('');
+  }
+  window.mcjAnalyze=function(){
+    var a=load(); var box=document.getElementById('mcjInsights');
+    if(a.length<3){ box.innerHTML='<div class="mcj-inssum">Log about 3+ check-ins and I\'ll start finding patterns and triggers.</div>'; return; }
+    box.innerHTML='<div class="mcj-inssum">Looking for patterns&hellip;</div>';
+    var base=(typeof API!=='undefined')?API:'';
+    fetch(base+'/insights',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({entries:a, lang:(window.currentLang||null)})})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        function esc(x){ return String(x).replace(/</g,'&lt;'); }
+        function sec(title,icon,arr){ if(!arr||!arr.length) return ''; return '<div class="mcj-insh">'+icon+' '+title+'</div><ul class="mcj-il">'+arr.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>'; }
+        var h='';
+        if(d.summary) h+='<div class="mcj-inssum">'+esc(d.summary)+'</div>';
+        if(d.trend) h+='<div class="mcj-insh">📈 Trend</div><ul class="mcj-il"><li>'+esc(d.trend)+'</li></ul>';
+        h+=sec('Patterns','🔎',d.patterns);
+        h+=sec('Possible triggers','⚡',d.triggers);
+        h+=sec('Keep an eye on','👀',d.watch);
+        h+=sec('Bring to your doctor','🩺',d.doctor);
+        box.innerHTML=h||'<div class="mcj-inssum">Not enough to go on yet &mdash; keep logging.</div>';
+      })
+      .catch(function(){ box.innerHTML='<div class="mcj-inssum">Couldn\'t analyze just now &mdash; try again in a moment.</div>'; });
+  };
 })();
 </script>
