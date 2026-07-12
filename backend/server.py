@@ -314,6 +314,79 @@ async def explain_records(req: RecordsRequest):
         empty["summary"] = "Couldn't explain your records just now — please try again in a moment."
         return empty
 
+class VisitSummaryRequest(BaseModel):
+    reason: Optional[str] = ""      # why they're going / main concern (patient's words)
+    checkins: list = []             # from the Health Journal (on-device)
+    labs: list = []
+    medications: list = []
+    conditions: list = []
+    lang: Optional[str] = None
+
+@app.post("/visit-summary")
+async def visit_summary(req: VisitSummaryRequest):
+    """The clinician hand-off — the load-lightener. Turns the patient's OWN data
+    (reason for visit + on-device check-ins + records) into a concise sheet a
+    clinician can read in ~20 seconds, plus the patient's questions. Everything is
+    patient-REPORTED, never a clinical assessment. Stateless; nothing stored."""
+    import json as _json
+    reason = (req.reason or "").strip()
+    checkins, labs, meds, conds = req.checkins or [], req.labs or [], req.medications or [], req.conditions or []
+    empty = {"reason": reason, "summary": "", "highlights": [], "questions": [], "patient_note": ""}
+    if not (reason or checkins or labs or meds or conds):
+        empty["summary"] = "Add your reason for the visit, a few check-ins, or your records and I'll build a sheet for your doctor."
+        return empty
+
+    def fmt(items, keys):
+        rows = []
+        for it in items[:60]:
+            if isinstance(it, dict):
+                rows.append(", ".join(f"{k}={it.get(k)}" for k in keys if it.get(k) not in (None, "", [])))
+            else:
+                rows.append(str(it))
+        return "\n".join(rows)
+    blocks = []
+    if reason:  blocks.append("REASON FOR VISIT (patient's words): " + reason)
+    if checkins: blocks.append("DAILY CHECK-INS:\n" + fmt(checkins, ["date", "severity", "mood", "energy", "sleep", "symptoms", "notes"]))
+    if labs:  blocks.append("LABS:\n" + fmt(labs, ["name", "value", "unit", "range", "date"]))
+    if meds:  blocks.append("MEDICATIONS:\n" + fmt(meds, ["name", "dose", "reason"]))
+    if conds: blocks.append("CONDITIONS:\n" + fmt(conds, ["name", "date"]))
+    payload = "\n\n".join(blocks)
+    lang_line = f"\nWrite the patient_note in this language (code): {req.lang}. Keep the clinician summary and highlights in English (for the clinician)." if req.lang else ""
+    try:
+        import anthropic
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1600,
+            system=(
+                "You are MedCompanion, preparing a concise hand-off a busy clinician can read in about 20 "
+                "seconds. Everything here is PATIENT-REPORTED — present it as such ('patient reports…'), never "
+                "as your own clinical assessment, diagnosis, or triage. Be tight, factual, and free of alarm. "
+                "Surface only what's decision-relevant: the reason for the visit, patient-tracked patterns "
+                "(frequency, timing, what seems to line up), and pertinent records (out-of-range labs, active "
+                "meds/conditions). "
+                "Return ONLY JSON with keys: reason (one line), summary (2-4 tight clinician-facing sentences, "
+                "'patient reports…' style), highlights (array of short factual bullets — the decision-relevant "
+                "points), questions (array — the patient's questions for the visit), patient_note (2 warm "
+                "sentences telling the patient what this sheet does and to share it). No prose outside the JSON."
+            ),
+            messages=[{"role": "user", "content": payload + lang_line}],
+        )
+        out = "".join(getattr(b, "text", "") for b in resp.content).strip()
+        if out.startswith("```"):
+            out = out.strip("`")
+            if out[:4].lower() == "json":
+                out = out[4:]
+            out = out.strip()
+        data = _json.loads(out)
+        for k, dflt in empty.items():
+            data.setdefault(k, dflt)
+        return data
+    except Exception as e:
+        logger.error(f"visit-summary error: {e}")
+        empty["summary"] = "Couldn't build your visit sheet just now — please try again."
+        return empty
+
 class SpeakRequest(BaseModel):
     text: str
     lang: Optional[str] = None
