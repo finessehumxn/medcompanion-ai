@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Visit sheet · MedCompanion</title>
+<style>
+  :root{ --ink:#152029; --sub:#5a6b78; --line:#e3e9ee; --card:#ffffff; --bg:#f4f7f9; --accent:#0f7a5a; --high:#c0392b; --low:#b7791f; --norm:#0f7a5a; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; }
+  body{ background:var(--bg); color:var(--ink); font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; -webkit-font-smoothing:antialiased; }
+  .sheet{ max-width:720px; margin:0 auto; padding:28px 20px 60px; }
+  .banner{ background:#eaf5f0; border:1px solid #cfe6dc; color:#0f5a43; border-radius:10px; padding:11px 14px; font-size:12.5px; font-weight:600; margin-bottom:20px; }
+  header{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; border-bottom:2px solid var(--ink); padding-bottom:12px; margin-bottom:20px; flex-wrap:wrap; }
+  .brand{ font-size:13px; font-weight:800; letter-spacing:.02em; color:var(--accent); text-transform:uppercase; }
+  .meta{ font-size:12px; color:var(--sub); }
+  h1{ font-size:20px; font-weight:800; margin:0 0 4px; letter-spacing:-.01em; }
+  .reason{ font-size:15px; color:var(--accent); font-weight:700; margin:0 0 22px; }
+  h2{ font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--sub); margin:26px 0 10px; }
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px; }
+  .summary{ font-size:15px; line-height:1.65; }
+  ul{ margin:0; padding-left:20px; }
+  li{ margin-bottom:8px; line-height:1.5; }
+  .row{ display:flex; gap:10px; align-items:flex-start; padding:9px 0; border-top:1px solid var(--line); }
+  .row:first-child{ border-top:none; }
+  .badge{ font-size:10px; font-weight:800; text-transform:uppercase; border-radius:5px; padding:2px 7px; flex:none; margin-top:1px; }
+  .b-high{ background:#fbe9e7; color:var(--high); }
+  .b-low{ background:#fdf3e2; color:var(--low); }
+  .b-norm{ background:#e7f4ee; color:var(--norm); }
+  .rn{ font-weight:600; }
+  .foot{ margin-top:30px; font-size:11.5px; color:var(--sub); line-height:1.5; border-top:1px solid var(--line); padding-top:14px; }
+  .actions{ margin:22px 0 0; }
+  .print{ background:var(--accent); color:#fff; border:none; font-weight:700; font-size:14px; padding:11px 18px; border-radius:9px; cursor:pointer; }
+  .empty{ text-align:center; color:var(--sub); padding:60px 20px; }
+  .empty h1{ margin-bottom:8px; }
+  @media print{
+    body{ background:#fff; } .sheet{ padding:0; max-width:none; }
+    .actions,.banner{ display:none; } .card{ border-color:#ccc; }
+    header{ border-color:#000; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet" id="sheet"></div>
+<script>
+(function(){
+  function decode(){
+    var h=(location.hash||'').replace(/^#/,'');
+    if(!h) return null;
+    try{ return JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(h))))); }catch(e){ return null; }
+  }
+  function esc(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function badge(st){ st=(st||'').toLowerCase(); if(st==='high') return '<span class="badge b-high">High</span>'; if(st==='low') return '<span class="badge b-low">Low</span>'; if(st==='normal') return '<span class="badge b-norm">Normal</span>'; return ''; }
+  var d=decode(), el=document.getElementById('sheet');
+  if(!d){
+    el.innerHTML='<div class="empty"><h1>No sheet to show</h1><p>This link needs a visit sheet shared from the MedCompanion app. Ask the patient to tap “Share a link for my doctor.”</p></div>';
+    return;
+  }
+  var h='';
+  h+='<div class="banner">For clinician review · Patient-reported information the patient chose to share · Not a clinical assessment or diagnosis.</div>';
+  h+='<header><span class="brand">MedCompanion · Visit sheet</span><span class="meta">'+esc(d.date||'')+'</span></header>';
+  h+='<h1>'+esc(d.name||'Patient visit summary')+'</h1>';
+  if(d.reason) h+='<p class="reason">'+esc(d.reason)+'</p>';
+  if(d.summary){ h+='<h2>In the patient’s words &mdash; the 20-second read</h2><div class="card summary">'+esc(d.summary)+'</div>'; }
+  if(d.highlights&&d.highlights.length){ h+='<h2>Highlights</h2><div class="card"><ul>'+d.highlights.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>'; }
+  if(d.labs&&d.labs.length){ h+='<h2>Recent labs (patient-provided)</h2><div class="card">'+d.labs.map(function(l){return '<div class="row">'+badge(l.status)+'<span class="rn">'+esc(l.name)+(l.value?' &mdash; '+esc(l.value):'')+'</span></div>';}).join('')+'</div>'; }
+  if(d.medications&&d.medications.length){ h+='<h2>Medications (patient-reported)</h2><div class="card"><ul>'+d.medications.map(function(m){return '<li>'+esc(m.name||m)+'</li>';}).join('')+'</ul></div>'; }
+  if(d.conditions&&d.conditions.length){ h+='<h2>Conditions (patient-reported)</h2><div class="card"><ul>'+d.conditions.map(function(c){return '<li>'+esc(c.name||c)+'</li>';}).join('')+'</ul></div>'; }
+  if(d.questions&&d.questions.length){ h+='<h2>The patient’s questions</h2><div class="card"><ul>'+d.questions.map(function(q){return '<li>'+esc(q)+'</li>';}).join('')+'</ul></div>'; }
+  h+='<div class="actions"><button class="print" onclick="window.print()">Print / Save PDF</button></div>';
+  h+='<div class="foot">Generated by the patient in MedCompanion and shared with you directly. This summary was assembled from the patient’s own check-ins and records to save visit time &mdash; it is information, not a diagnosis, and does not replace your clinical judgment. No data is stored on MedCompanion’s servers; this sheet travels only in the link the patient sent you.</div>';
+  el.innerHTML=h;
+})();
+</script>
+</body>
+</html>

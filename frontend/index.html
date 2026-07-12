@@ -6182,7 +6182,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if(d.questions&&d.questions.length){ h+='<div class="mcj-insh">🩺 Your questions</div><ul class="mcj-il">'+d.questions.map(function(q){return '<li>'+esc(q)+'</li>';}).join('')+'</ul>'; }
         var txt='MedCompanion — Visit sheet\n\n'+(d.reason||'')+'\n\n'+(d.summary||'')+'\n\n'+(d.highlights||[]).map(function(x){return '• '+x;}).join('\n')+'\n\nMy questions:\n'+(d.questions||[]).map(function(q){return '• '+q;}).join('\n')+'\n\n(Patient-reported via MedCompanion.)';
         window._mcvText=txt;
-        h+='<button class="mcv-copy" onclick="mcvCopy()">📋 Copy / share this sheet</button>';
+        var sheet={ name:'Patient visit summary', date:(new Date()).toISOString().slice(0,10), reason:(d.reason||body.reason||''), summary:(d.summary||''), highlights:(d.highlights||[]), questions:(d.questions||[]), labs:rec.labs, medications:rec.medications, conditions:rec.conditions };
+        try{ window._mcvLink=location.origin+'/visit.html#'+encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(sheet))))); }catch(e){ window._mcvLink=''; }
+        h+='<button class="mcv-copy" onclick="mcvCopy()">📋 Copy the text</button>';
+        if(window._mcvLink) h+='<button class="mcv-copy" onclick="mcvShareLink()">🔗 Share a link for my doctor</button>';
         out.innerHTML=h;
       }).catch(function(){ out.innerHTML='<div class="mcv-sum">Couldn\'t build your sheet just now — try again.</div>'; });
   };
@@ -6191,6 +6194,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if(navigator.share){ navigator.share({title:'My visit sheet', text:t}).catch(function(){}); }
     else if(navigator.clipboard){ navigator.clipboard.writeText(t).then(function(){ alert('Copied — paste it into your portal message or notes.'); }); }
     else { alert(t); }
+  };
+  window.mcvShareLink=function(){
+    var u=window._mcvLink||''; if(!u) return;
+    if(navigator.share){ navigator.share({title:'My visit sheet', text:'A quick summary for my visit', url:u}).catch(function(){}); }
+    else if(navigator.clipboard){ navigator.clipboard.writeText(u).then(function(){ alert('Link copied — send it to your doctor or paste it into your portal message. They can open and print it.'); }); }
+    else { prompt('Copy this link for your doctor:', u); }
   };
 })();
 </script>
