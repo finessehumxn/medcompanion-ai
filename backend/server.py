@@ -178,6 +178,75 @@ async def translate(req: TranslateRequest):
         logger.error(f"translate error: {e}")
         return {"translated": text}
 
+class InsightsRequest(BaseModel):
+    entries: list          # on-device check-ins: [{date, symptoms, severity, mood, energy, sleep, notes, meds}]
+    lang: Optional[str] = None
+
+@app.post("/insights")
+async def insights(req: InsightsRequest):
+    """Health Timeline insights. The app keeps daily check-ins ON THE DEVICE and
+    sends them here only to be analyzed — nothing is stored server-side. Claude
+    finds patterns, likely triggers, and trends, and preps what to raise with a
+    doctor. Information, never diagnosis. Fails soft to an empty-but-valid shape."""
+    import json as _json
+    entries = req.entries or []
+    empty = {"summary": "", "patterns": [], "triggers": [], "trend": "", "watch": [], "doctor": []}
+    if len(entries) < 3:
+        empty["summary"] = "Log a few more check-ins (about 3+) and I'll start spotting patterns and triggers for you."
+        return empty
+    # Compact the entries into a readable log for the model (cap to recent 60).
+    lines = []
+    for e in entries[-60:]:
+        if not isinstance(e, dict):
+            continue
+        parts = [str(e.get("date", ""))]
+        for k in ("severity", "mood", "energy", "sleep"):
+            if e.get(k) not in (None, "", []):
+                parts.append(f"{k}={e.get(k)}")
+        if e.get("symptoms"):
+            s = e["symptoms"]
+            parts.append("symptoms=" + (", ".join(s) if isinstance(s, list) else str(s)))
+        if e.get("meds"):
+            m = e["meds"]
+            parts.append("meds=" + (", ".join(m) if isinstance(m, list) else str(m)))
+        if e.get("notes"):
+            parts.append("notes=" + str(e["notes"])[:200])
+        lines.append(" · ".join(p for p in parts if p))
+    log = "\n".join(lines)
+    lang_line = f"\nWrite the output in this language (code): {req.lang}." if req.lang else ""
+    try:
+        import anthropic
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1400,
+            system=(
+                "You are MedCompanion's health-pattern analyst. You look at a person's own daily "
+                "check-ins and surface honest, useful observations in plain language. HARD RULES: "
+                "you provide information, NEVER a diagnosis or treatment; never alarm; correlation is "
+                "not causation, so hedge ('may line up with', 'worth noticing'); if data is thin, say so. "
+                "Encourage bringing findings to their clinician. "
+                "Return ONLY a JSON object with keys: summary (2-3 warm sentences), patterns (array of short "
+                "strings — recurring symptoms/timing), triggers (array — possible correlations, each hedged), "
+                "trend (one sentence: improving/steady/worsening and over what span), watch (array — things to "
+                "keep an eye on), doctor (array — specific things to raise at the next appointment). No prose "
+                "outside the JSON."
+            ),
+            messages=[{"role": "user", "content": f"Here are my check-ins (most recent last):\n{log}{lang_line}"}],
+        )
+        out = "".join(getattr(b, "text", "") for b in resp.content).strip()
+        if out.startswith("```"):
+            out = out.strip("`").split("\n", 1)[-1] if "\n" in out else out
+            out = out.replace("json", "", 1).strip()
+        data = _json.loads(out)
+        for k in empty:
+            data.setdefault(k, empty[k])
+        return data
+    except Exception as e:
+        logger.error(f"insights error: {e}")
+        empty["summary"] = "Couldn't analyze your patterns just now — please try again in a moment."
+        return empty
+
 class SpeakRequest(BaseModel):
     text: str
     lang: Optional[str] = None
