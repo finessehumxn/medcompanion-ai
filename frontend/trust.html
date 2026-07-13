@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trust &amp; data · MedCompanion</title>
+<meta name="description" content="How MedCompanion handles your health data: local-first, AI-optional, and nothing stored by default. Verify the live facts yourself.">
+<style>
+  :root{
+    --bg:#f6f8f7; --card:#ffffff; --ink:#14201b; --sub:#5c6f66; --line:#e4ebe7;
+    --accent:#0f7a5a; --accent-soft:#e7f4ee; --warn:#c0392b; --warn-soft:#fbe9e7;
+    --max:760px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0b1f18; --card:#12281f; --ink:#eaf3ee; --sub:#9fc2b2; --line:rgba(255,255,255,.09);
+      --accent:#34c78c; --accent-soft:rgba(52,199,140,.12); --warn:#ff9c93; --warn-soft:rgba(224,87,77,.12); }
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; }
+  body{ background:var(--bg); color:var(--ink); font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:var(--max); margin:0 auto; padding:0 20px; }
+  header.top{ padding:22px 0; }
+  .home{ font-size:14px; font-weight:800; color:var(--accent); text-decoration:none; letter-spacing:.02em; }
+  .hero{ padding:34px 0 10px; }
+  .eyebrow{ font-size:12px; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:var(--accent); }
+  h1{ font-size:34px; line-height:1.12; font-weight:850; letter-spacing:-.02em; margin:12px 0 14px; text-wrap:balance; }
+  .lede{ font-size:18px; color:var(--sub); margin:0 0 8px; max-width:52ch; }
+  .pillars{ display:flex; gap:10px; flex-wrap:wrap; margin:22px 0 6px; }
+  .pill{ font-size:13px; font-weight:700; color:var(--accent); background:var(--accent-soft); border:1px solid var(--line); border-radius:999px; padding:7px 14px; }
+  section{ padding:26px 0; border-top:1px solid var(--line); }
+  h2{ font-size:13px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--sub); margin:0 0 16px; }
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px 22px; margin-bottom:14px; }
+  .card h3{ font-size:18px; font-weight:800; margin:0 0 6px; }
+  .card p{ margin:0; color:var(--sub); font-size:15px; }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:560px){ .grid{ grid-template-columns:1fr; } h1{ font-size:28px; } }
+  .never li{ margin-bottom:9px; }
+  .never b{ color:var(--warn); }
+  ul.clean{ margin:0; padding-left:20px; } ul.clean li{ margin-bottom:8px; }
+  .verify{ background:var(--card); border:1px solid var(--accent); border-radius:16px; padding:22px; }
+  .verify code{ display:block; background:var(--bg); border:1px solid var(--line); border-radius:9px; padding:12px 14px; font-size:13px; overflow-x:auto; margin:12px 0; }
+  .btn{ display:inline-block; background:var(--accent); color:#fff; font-weight:700; font-size:15px; text-decoration:none; padding:11px 20px; border-radius:10px; }
+  #live{ margin-top:14px; font-size:14px; }
+  #live .row{ display:flex; gap:10px; padding:8px 0; border-top:1px solid var(--line); }
+  #live .row:first-child{ border-top:none; }
+  #live .k{ color:var(--sub); flex:none; width:150px; }
+  #live .v{ font-weight:600; }
+  .ok{ color:var(--accent); } .pending{ color:var(--warn); }
+  .foot{ padding:30px 0 60px; color:var(--sub); font-size:13px; line-height:1.6; }
+  .disc{ font-size:13px; color:var(--sub); font-style:italic; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top"><a class="home" href="/app">← MedCompanion</a></header>
+
+  <div class="hero">
+    <div class="eyebrow">Trust &amp; data</div>
+    <h1>Your health data stays yours.</h1>
+    <p class="lede">MedCompanion is built local-first: your information lives on your phone, the AI is optional, and your clinician stays in charge. Here's exactly how it works — and how to check it for yourself.</p>
+    <div class="pillars">
+      <span class="pill">📱 Local-first</span>
+      <span class="pill">✨ AI-optional</span>
+      <span class="pill">🩺 The human decides</span>
+    </div>
+  </div>
+
+  <section>
+    <h2>The promises</h2>
+    <div class="grid">
+      <div class="card"><h3>📱 It stays on your phone</h3><p>Your check-ins and records are saved only in your phone's local storage. They aren't uploaded when you open the app.</p></div>
+      <div class="card"><h3>✨ AI sees data only when you tap</h3><p>Nothing goes to the AI until you choose a feature. Then only the text for that one task is sent, to generate your answer.</p></div>
+      <div class="card"><h3>🗄️ We store nothing by default</h3><p>The AI features are stateless — they answer and forget. Your health content is not written to our database.</p></div>
+      <div class="card"><h3>🧠 Never used to train AI</h3><p>Your data is not used to train models, and never sold or used for advertising. Full stop.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What the AI will never do</h2>
+    <div class="card"><ul class="clean never">
+      <li><b>Never diagnose you</b> or decide your treatment.</li>
+      <li><b>Never replace</b> your doctor's judgment — it gives information, not medical advice.</li>
+      <li><b>Never train</b> AI models on your data.</li>
+      <li><b>Never sell</b> your data or use it for ads.</li>
+    </ul></div>
+    <p class="disc">MedCompanion helps you organize and understand your own health information so visits go further. It is not a medical device and does not provide diagnosis.</p>
+  </section>
+
+  <section>
+    <h2>You're in control</h2>
+    <div class="card"><ul class="clean">
+      <li>The app's core works with <b>AI turned completely off</b>.</li>
+      <li>Nothing is sent until you tap an AI feature — and we tell you exactly what will be sent.</li>
+      <li>You can <b>delete everything</b> on your device, any time, in one tap.</li>
+    </ul></div>
+  </section>
+
+  <section>
+    <h2>Verify it yourself</h2>
+    <div class="verify">
+      <p style="margin:0 0 4px;font-weight:700">We publish our data policy as machine-readable, live facts.</p>
+      <p style="margin:0;color:var(--sub);font-size:15px">This isn't a brochure — it's the actual configuration of our running server. Anyone can read it, including your hospital's compliance team:</p>
+      <code>curl https://medcompanion-ai.up.railway.app/data-policy</code>
+      <div id="live"><div class="row"><span class="v">Loading the live facts…</span></div></div>
+      <a class="btn" href="/data-policy" target="_blank" rel="noopener" style="margin-top:14px">Open the live policy →</a>
+    </div>
+  </section>
+
+  <section>
+    <h2>For hospitals &amp; compliance teams</h2>
+    <div class="card">
+      <h3>Where we are — honestly</h3>
+      <p style="margin-bottom:12px">The architecture above is real and live today: local-first, single-vendor for text AI (Anthropic), and no server-side storage of health content by default. That already removes most of the data-exposure surface teams worry about.</p>
+      <p>The formal assurances a hospital needs are a separate, in-progress track: signed Business Associate Agreements (BAAs) with each AI vendor, zero-data-retention configuration, a HIPAA compliance program, and a SOC 2 audit. We'd rather tell you exactly where that stands than overstate it. Reach out and we'll share our current data-flow documentation and roadmap.</p>
+    </div>
+  </section>
+
+  <div class="foot">
+    MedCompanion provides information to help you understand your health and prepare for care. It is not a diagnosis, not medical advice, and does not replace your clinician. In an emergency, call your local emergency number.
+  </div>
+</div>
+<script>
+  fetch('/data-policy').then(function(r){return r.json();}).then(function(d){
+    function esc(x){ return String(x==null?'':x).replace(/</g,'&lt;'); }
+    var rows=[
+      ['Records on our server', d.server_stores_health_content ? '<span class="pending">History ON (disclosed)</span>' : '<span class="ok">Nothing stored ✓</span>'],
+      ['Health content logged', d.we_never_log_your_health_content ? '<span class="ok">Never ✓</span>' : '<span class="pending">check</span>'],
+      ['Text AI vendor', esc((d.sent_to_ai_only_when_you_tap && d.sent_to_ai_only_when_you_tap.text_features && d.sent_to_ai_only_when_you_tap.text_features.vendor) || '—')],
+      ['On-device only', esc((d.on_device_only||[]).length) + ' data types'],
+      ['AI will never', esc((d.ai_will_never||[]).length) + ' guarantees']
+    ];
+    document.getElementById('live').innerHTML = rows.map(function(r){
+      return '<div class="row"><span class="k">'+r[0]+'</span><span class="v">'+r[1]+'</span></div>';
+    }).join('');
+  }).catch(function(){
+    document.getElementById('live').innerHTML='<div class="row"><span class="v">Couldn\'t reach the live policy just now — try the button below.</span></div>';
+  });
+</script>
+</body>
+</html>

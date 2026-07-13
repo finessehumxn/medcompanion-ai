@@ -79,6 +79,10 @@ async def serve_app():
 async def serve_privacy():
     return FileResponse(os.path.join(frontend_dir, "privacy.html"))
 
+@app.get("/trust")
+async def serve_trust():
+    return FileResponse(os.path.join(frontend_dir, "trust.html"))
+
 @app.get("/doctor")
 async def serve_doctor():
     return FileResponse(os.path.join(frontend_dir, "doctor.html"))
