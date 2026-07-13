@@ -6064,7 +6064,9 @@ document.addEventListener('DOMContentLoaded', function() {
   <div class="mcj-wrap">
     <div class="mcj-top"><div class="mcj-title">My Records</div><button class="mcj-x" onclick="closeRecords()" aria-label="Close">&times;</button></div>
     <p class="mcj-sub">Your labs, meds &amp; conditions &mdash; explained in plain language, with what to ask your doctor. Kept private on your device.</p>
-    <button class="mcj-analyze" style="margin-bottom:14px" onclick="mcrConnect()">&#128279; Connect your MyChart</button>
+    <button class="mcj-analyze" style="margin-bottom:10px" onclick="mcrConnect()">&#128279; Connect Apple Health / MyChart</button>
+    <button class="mcj-analyze" style="margin-bottom:14px" onclick="mcrImport()">&#128196; Import a records file (FHIR/JSON)</button>
+    <input type="file" id="mcrFile" accept=".json,application/json,.fhir,text/json" style="display:none" onchange="mcrImportFile(event)">
     <div class="mcj-card">
       <div class="mcj-h">Add a result</div>
       <div class="mcj-chips" id="mcrType">
@@ -6145,6 +6147,76 @@ document.addEventListener('DOMContentLoaded', function() {
     if(!a.length){ l.innerHTML='<div class="mcj-empty">No records yet. Add one above, load a sample, or connect your MyChart.</div>'; return; }
     l.innerHTML=a.map(function(r,i){ return '<div class="mcr-rec"><span class="mcr-rt">'+esc(r.type)+'</span><span class="mcr-rn">'+esc(r.name)+(r.value?' <span style="color:#8fbfa8">'+esc(r.value)+'</span>':'')+'</span><button class="mcr-del" onclick="mcrDel('+i+')" aria-label="Remove">&times;</button></div>'; }).join('');
   }
+  // ---- FHIR import (MyChart / Apple Health / Blue Button export) ----
+  function _fhirName(res){
+    var c = res.code || res.medicationCodeableConcept || res.vaccineCode;
+    if(c){ if(c.text) return c.text; if(c.coding && c.coding[0]) return c.coding[0].display || c.coding[0].code; }
+    if(res.medicationReference && res.medicationReference.display) return res.medicationReference.display;
+    return '';
+  }
+  function _obsValue(res){
+    var vq = res.valueQuantity, parts='';
+    if(vq){ parts = (vq.value!=null?vq.value:'') + (vq.unit? ' '+vq.unit : (vq.code?' '+vq.code:'')); }
+    else if(res.valueString){ parts = res.valueString; }
+    else if(res.valueCodeableConcept){ parts = res.valueCodeableConcept.text || (res.valueCodeableConcept.coding&&res.valueCodeableConcept.coding[0]&&res.valueCodeableConcept.coding[0].display) || ''; }
+    else if(res.component && res.component.length){ parts = res.component.map(function(cp){ var n=_fhirName(cp); var q=cp.valueQuantity; return (n?n+' ':'')+(q?(q.value+' '+(q.unit||'')):''); }).join(', '); }
+    var rr = res.referenceRange && res.referenceRange[0], rangeStr='';
+    if(rr){ if(rr.text) rangeStr = rr.text; else { var lo=rr.low&&rr.low.value, hi=rr.high&&rr.high.value; if(lo!=null&&hi!=null) rangeStr=lo+'-'+hi; else if(hi!=null) rangeStr='<'+hi; else if(lo!=null) rangeStr='>'+lo; } }
+    return (parts + (rangeStr? ' (range '+rangeStr+')' : '')).toString().trim();
+  }
+  window.fhirToRecords=function(data){
+    var resources=[];
+    function pushEntry(x){ if(!x) return; if(x.resource) resources.push(x.resource); else if(x.resourceType) resources.push(x); }
+    if(Array.isArray(data)) data.forEach(pushEntry);
+    else if(data && data.resourceType==='Bundle' && Array.isArray(data.entry)) data.entry.forEach(pushEntry);
+    else if(data && data.resourceType) resources.push(data);
+    else if(data && Array.isArray(data.entry)) data.entry.forEach(pushEntry);
+    var out=[];
+    resources.forEach(function(r){
+      var t=r.resourceType;
+      if(t==='Observation'){ var n=_fhirName(r); if(n) out.push({type:'lab', name:n, value:_obsValue(r)}); }
+      else if(t==='MedicationRequest'||t==='MedicationStatement'){ var mn=_fhirName(r); if(mn) out.push({type:'med', name:mn, value:''}); }
+      else if(t==='Condition'){ var cn=_fhirName(r); if(cn) out.push({type:'condition', name:cn, value:''}); }
+      else if(t==='AllergyIntolerance'){ var an=_fhirName(r); if(an) out.push({type:'condition', name:'Allergy: '+an, value:''}); }
+    });
+    return out;
+  };
+  function mergeRecords(recs){
+    if(!recs || !recs.length) return 0;
+    var arr=rload(), seen={}, added=0;
+    arr.forEach(function(r){ seen[r.type+'|'+(r.name||'').toLowerCase()]=true; });
+    recs.forEach(function(r){ var k=r.type+'|'+(r.name||'').toLowerCase(); if(r.name && !seen[k]){ arr.push(r); seen[k]=true; added++; } });
+    rsave(arr); mcrRender(); return added;
+  }
+  window.mcrImport=function(){ var f=document.getElementById('mcrFile'); if(f) f.click(); };
+  window.mcrImportFile=function(ev){
+    var file=ev.target.files && ev.target.files[0]; if(!file){ return; }
+    var reader=new FileReader();
+    reader.onload=function(){
+      try{
+        var data=JSON.parse(reader.result);
+        var recs=window.fhirToRecords(data);
+        var n=mergeRecords(recs);
+        alert(n? ('Imported '+n+' record'+(n===1?'':'s')+' — kept on your device. Tap “Explain my records” to understand them.') : 'No labs, meds or conditions found in that file. Make sure it’s a FHIR/JSON export from your patient portal.');
+      }catch(e){ alert('That file isn’t valid JSON. In your portal, export or download your records as FHIR/JSON, then import that file.'); }
+      ev.target.value='';
+    };
+    reader.readAsText(file);
+  };
+  window.mcrConnect=function(){
+    var P=(window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.MedHealthkit) ? Capacitor.Plugins.MedHealthkit : null;
+    if(!P){
+      if(confirm('Apple Health import runs in the iPhone app (arriving in the next update).\n\nRight now you can IMPORT the FHIR/JSON records file you download from your patient portal (MyChart, Blue Button, or Apple Health export) — everything stays on your device. Import a file now?')) window.mcrImport();
+      return;
+    }
+    P.requestAuthorization().then(function(){ return P.queryClinicalRecords(); }).then(function(res){
+      var samples=(res && (res.samples||res.records||[]))||[], all=[];
+      samples.forEach(function(s){ try{ var j=(typeof s==='string')?JSON.parse(s):(s.fhir?JSON.parse(s.fhir):s); all=all.concat(window.fhirToRecords(j)); }catch(e){} });
+      var n=mergeRecords(all);
+      alert(n? ('Imported '+n+' record'+(n===1?'':'s')+' from Apple Health — kept on your device.') : 'No records found in Apple Health yet. In the Health app, set up “Health Records” with your provider, then try again.');
+    }).catch(function(){ alert('Couldn’t read Apple Health. You can allow access in Settings → Privacy → Health, or import a records file instead.'); });
+  };
+
   window.mcrExplain=function(){
     var a=rload(), out=document.getElementById('mcrOut');
     if(!a.length){ out.innerHTML='<div class="mcj-inssum">Add a few records first — or load a sample.</div>'; return; }
