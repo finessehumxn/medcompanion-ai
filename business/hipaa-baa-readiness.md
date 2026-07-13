@@ -10,6 +10,20 @@
 
 ---
 
+## 0. Update — trust-by-default architecture (2026-07-12)
+
+Since this checklist was first written, the product moved to a **local-first, AI-optional, no-storage-by-default** architecture. This *materially reduces* the PHI surface below and should be read on top of the analysis that follows:
+
+- **Supabase is no longer in the health-data path by default.** Server-side history is gated behind `MC_STORE_HISTORY=1` (off by default). In the default configuration, patient check-ins and records live only in device localStorage and are **never written to our database**. The subprocessor table in §2 still lists Supabase as the "primary PHI datastore" — that is only true if history is deliberately enabled.
+- **The text-AI path is single-vendor (Anthropic).** Fewer parties touch PHI.
+- **Voice features (optional)** send audio to OpenAI/Groq for STT/TTS — add these to your subprocessor/BAA tracking if voice is used with PHI (prefer a BAA-covered vendor; Groq's BAA is less established).
+- **No health content is logged** (provider error bodies were removed from logs).
+- **The running server publishes its data policy** at `/data-policy` (machine-readable) and `/trust` (human-readable) for independent verification.
+
+**See the 2-minute [data-flow-one-pager.md](data-flow-one-pager.md)** for the current, reviewer-facing summary. The BAA/Security-Rule work in §2–§8 below is still required before PHI flows on behalf of a covered entity; the architecture change just shrinks the default surface it has to cover.
+
+---
+
 ## 1. When does HIPAA actually apply to you?
 
 HIPAA does not regulate "health data" in the abstract. It regulates **Protected Health Information (PHI)** held by two kinds of organizations:
