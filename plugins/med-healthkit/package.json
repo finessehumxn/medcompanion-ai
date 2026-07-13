@@ -1,0 +1,19 @@
+{
+  "name": "med-healthkit",
+  "version": "1.0.0",
+  "description": "Read Apple Health clinical records (FHIR) into MedCompanion — local-first, no upload.",
+  "author": "Millennials Creatives LLC",
+  "license": "MIT",
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  },
+  "files": [
+    "ios/",
+    "MedHealthkit.podspec"
+  ],
+  "peerDependencies": {
+    "@capacitor/core": "^8.0.0"
+  }
+}
