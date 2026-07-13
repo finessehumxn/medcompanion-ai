@@ -46,6 +46,18 @@ logger = logging.getLogger(__name__)
 # device" true unless a deployment deliberately, and disclosed-ly, changes it.
 STORE_HISTORY = os.getenv("MC_STORE_HISTORY", "0") == "1"
 
+# --- Epic / MyChart SMART-on-FHIR (patient standalone launch) -------------
+# Defaults point at Epic's PUBLIC SANDBOX so the flow is testable with Epic's
+# test patients. To go live: register a free app at fhir.epic.com, set
+# EPIC_CLIENT_ID (and register EPIC_REDIRECT_URI there). Public client + PKCE —
+# no client secret. Tokens are transient: exchanged/used here, never stored.
+EPIC_CLIENT_ID = os.getenv("EPIC_CLIENT_ID", "")
+EPIC_FHIR_BASE = os.getenv("EPIC_FHIR_BASE", "https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4")
+EPIC_AUTHORIZE_URL = os.getenv("EPIC_AUTHORIZE_URL", "https://fhir.epic.com/interconnect-fhir-oauth/oauth2/authorize")
+EPIC_TOKEN_URL = os.getenv("EPIC_TOKEN_URL", "https://fhir.epic.com/interconnect-fhir-oauth/oauth2/token")
+EPIC_REDIRECT_URI = os.getenv("EPIC_REDIRECT_URI", "https://medcompanion-ai.up.railway.app/app")
+EPIC_SCOPES = os.getenv("EPIC_SCOPES", "openid fhirUser patient/Patient.read patient/Observation.read patient/Condition.read patient/MedicationRequest.read patient/AllergyIntolerance.read")
+
 app = FastAPI(title="MedCompanion AI", version="2.0.0")
 
 # CORS — required so the bundled mobile app (origin https://localhost / capacitor://localhost)
@@ -190,6 +202,94 @@ async def data_policy():
             "(signed BAAs with each AI vendor, HIPAA program, SOC 2) are a separate, in-progress track.",
         ],
     }
+
+# ── Epic / MyChart SMART-on-FHIR (patient standalone) ─────────────────────
+@app.get("/epic/config")
+async def epic_config():
+    """What the app needs to start the Epic sign-in. `configured` is false until
+    EPIC_CLIENT_ID is set — the app then falls back to file import."""
+    return {
+        "configured": bool(EPIC_CLIENT_ID),
+        "client_id": EPIC_CLIENT_ID,
+        "authorize_url": EPIC_AUTHORIZE_URL,
+        "fhir_base": EPIC_FHIR_BASE,
+        "redirect_uri": EPIC_REDIRECT_URI,
+        "scopes": EPIC_SCOPES,
+    }
+
+class EpicTokenReq(BaseModel):
+    code: str
+    code_verifier: str
+    redirect_uri: Optional[str] = None
+
+@app.post("/epic/token")
+async def epic_token(req: EpicTokenReq):
+    """Exchange the auth code for an access token (public client + PKCE).
+    The token is returned to the device and NOT stored server-side."""
+    if not EPIC_CLIENT_ID:
+        raise HTTPException(400, "Epic isn't configured (set EPIC_CLIENT_ID).")
+    import httpx
+    data = {
+        "grant_type": "authorization_code",
+        "code": req.code,
+        "redirect_uri": req.redirect_uri or EPIC_REDIRECT_URI,
+        "client_id": EPIC_CLIENT_ID,
+        "code_verifier": req.code_verifier,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.post(EPIC_TOKEN_URL, data=data,
+                                  headers={"Content-Type": "application/x-www-form-urlencoded"})
+        if r.status_code != 200:
+            logger.error(f"epic token exchange status {r.status_code}")
+            raise HTTPException(502, "Epic sign-in couldn't be completed.")
+        t = r.json()
+        return {"access_token": t.get("access_token"), "patient": t.get("patient"),
+                "scope": t.get("scope"), "token_type": t.get("token_type")}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"epic token error: {e}")
+        raise HTTPException(502, "Epic sign-in error.")
+
+class EpicRecordsReq(BaseModel):
+    access_token: str
+    patient: str
+    fhir_base: Optional[str] = None
+
+@app.post("/epic/records")
+async def epic_records(req: EpicRecordsReq):
+    """Read the patient's FHIR resources with their token and return the raw
+    resources for the device to map. Token and records are not persisted; only
+    error classes are logged (never tokens or PHI bodies)."""
+    import httpx
+    base = (req.fhir_base or EPIC_FHIR_BASE).rstrip("/")
+    headers = {"Authorization": f"Bearer {req.access_token}", "Accept": "application/fhir+json"}
+    queries = {
+        "Observation": f"{base}/Observation?patient={req.patient}&category=laboratory",
+        "Condition": f"{base}/Condition?patient={req.patient}",
+        "MedicationRequest": f"{base}/MedicationRequest?patient={req.patient}",
+        "AllergyIntolerance": f"{base}/AllergyIntolerance?patient={req.patient}",
+    }
+    resources = []
+    try:
+        async with httpx.AsyncClient(timeout=45) as client:
+            for name, url in queries.items():
+                try:
+                    r = await client.get(url, headers=headers)
+                    if r.status_code == 200:
+                        for e in (r.json().get("entry") or []):
+                            res = e.get("resource")
+                            if res:
+                                resources.append(res)
+                    else:
+                        logger.error(f"epic fetch {name} status {r.status_code}")
+                except Exception as ie:
+                    logger.error(f"epic fetch {name} error: {type(ie).__name__}")
+    except Exception as e:
+        logger.error(f"epic records error: {type(e).__name__}")
+        raise HTTPException(502, "Couldn't read your Epic records.")
+    return {"resources": resources}
 
 class StartRequest(BaseModel):
     raw_input: str

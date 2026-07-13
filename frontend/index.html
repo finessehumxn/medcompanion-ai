@@ -6064,7 +6064,8 @@ document.addEventListener('DOMContentLoaded', function() {
   <div class="mcj-wrap">
     <div class="mcj-top"><div class="mcj-title">My Records</div><button class="mcj-x" onclick="closeRecords()" aria-label="Close">&times;</button></div>
     <p class="mcj-sub">Your labs, meds &amp; conditions &mdash; explained in plain language, with what to ask your doctor. Kept private on your device.</p>
-    <button class="mcj-analyze" style="margin-bottom:10px" onclick="mcrConnect()">&#128279; Connect Apple Health / MyChart</button>
+    <button class="mcj-analyze" style="margin-bottom:10px" onclick="mcrConnectEpic()">&#127973; Connect Epic / MyChart (sign in)</button>
+    <button class="mcj-analyze" style="margin-bottom:10px" onclick="mcrConnect()">&#127823; Apple Health (iPhone)</button>
     <button class="mcj-analyze" style="margin-bottom:14px" onclick="mcrImport()">&#128196; Import a records file (FHIR/JSON)</button>
     <input type="file" id="mcrFile" accept=".json,application/json,.fhir,text/json" style="display:none" onchange="mcrImportFile(event)">
     <div class="mcj-card">
@@ -6217,6 +6218,56 @@ document.addEventListener('DOMContentLoaded', function() {
     }).catch(function(){ alert('Couldn’t read Apple Health. You can allow access in Settings → Privacy → Health, or import a records file instead.'); });
   };
 
+  // ---- Epic / MyChart sign-in (SMART on FHIR, patient standalone + PKCE) ----
+  function _rand(n){
+    var a=new Uint8Array(n); (window.crypto||window.msCrypto).getRandomValues(a);
+    var cs='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~', s='';
+    for(var i=0;i<a.length;i++){ s+=cs[a[i]%cs.length]; }
+    return s;
+  }
+  function _b64url(buf){ var b=btoa(String.fromCharCode.apply(null,new Uint8Array(buf))); return b.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+  window._pkceChallenge=function(v){ return window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(v)).then(_b64url); };
+  window.mcrConnectEpic=function(){
+    fetch(base()+'/epic/config').then(function(r){return r.json();}).then(function(cfg){
+      if(!cfg.configured){
+        if(confirm('Signing in to Epic/MyChart directly needs a one-time setup (a free Epic app registration). Until that’s on, you can IMPORT the FHIR/JSON file you download from MyChart or Apple Health — everything stays on your device. Import a file now?')) window.mcrImport();
+        return;
+      }
+      var verifier=_rand(64), state=_rand(24);
+      sessionStorage.setItem('epic_v', verifier); sessionStorage.setItem('epic_s', state);
+      window._pkceChallenge(verifier).then(function(challenge){
+        var u=cfg.authorize_url+'?response_type=code'
+          +'&client_id='+encodeURIComponent(cfg.client_id)
+          +'&redirect_uri='+encodeURIComponent(cfg.redirect_uri)
+          +'&scope='+encodeURIComponent(cfg.scopes)
+          +'&state='+encodeURIComponent(state)
+          +'&aud='+encodeURIComponent(cfg.fhir_base)
+          +'&code_challenge='+encodeURIComponent(challenge)
+          +'&code_challenge_method=S256';
+        window.location.assign(u);
+      });
+    }).catch(function(){ alert('Couldn’t start the Epic connection just now — try again.'); });
+  };
+  window.mcrEpicReturn=function(){
+    var q; try{ q=new URLSearchParams(location.search); }catch(e){ return; }
+    var code=q.get('code'), state=q.get('state');
+    if(!code) return;
+    var v=sessionStorage.getItem('epic_v'), s=sessionStorage.getItem('epic_s');
+    try{ history.replaceState({}, document.title, location.pathname); }catch(e){}
+    if(!v || !state || state!==s) return;
+    sessionStorage.removeItem('epic_v'); sessionStorage.removeItem('epic_s');
+    fetch(base()+'/epic/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code, code_verifier:v})})
+      .then(function(r){return r.json();}).then(function(tok){
+        if(!tok.access_token) throw 0;
+        return fetch(base()+'/epic/records',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({access_token:tok.access_token, patient:tok.patient})}).then(function(r){return r.json();});
+      }).then(function(rec){
+        var recs=window.fhirToRecords(rec.resources||[]);
+        var n=mergeRecords(recs);
+        window.openRecords();
+        alert(n? ('Connected Epic — imported '+n+' record'+(n===1?'':'s')+', kept on your device.') : 'Connected Epic, but found no labs, meds or conditions to import.');
+      }).catch(function(){ alert('Couldn’t finish the Epic connection. You can try again or import a records file.'); });
+  };
+
   window.mcrExplain=function(){
     var a=rload(), out=document.getElementById('mcrOut');
     if(!a.length){ out.innerHTML='<div class="mcj-inssum">Add a few records first — or load a sample.</div>'; return; }
@@ -6278,6 +6329,8 @@ document.addEventListener('DOMContentLoaded', function() {
     else if(navigator.clipboard){ navigator.clipboard.writeText(u).then(function(){ alert('Link copied — send it to your doctor or paste it into your portal message. They can open and print it.'); }); }
     else { prompt('Copy this link for your doctor:', u); }
   };
+  // On load: if Epic redirected back with ?code, finish the connection.
+  try{ if(location.search && location.search.indexOf('code=')>-1){ window.mcrEpicReturn(); } }catch(e){}
 })();
 </script>
 
