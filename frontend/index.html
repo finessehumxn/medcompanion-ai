@@ -2385,6 +2385,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <a href="javascript:void(0)" class="nav-link" onclick="openJournal()"><i class="ti ti-notebook" aria-hidden="true"></i> Health Journal</a>
     <a href="javascript:void(0)" class="nav-link" onclick="openRecords()"><i class="ti ti-file-text" aria-hidden="true"></i> My Records</a>
     <a href="javascript:void(0)" class="nav-link" onclick="openVisit()"><i class="ti ti-clipboard-heart" aria-hidden="true"></i> Prep for my visit</a>
+    <a href="javascript:void(0)" class="nav-link" onclick="openTrust()"><i class="ti ti-lock" aria-hidden="true"></i> Your data &amp; AI</a>
     <a href="#crisis-help" class="nav-link nav-link-crisis"><i class="ti ti-life-buoy" aria-hidden="true"></i> Need help now</a>
     <a href="#questions" class="nav-link"><i class="ti ti-help-circle" aria-hidden="true"></i> Common questions</a>
     <a href="/about.html" class="nav-link"><i class="ti ti-rosette-discount-check" aria-hidden="true"></i> Our standards</a>
@@ -2412,6 +2413,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openJournal()"><i class="ti ti-notebook"></i> Health Journal</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openRecords()"><i class="ti ti-file-text"></i> My Records</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openVisit()"><i class="ti ti-clipboard-heart"></i> Prep for my visit</a>
+  <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openTrust()"><i class="ti ti-lock"></i> Your data &amp; AI</a>
   <a href="#crisis-help" class="mobile-link mobile-link-crisis" onclick="toggleMobileMenu()"><i class="ti ti-life-buoy"></i> Need help right now</a>
   <a href="#questions" class="mobile-link" onclick="toggleMobileMenu()"><i class="ti ti-help-circle"></i> Common questions</a>
   <a href="/about.html" class="mobile-link" onclick="toggleMobileMenu()"><i class="ti ti-rosette-discount-check"></i> Our standards</a>
@@ -5976,7 +5978,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
     <button class="mcj-analyze" onclick="mcjAnalyze()">&#10022; See my patterns &amp; triggers</button>
     <div id="mcjInsights"></div>
-    <p class="mcj-disc">This is information from your own logs &mdash; not a diagnosis or medical advice. Bring anything concerning to your clinician.</p>
+    <p class="mcj-disc">This is information from your own logs &mdash; not a diagnosis or medical advice. Bring anything concerning to your clinician. <a href="javascript:void(0)" onclick="openTrust()" style="color:#7fe6b4;text-decoration:underline">🔒 How your data is handled</a></p>
   </div>
 </div>
 <script>
@@ -6017,6 +6019,7 @@ document.addEventListener('DOMContentLoaded', function() {
   window.mcjAnalyze=function(){
     var a=load(); var box=document.getElementById('mcjInsights');
     if(a.length<3){ box.innerHTML='<div class="mcj-inssum">Log about 3+ check-ins and I\'ll start finding patterns and triggers.</div>'; return; }
+    if(!(window.mcAIAllowed?window.mcAIAllowed('Your check-in history — dates, severity, symptoms, sleep and notes — is sent to find patterns.'):true)) return;
     box.innerHTML='<div class="mcj-inssum">Looking for patterns&hellip;</div>';
     var base=(typeof API!=='undefined')?API:'';
     fetch(base+'/insights',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({entries:a, lang:(window.currentLang||null)})})
@@ -6082,7 +6085,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
     <button class="mcj-analyze" onclick="mcrExplain()">&#10022; Explain my records</button>
     <div id="mcrOut"></div>
-    <p class="mcj-disc">Information from your records &mdash; not a diagnosis or medical advice.</p>
+    <p class="mcj-disc">Information from your records &mdash; not a diagnosis or medical advice. <a href="javascript:void(0)" onclick="openTrust()" style="color:#7fe6b4;text-decoration:underline">🔒 How your data is handled</a></p>
   </div>
 </div>
 <div id="mcVisit" class="mcj-screen" role="dialog" aria-label="Prep for my visit">
@@ -6096,7 +6099,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
     <button class="mcj-analyze" onclick="mcvBuild()">&#10022; Build my visit sheet</button>
     <div id="mcvOut"></div>
-    <p class="mcj-disc">This is patient-reported information you choose to share &mdash; not a clinical assessment.</p>
+    <p class="mcj-disc">This is patient-reported information you choose to share &mdash; not a clinical assessment. <a href="javascript:void(0)" onclick="openTrust()" style="color:#7fe6b4;text-decoration:underline">🔒 How your data is handled</a></p>
   </div>
 </div>
 <script>
@@ -6145,6 +6148,7 @@ document.addEventListener('DOMContentLoaded', function() {
   window.mcrExplain=function(){
     var a=rload(), out=document.getElementById('mcrOut');
     if(!a.length){ out.innerHTML='<div class="mcj-inssum">Add a few records first — or load a sample.</div>'; return; }
+    if(!(window.mcAIAllowed?window.mcAIAllowed('Your labs, medications and conditions are sent to explain them in plain language.'):true)) return;
     out.innerHTML='<div class="mcj-inssum">Reading your records&hellip;</div>';
     var body=splitRecords(a); body.lang=(window.currentLang||null);
     fetch(base()+'/explain-records',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
@@ -6167,6 +6171,7 @@ document.addEventListener('DOMContentLoaded', function() {
   window._mcvText='';
   window.mcvBuild=function(){
     var out=document.getElementById('mcvOut');
+    if(!(window.mcAIAllowed?window.mcAIAllowed('Your visit reason, check-ins and records are sent to build your visit summary.'):true)) return;
     out.innerHTML='<div class="mcv-sum">Building your sheet&hellip;</div>';
     var rec=splitRecords(rload());
     var body={reason:(document.getElementById('mcvReason').value||'').trim(), checkins:tload(), labs:rec.labs, medications:rec.medications, conditions:rec.conditions, lang:(window.currentLang||null)};
@@ -6201,5 +6206,96 @@ document.addEventListener('DOMContentLoaded', function() {
     else if(navigator.clipboard){ navigator.clipboard.writeText(u).then(function(){ alert('Link copied — send it to your doctor or paste it into your portal message. They can open and print it.'); }); }
     else { prompt('Copy this link for your doctor:', u); }
   };
+})();
+</script>
+
+<!-- ══ MedCompanion — Your data & AI (transparency + consent + control) ══ -->
+<style>
+  .mct-seg{ display:flex; gap:8px; }
+  .mct-seg button{ flex:1; font-size:14px; font-weight:700; padding:11px; border-radius:10px; cursor:pointer; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.05); color:#cfe3d8; }
+  .mct-seg button.on{ background:rgba(52,199,140,.2); border-color:rgba(52,199,140,.5); color:#7fe6b4; }
+  .mct-del{ width:100%; margin-top:12px; background:rgba(224,87,77,.12); color:#ff9c93; border:1px solid rgba(224,87,77,.4); font-weight:700; font-size:14px; padding:12px; border-radius:11px; cursor:pointer; }
+  .mct-grp{ margin:20px 0 0; }
+  .mct-gh{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800; color:#7fe6b4; margin:0 0 8px; }
+  .mct-gh.warn{ color:#ff9c93; }
+  .mct-li{ font-size:13.5px; line-height:1.5; color:#dcebe3; padding:6px 0 6px 20px; position:relative; }
+  .mct-li:before{ content:"·"; position:absolute; left:6px; color:#8fbfa8; font-weight:800; }
+  .mct-vend{ font-size:12px; color:#8fbfa8; margin-top:2px; }
+  .mct-raw{ display:inline-block; margin-top:16px; font-size:12.5px; color:#7fe6b4; text-decoration:underline; }
+</style>
+<div id="mcTrust" class="mcj-screen" role="dialog" aria-label="Your data and AI">
+  <div class="mcj-wrap">
+    <div class="mcj-top"><div class="mcj-title">Your data &amp; AI</div><button class="mcj-x" onclick="closeTrust()" aria-label="Close">&times;</button></div>
+    <p class="mcj-sub">The plain truth about what stays on your phone, what the AI sees, and what it will <b>never</b> do. These facts are read <b>live from our server</b> &mdash; you can check them yourself.</p>
+    <div class="mcj-card">
+      <div class="mcj-h">Your controls</div>
+      <div class="mcj-lbl" style="margin-top:0">AI features</div>
+      <div class="mct-seg" id="mctToggle">
+        <button type="button" onclick="mctSetAI('1')">On</button>
+        <button type="button" onclick="mctSetAI('0')">Off</button>
+      </div>
+      <p class="mcj-sub" style="margin:8px 0 0">Turn AI off and the app still works &mdash; your journal, records and timeline are all on-device.</p>
+      <button class="mct-del" onclick="mctWipe()">Delete everything on this device</button>
+    </div>
+    <div id="mctPolicy"><div class="mcj-inssum">Loading the live facts&hellip;</div></div>
+    <p class="mcj-disc">MedCompanion gives information, not a diagnosis. It doesn't replace your clinician's judgment.</p>
+  </div>
+</div>
+<script>
+(function(){
+  function base(){ return (typeof API!=='undefined')?API:''; }
+  function esc(x){ return String(x==null?'':x).replace(/</g,'&lt;'); }
+  // ---- AI consent + master switch (used by every AI action) ----
+  window.mcAIAllowed=function(desc){
+    if(localStorage.getItem('mc_ai_enabled')==='0'){
+      alert('AI features are turned OFF.\n\nYou can turn them back on in “Your data & AI.” Everything else in the app still works.');
+      return false;
+    }
+    if(localStorage.getItem('mc_ai_consent')!=='1'){
+      var ok=confirm('Use AI for this?\n\n'+desc+'\n\n• Only this is sent — nothing else.\n• It’s used to generate your answer and is NOT stored on our servers or used to train AI.\n• Everything else stays on your phone.\n\nOK = allow AI features · Cancel = keep them off');
+      if(!ok){ localStorage.setItem('mc_ai_enabled','0'); return false; }
+      localStorage.setItem('mc_ai_consent','1');
+      localStorage.setItem('mc_ai_enabled','1');
+    }
+    return true;
+  };
+  window.mctSetAI=function(v){
+    localStorage.setItem('mc_ai_enabled', v);
+    if(v==='1') localStorage.setItem('mc_ai_consent','1'); // choosing On is consent
+    mctReflect();
+  };
+  function mctReflect(){
+    var on=localStorage.getItem('mc_ai_enabled')!=='0';
+    var g=document.getElementById('mctToggle'); if(!g) return;
+    var b=g.querySelectorAll('button'); b[0].classList.toggle('on',on); b[1].classList.toggle('on',!on);
+  }
+  window.mctWipe=function(){
+    if(!confirm('Delete ALL MedCompanion data on this device?\n\nThis removes your Health Journal check-ins, My Records entries, and saved settings from this phone. It cannot be undone.')) return;
+    var keys=[]; for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k && (k.indexOf('mc_')===0 || k.indexOf('mc.')===0)) keys.push(k); }
+    keys.forEach(function(k){ localStorage.removeItem(k); });
+    alert('Done — everything on this device was deleted.');
+  };
+  window.openTrust=function(){
+    var m=document.getElementById('mcTrust'); if(!m) return;
+    m.classList.add('show'); mctReflect();
+    var box=document.getElementById('mctPolicy');
+    fetch(base()+'/data-policy').then(function(r){return r.json();}).then(function(d){
+      function grp(icon,title,items,warn){ if(!items||!items.length) return ''; return '<div class="mct-grp"><div class="mct-gh'+(warn?' warn':'')+'">'+icon+' '+title+'</div>'+items.map(function(x){return '<div class="mct-li">'+esc(x)+'</div>';}).join('')+'</div>'; }
+      var h='';
+      h+=grp('📱','Stays on your phone', d.on_device_only);
+      var t=d.sent_to_ai_only_when_you_tap||{};
+      var aiItems=[];
+      if(t.text_features){ aiItems.push('Text: '+(t.text_features.features||[]).join(', ')+' → '+t.text_features.vendor); }
+      if(t.voice_features && (t.voice_features.vendors||[]).length){ aiItems.push('Voice: '+(t.voice_features.features||[]).join(', ')+' → '+(t.voice_features.vendors||[]).join(', ')); }
+      h+=grp('✨','Sent to AI only when you tap', aiItems);
+      h+='<div class="mct-grp"><div class="mct-gh">🗄️ On our servers</div><div class="mct-li">'+(d.server_stores_health_content?'History storage is ON for this deployment (disclosed &amp; consented).':'Nothing. Health content is <b>not</b> stored — the AI answers and forgets.')+'</div><div class="mct-vend" style="padding-left:20px">'+esc(d.server_storage_note||'')+'</div></div>';
+      h+=grp('🚫','The AI will never', d.ai_will_never, true);
+      h+=grp('✅','You’re in control', d.you_control);
+      h+=grp('🏥','Being honest about what’s next', d.not_yet);
+      h+='<a class="mct-raw" href="'+base()+'/data-policy" target="_blank" rel="noopener">See the raw, live policy →</a>';
+      box.innerHTML=h;
+    }).catch(function(){ box.innerHTML='<div class="mcj-inssum">Couldn\'t load the live facts just now — check your connection and reopen.</div>'; });
+  };
+  window.closeTrust=function(){ var m=document.getElementById('mcTrust'); if(m) m.classList.remove('show'); };
 })();
 </script>
