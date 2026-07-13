@@ -2679,76 +2679,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 <!-- ═══ PRICING ═══ -->
-<section class="pricing-section" id="pricing" aria-label="Pricing plans">
+<section class="pricing-section" id="pricing" aria-label="Pricing">
   <div class="pricing-inner">
     <div class="pricing-kicker"><i class="ti ti-currency-dollar"></i> Simple, honest pricing</div>
-    <h2 class="pricing-title">Free for everyone. More for those who need more.</h2>
-    <p class="pricing-sub">MedCompanion AI will always be free for everyday health questions. We grow by serving health systems, employers, and organizations that want to bring this to their communities at scale.</p>
-    <div class="pricing-grid">
-
-      <div class="pricing-card">
-        <div class="pricing-tier">Free</div>
-        <div class="pricing-price">$0<span>/mo</span></div>
+    <h2 class="pricing-title">Free.</h2>
+    <p class="pricing-sub">MedCompanion AI is free. Understand your labs, meds and conditions, track how you feel, and prep for your visits &mdash; with nothing stored on our servers and no account required for the core.</p>
+    <div class="pricing-grid" style="grid-template-columns:1fr;max-width:440px;margin:0 auto">
+      <div class="pricing-card featured">
+        <div class="pricing-badge">Free for everyone</div>
+        <div class="pricing-tier">Everything</div>
+        <div class="pricing-price">$0</div>
         <div class="pricing-desc">For patients and caregivers with health questions</div>
         <ul class="pricing-features">
-          <li>Unlimited health briefings</li>
-          <li>Voice input</li>
-          <li>Image analysis (lab results, rashes)</li>
+          <li>Explain your labs, meds &amp; conditions</li>
+          <li>Health journal + patterns</li>
+          <li>Prep-for-your-visit sheet</li>
+          <li>Voice input &amp; read-aloud</li>
           <li>All languages</li>
-          <li>Holistic + medical options</li>
-          <li>Sourced from NIH, Mayo Clinic, FDA</li>
+          <li>Kept private on your device</li>
         </ul>
-        <a class="pricing-cta" href="#main-content">Get Started Free</a>
+        <a class="pricing-cta" href="#main-content">Get started</a>
       </div>
-
-      <div class="pricing-card featured">
-        <div class="pricing-badge">Most popular</div>
-        <div class="pricing-tier">Personal</div>
-        <div class="pricing-price">$9<span>/mo</span></div>
-        <div class="pricing-desc">For individuals managing ongoing health conditions</div>
-        <ul class="pricing-features">
-          <li>Everything in Free</li>
-          <li>Health history saved forever</li>
-          <li>Symptom tracker with patterns</li>
-          <li>Medication tracker + reminders</li>
-          <li>Family profiles (up to 6)</li>
-          <li>Appointment prep sheets</li>
-          <li>Priority response speed</li>
-        </ul>
-        <button class="pricing-cta" onclick="openAuth('signup')">Start Free Trial</button>
-      </div>
-
-      <div class="pricing-card">
-        <div class="pricing-tier">Clinical Pro</div>
-        <div class="pricing-price">$29<span>/mo</span></div>
-        <div class="pricing-desc">For medical professionals and care teams</div>
-        <ul class="pricing-features">
-          <li>Generate patient briefings by diagnosis</li>
-          <li>Plain-language patient handouts</li>
-          <li>Peer-reviewed clinical sources</li>
-          <li>Holistic + cultural care options</li>
-          <li>Unlimited briefings per month</li>
-          <li>Priority response speed</li>
-        </ul>
-        <button class="pricing-cta" onclick="openAuth('signup')">Start Free Trial</button>
-      </div>
-
-      <div class="pricing-card">
-        <div class="pricing-tier">Enterprise</div>
-        <div class="pricing-price">Custom</div>
-        <div class="pricing-desc">For health systems, insurers, and employers</div>
-        <ul class="pricing-features">
-          <li>White-label deployment</li>
-          <li>EHR / FHIR integration</li>
-          <li>HIPAA Business Associate Agreement</li>
-          <li>Custom AI pipeline configuration</li>
-          <li>Analytics dashboard</li>
-          <li>API access</li>
-          <li>Dedicated support</li>
-        </ul>
-        <a class="pricing-cta" href="mailto:hello@medcompanionai.com">Contact Us</a>
-      </div>
-
     </div>
   </div>
 </section>
@@ -4845,7 +4796,7 @@ function renderBriefing(b) {
       return '<div class="h-item"><div class="h-name">'+clean(h.name)+'</div><span class="h-type">'+clean(h.type||'Complementary')+'</span><p class="h-desc" style="font-size:14px">'+clean(h.plain_description)+'</p>'+(h.note?'<p class="h-note" style="font-size:13px">Evidence note: '+clean(h.note)+'</p>':'')+'</div>';
     }).join('');
     bodyEl.innerHTML =
-      '<div style="display:flex;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:1.25rem"><div style="flex:1"><div class="brief-condition">'+clean(b.condition_name)+'</div><div style="font-size:13px;color:var(--text-soft);margin-top:.25rem">Common name: '+clean(b.plain_name||b.condition_name)+' &middot; '+(b.sources?b.sources.length:0)+' sources &middot; Evidence-based</div></div><span style="background:#1a3a4a;color:#7ecfc0;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:6px">Clinical Pro</span></div>'+
+      '<div style="display:flex;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:1.25rem"><div style="flex:1"><div class="brief-condition">'+clean(b.condition_name)+'</div><div style="font-size:13px;color:var(--text-soft);margin-top:.25rem">Common name: '+clean(b.plain_name||b.condition_name)+' &middot; '+(b.sources?b.sources.length:0)+' sources &middot; Evidence-based</div></div><span style="background:#1a3a4a;color:#7ecfc0;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:6px">Clinician view</span></div>'+
       '<div style="background:#f0f9f7;border:1.5px solid var(--teal);border-radius:14px;padding:1.25rem;margin-bottom:1.25rem"><div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem"><i class="ti ti-file-text" style="color:var(--teal);font-size:18px"></i><strong style="font-size:15px;color:var(--text-dark)">After Visit Summary &mdash; Patient-Ready Language</strong><span style="font-size:11px;color:var(--text-soft);margin-left:auto">Copy and give directly to patient</span></div><p id="avsContent" style="font-size:14px;line-height:1.8;color:var(--text-body);margin:0 0 .75rem">'+avs+'</p><button onclick="navigator.clipboard.writeText(document.getElementById(\'avsContent\').innerText);this.textContent=\'Copied!\';var el=this;setTimeout(function(){el.innerHTML=\'<i class=\\\"ti ti-copy\\\"></i> Copy AVS for patient\';},2000)" style="background:var(--teal);color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-copy"></i> Copy AVS for patient</button></div>'+
       '<div class="card" style="margin-bottom:.85rem"><div class="card-header"><div class="card-icon ci-teal"><i class="ti ti-stethoscope"></i></div><div class="card-title">Standard of Care</div></div><p style="font-size:14px;color:var(--text-body);line-height:1.7;margin:.5rem 0 '+(txP?'1rem':'0')+';padding:.75rem;background:#f8f8f8;border-radius:8px">'+clean(soc.plain_summary)+'</p>'+txP+'</div>'+
       '<div class="card" style="margin-bottom:.85rem"><div class="card-header"><div class="card-icon ci-sage"><i class="ti ti-flask"></i></div><div class="card-title">Emerging &amp; Investigational Therapies</div></div><p style="font-size:13px;color:var(--text-soft);margin:.25rem 0 .85rem">Sourced from PubMed, the FDA, and ClinicalTrials.gov:</p>'+(emP||'<p style="font-size:14px;color:var(--text-soft)">No emerging therapies identified.</p>')+'</div>'+
