@@ -37,6 +37,15 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# --- Data-handling policy (trust-by-default) -----------------------------
+# By DEFAULT MedCompanion stores NO health content on the server: the AI
+# endpoints are stateless (answer-and-forget) and nothing a user enters is
+# persisted. Server-side history is strictly opt-in and only turns on when a
+# deployment explicitly sets MC_STORE_HISTORY=1 (e.g. after a signed BAA and a
+# clear in-app consent). This makes the promise "your records stay on your
+# device" true unless a deployment deliberately, and disclosed-ly, changes it.
+STORE_HISTORY = os.getenv("MC_STORE_HISTORY", "0") == "1"
+
 app = FastAPI(title="MedCompanion AI", version="2.0.0")
 
 # CORS — required so the bundled mobile app (origin https://localhost / capacitor://localhost)
@@ -124,6 +133,58 @@ async def health():
         # also surface any env var names that LOOK like a groq key but are
         # misnamed (e.g. trailing space) — shows the raw keys present.
         "groq_env_names": [k for k in os.environ if "GROQ" in k.upper()],
+    }
+
+@app.get("/data-policy")
+async def data_policy():
+    """Honest, machine-readable statement of how MedCompanion handles data.
+    The app renders this on the 'Your data & AI' screen, and anyone (a patient,
+    a hospital's compliance team) can curl it to verify the claims independently.
+    It reports the LIVE configuration of this running server, not marketing copy."""
+    voice_vendors = []
+    if os.getenv("OPENAI_API_KEY"): voice_vendors.append("OpenAI (Whisper)")
+    if os.getenv("GROQ_API_KEY"): voice_vendors.append("Groq (Whisper)")
+    if os.getenv("ELEVENLABS_API_KEY"): voice_vendors.append("ElevenLabs")
+    return {
+        "on_device_only": [
+            "Health Journal check-ins (stored only in your phone's local storage)",
+            "My Records entries (stored only in your phone's local storage)",
+            "The visit sheet (travels only inside the link you share; never uploaded)",
+        ],
+        "sent_to_ai_only_when_you_tap": {
+            "text_features": {
+                "vendor": "Anthropic (Claude)",
+                "features": ["Explain my records", "See my patterns", "Build my visit sheet", "Companion chat"],
+                "note": "Only the specific text for that feature is sent, to generate the answer.",
+            },
+            "voice_features": {
+                "vendors": voice_vendors,
+                "features": ["Voice input (speech-to-text)", "Read-aloud (text-to-speech)"],
+                "note": "Audio is transcribed/spoken and not retained by MedCompanion.",
+            },
+        },
+        "server_stores_health_content": STORE_HISTORY,   # false by default
+        "server_storage_note": (
+            "OFF by default: the AI features are stateless — they answer and forget, and nothing "
+            "you enter is written to our database. Server-side history only turns on if a deployment "
+            "explicitly enables it (MC_STORE_HISTORY=1) with disclosure and consent."
+        ),
+        "we_never_log_your_health_content": True,
+        "ai_will_never": [
+            "Diagnose you or decide your treatment",
+            "Replace your doctor's judgment",
+            "Train AI models on your data",
+            "Sell or advertise with your data",
+        ],
+        "you_control": [
+            "The app's core works with AI turned off",
+            "Nothing is sent until you tap an AI feature",
+            "You can delete everything on your device at any time",
+        ],
+        "not_yet": [
+            "This is the product's data architecture. Formal hospital assurances "
+            "(signed BAAs with each AI vendor, HIPAA program, SOC 2) are a separate, in-progress track.",
+        ],
     }
 
 class StartRequest(BaseModel):
@@ -424,7 +485,7 @@ async def speak(req: SpeakRequest):
                 )
                 if r.status_code == 200:
                     return Response(content=r.content, media_type="audio/mpeg", headers=cache)
-                errors.append(f"elevenlabs {r.status_code}: {r.text[:300]}")
+                errors.append(f"elevenlabs {r.status_code}")
 
             # 2) OpenAI TTS — rock-solid, one key
             if openai_key:
@@ -435,7 +496,7 @@ async def speak(req: SpeakRequest):
                 )
                 if r.status_code == 200:
                     return Response(content=r.content, media_type="audio/mpeg", headers=cache)
-                errors.append(f"openai {r.status_code}: {r.text[:300]}")
+                errors.append(f"openai {r.status_code}")
 
             # (Groq's PlayAI TTS was decommissioned — no longer an option.)
     except Exception as e:
@@ -490,7 +551,7 @@ async def transcribe(req: TranscribeRequest):
                 )
                 if r.status_code == 200:
                     return {"text": (r.json().get("text") or "").strip()}
-                logger.error(f"groq stt {r.status_code}: {r.text[:200]}")
+                logger.error(f"groq stt {r.status_code} (response body not logged)")
             if openai_key:
                 r = await client.post(
                     "https://api.openai.com/v1/audio/transcriptions",
@@ -500,7 +561,7 @@ async def transcribe(req: TranscribeRequest):
                 )
                 if r.status_code == 200:
                     return {"text": (r.json().get("text") or "").strip()}
-                logger.error(f"openai stt {r.status_code}: {r.text[:200]}")
+                logger.error(f"openai stt {r.status_code} (response body not logged)")
             if eleven:
                 r = await client.post(
                     "https://api.elevenlabs.io/v1/speech-to-text",
@@ -510,7 +571,7 @@ async def transcribe(req: TranscribeRequest):
                 )
                 if r.status_code == 200:
                     return {"text": (r.json().get("text") or "").strip()}
-                logger.error(f"eleven stt {r.status_code}: {r.text[:200]}")
+                logger.error(f"eleven stt {r.status_code} (response body not logged)")
     except Exception as e:
         logger.error(f"transcribe error: {e}")
         raise HTTPException(502, "Transcription unavailable")
@@ -1015,7 +1076,9 @@ async def _briefing_task(thread_id, config, confirmed, override, user_id, raw_in
             logger.error(f"No briefing returned. State: {list(result.keys())}")
             _briefing_jobs[thread_id] = {"status": "error", "error": "Briefing generation failed. Please try again."}
             return
-        if user_id and SUPABASE_ENABLED:
+        if user_id and SUPABASE_ENABLED and STORE_HISTORY:
+            # Opt-in only (MC_STORE_HISTORY=1). Off by default: no health input
+            # is written to the server, so the default deployment stores nothing.
             try:
                 await save_session(user_id=user_id, raw_input=raw_input, condition=final_condition, briefing=briefing)
             except Exception as se:
