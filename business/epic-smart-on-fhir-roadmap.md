@@ -7,6 +7,29 @@
 
 **Status:** Planning document. Last updated 2026-06-29.
 
+---
+
+## 0. Update (2026-07-12) — the patient-standalone flow is now BUILT (sandbox-ready)
+
+The **patient standalone / MyChart** launch (Section 3, the consumer path) is implemented in the app and deployed. What's live and unit-verified today:
+
+- **In-app:** *My Records → "🏥 Connect Epic / MyChart (sign in)"* runs a full **SMART-on-FHIR authorization-code + PKCE** flow. PKCE `S256` was verified against a reference vector (exact match); the authorize URL includes `response_type, client_id, redirect_uri, scope, state, aud, code_challenge, code_challenge_method=S256`.
+- **Backend proxies** (dodge browser CORS, keep tokens transient — **nothing stored**): `GET /epic/config`, `POST /epic/token` (public client + PKCE, no secret), `POST /epic/records` (reads `Observation` (laboratory), `Condition`, `MedicationRequest`, `AllergyIntolerance` for the patient).
+- **Mapping:** fetched FHIR runs through `window.fhirToRecords()` — verified against Epic R4 shapes (LOINC coding, `referenceRange.text`, `medicationReference`→contained, ICD-10 Conditions) → lands in My Records → "Explain my records."
+- **Defaults point at Epic's public sandbox.** `configured:false` until `EPIC_CLIENT_ID` is set; until then the button falls back to file import.
+
+### To turn it on in the sandbox (≈15 min, free)
+1. Create a free account at **fhir.epic.com** → **Build Apps** → new app, type **Patients (standalone)**, **FHIR R4**.
+2. Set **Redirect URI** to exactly `https://medcompanion-ai.up.railway.app/app` (matches `EPIC_REDIRECT_URI`).
+3. Select scopes: `openid fhirUser patient/Patient.read patient/Observation.read patient/Condition.read patient/MedicationRequest.read patient/AllergyIntolerance.read`.
+4. Copy the **(non-production) Client ID** → set it as `EPIC_CLIENT_ID` in Railway (Variables → Deploy). `/epic/config` will then report `configured:true`.
+5. In the app tap **Connect Epic / MyChart**, sign in with an **open.epic.com sandbox test patient** (e.g. *Camila Lopez* / documented credentials), consent → records import.
+
+### What is still gated (unchanged from below)
+- **Production at a real hospital** still requires a **sponsoring health system** to enable your production Client ID against their environment (Section 2) — no code closes that gap.
+- **Provider-facing EHR launch** (inside Hyperspace/Hyperdrive) and **App Orchard/Showroom** listing remain the business/partnership track.
+- **PHI + BAA gates** (Section 6) apply before real patient data flows in production.
+
 > **Honesty note up front.** Integrating into Epic is a serious, multi-month effort gated by a paid vendor program, a security review, and — critically — the willingness of a hospital customer to sponsor you in production. The first 80% of the *technical* build (sandbox prototype) is achievable in weeks by a competent engineer. The last 20% (getting live at a real site) is mostly process, contracts, and security, and is measured in months. Where exact Epic program names or fees are version-dependent, this document flags the uncertainty rather than asserting a number as gospel. **Confirm all fees, tier names, and timelines directly with Epic before budgeting against them** — Epic renamed this program recently and figures circulating online are inconsistent.
 
 ---
