@@ -95,6 +95,10 @@ async def serve_privacy():
 async def serve_trust():
     return FileResponse(os.path.join(frontend_dir, "trust.html"))
 
+@app.get("/pro")
+async def serve_pro():
+    return FileResponse(os.path.join(frontend_dir, "pro.html"))
+
 @app.get("/doctor")
 async def serve_doctor():
     return FileResponse(os.path.join(frontend_dir, "doctor.html"))

@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Medical Chronology · MedCompanion for Professionals</title>
+<meta name="description" content="Turn a client's medical records into a factual, dated medical chronology. Draft in seconds, verify against source.">
+<style>
+  :root{ --bg:#f5f7f9; --card:#fff; --ink:#16212b; --sub:#5b6b78; --line:#e2e9ee; --accent:#1f6feb; --accent-soft:#e8f0fe; --warn:#b7791f; --warn-soft:#fdf3e2; }
+  @media (prefers-color-scheme: dark){ :root{ --bg:#0c141b; --card:#131f29; --ink:#e9f0f5; --sub:#93a4b2; --line:rgba(255,255,255,.09); --accent:#5b9bff; --accent-soft:rgba(91,155,255,.12); --warn:#e0b46a; --warn-soft:rgba(224,180,106,.12); } }
+  *{ box-sizing:border-box; } html,body{ margin:0; }
+  body{ background:var(--bg); color:var(--ink); font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:820px; margin:0 auto; padding:0 20px 60px; }
+  header.top{ padding:20px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+  .brand{ font-weight:800; letter-spacing:-.01em; }
+  .brand .tag{ font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--accent); background:var(--accent-soft); padding:3px 8px; border-radius:6px; margin-left:8px; }
+  .home{ font-size:13px; color:var(--accent); text-decoration:none; font-weight:700; }
+  h1{ font-size:27px; font-weight:850; letter-spacing:-.02em; margin:14px 0 6px; text-wrap:balance; }
+  .lede{ font-size:16px; color:var(--sub); margin:0 0 6px; max-width:60ch; }
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px 20px; margin:16px 0; }
+  label{ display:block; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--sub); margin:0 0 7px; }
+  input[type=text], textarea{ width:100%; box-sizing:border-box; background:var(--bg); border:1px solid var(--line); color:var(--ink); border-radius:10px; padding:11px 13px; font-size:14px; font-family:inherit; }
+  textarea{ min-height:170px; resize:vertical; line-height:1.5; }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+  button{ font-family:inherit; cursor:pointer; }
+  .btn{ background:var(--accent); color:#fff; border:none; font-weight:700; font-size:15px; padding:12px 20px; border-radius:10px; }
+  .btn.ghost{ background:transparent; color:var(--accent); border:1px solid var(--line); }
+  .hint{ font-size:12.5px; color:var(--sub); margin-top:8px; }
+  h2{ font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--sub); margin:24px 0 10px; }
+  .tl{ position:relative; }
+  .tl-row{ display:grid; grid-template-columns:112px 1fr; gap:14px; padding:12px 0; border-top:1px solid var(--line); }
+  .tl-row:first-child{ border-top:none; }
+  .tl-date{ font-variant-numeric:tabular-nums; font-weight:700; font-size:13px; color:var(--accent); }
+  .tl-cat{ display:inline-block; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:var(--sub); background:var(--accent-soft); border-radius:5px; padding:2px 7px; margin-top:4px; }
+  .tl-event{ font-weight:700; font-size:14.5px; }
+  .tl-detail{ font-size:13.5px; color:var(--sub); margin-top:3px; line-height:1.5; }
+  ul.clean{ margin:0; padding-left:20px; } ul.clean li{ margin-bottom:7px; line-height:1.5; }
+  .gaps{ background:var(--warn-soft); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+  .gaps h3{ margin:0 0 8px; font-size:13px; color:var(--warn); }
+  .disc{ font-size:12.5px; color:var(--sub); font-style:italic; margin-top:18px; line-height:1.5; border-top:1px solid var(--line); padding-top:14px; }
+  .banner{ background:var(--accent-soft); border:1px solid var(--line); border-radius:10px; padding:10px 14px; font-size:12.5px; color:var(--sub); margin-bottom:8px; }
+  @media print{ header.top .row, .input-card, .btn, .home{ display:none; } body{ background:#fff; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">MedCompanion<span class="tag">for Professionals</span></div>
+    <a class="home" href="/app">Consumer app →</a>
+  </header>
+
+  <h1>Medical Chronology Builder</h1>
+  <p class="lede">Turn a client's medical records into a factual, dated timeline — a draft in seconds, then verify against source. Built for paralegals and attorneys on injury &amp; med-mal matters.</p>
+  <div class="banner">Factual organization only — this tool does <b>not</b> give legal or medical advice, and does not opine on causation, fault, or damages. Always verify every entry against the source records.</div>
+
+  <div class="card input-card">
+    <label for="matter">Matter / context (optional)</label>
+    <input type="text" id="matter" placeholder="e.g. Personal injury — MVA 2025-03-14">
+    <div style="margin-top:14px"></div>
+    <label for="notes">Paste the records / notes</label>
+    <textarea id="notes" placeholder="Paste ER notes, visit summaries, imaging reports, med lists… Dates in the text help build the timeline."></textarea>
+    <div class="row">
+      <button class="btn" onclick="build()">Build chronology</button>
+      <button class="btn ghost" onclick="document.getElementById('file').click()">Import a FHIR/JSON file</button>
+      <input type="file" id="file" accept=".json,application/json,.fhir" style="display:none" onchange="importFile(event)">
+    </div>
+    <div class="hint">Nothing is stored on our servers — the records are organized and returned, not retained.</div>
+  </div>
+
+  <div id="out"></div>
+</div>
+<script>
+  var API = location.origin;
+  function esc(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+  // compact FHIR mapper (mirrors the consumer app) → fills the notes box with structured lines
+  function fhirName(res){ var c=res.code||res.medicationCodeableConcept||res.vaccineCode; if(c){ if(c.text) return c.text; if(c.coding&&c.coding[0]) return c.coding[0].display||c.coding[0].code; } if(res.medicationReference&&res.medicationReference.display) return res.medicationReference.display; return ''; }
+  function obsVal(res){ var vq=res.valueQuantity,p=''; if(vq){ p=(vq.value!=null?vq.value:'')+(vq.unit?' '+vq.unit:''); } else if(res.valueString){ p=res.valueString; } var d=res.effectiveDateTime||res.issued||(res.effectivePeriod&&res.effectivePeriod.start)||''; return {v:p, d:(d||'').slice(0,10)}; }
+  window.importFile=function(ev){
+    var f=ev.target.files&&ev.target.files[0]; if(!f) return;
+    var rd=new FileReader();
+    rd.onload=function(){
+      try{
+        var data=JSON.parse(rd.result), res=[];
+        function push(x){ if(!x) return; if(x.resource) res.push(x.resource); else if(x.resourceType) res.push(x); }
+        if(Array.isArray(data)) data.forEach(push); else if(data.entry) data.entry.forEach(push); else if(data.resourceType) res.push(data);
+        var lines=[];
+        res.forEach(function(r){
+          var t=r.resourceType, dt=(r.effectiveDateTime||r.recordedDate||r.authoredOn||r.onsetDateTime||'').slice(0,10);
+          if(t==='Observation'){ var o=obsVal(r); lines.push((o.d||dt||'')+' Lab: '+fhirName(r)+' = '+o.v); }
+          else if(t==='MedicationRequest'||t==='MedicationStatement'){ lines.push((dt||'')+' Medication: '+fhirName(r)); }
+          else if(t==='Condition'){ lines.push((dt||'')+' Diagnosis: '+fhirName(r)); }
+          else if(t==='Procedure'){ lines.push((dt||'')+' Procedure: '+fhirName(r)); }
+          else if(t==='AllergyIntolerance'){ lines.push('Allergy: '+fhirName(r)); }
+        });
+        var box=document.getElementById('notes');
+        box.value=(box.value?box.value+'\n':'')+lines.filter(Boolean).join('\n');
+        alert('Imported '+lines.filter(Boolean).length+' record lines into the notes. Review, then Build chronology.');
+      }catch(e){ alert('That file isn’t valid FHIR/JSON.'); }
+      ev.target.value='';
+    };
+    rd.readAsText(f);
+  };
+  window.build=function(){
+    var notes=document.getElementById('notes').value.trim(), matter=document.getElementById('matter').value.trim();
+    var out=document.getElementById('out');
+    if(!notes){ out.innerHTML='<div class="card">Paste some records or import a file first.</div>'; return; }
+    out.innerHTML='<div class="card">Building the chronology…</div>';
+    fetch(API+'/chronology',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({notes:notes, matter:matter})})
+      .then(function(r){return r.json();}).then(function(d){
+        var h='';
+        if(d.summary) h+='<h2>Summary</h2><div class="card">'+esc(d.summary)+'</div>';
+        if(d.timeline&&d.timeline.length){
+          h+='<h2>Chronology ('+d.timeline.length+' entries)</h2><div class="card tl">';
+          d.timeline.forEach(function(t){
+            h+='<div class="tl-row"><div><div class="tl-date">'+(esc(t.date)||'undated')+'</div><span class="tl-cat">'+esc(t.category||'other')+'</span></div>'
+              +'<div><div class="tl-event">'+esc(t.event||'')+'</div><div class="tl-detail">'+esc(t.detail||'')+'</div></div></div>';
+          });
+          h+='</div>';
+        }
+        if(d.key_findings&&d.key_findings.length){ h+='<h2>Key findings</h2><div class="card"><ul class="clean">'+d.key_findings.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>'; }
+        if(d.gaps&&d.gaps.length){ h+='<h2>To verify / gaps</h2><div class="gaps"><h3>⚠ Verify these against the source records</h3><ul class="clean">'+d.gaps.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>'; }
+        h+='<div class="row" style="margin-top:16px"><button class="btn ghost" onclick="window.print()">Print / Save PDF</button></div>';
+        h+='<div class="disc">'+esc(d.disclaimer||'Factual draft from the records provided — not legal or medical advice. Verify against source.')+'</div>';
+        out.innerHTML=h;
+      }).catch(function(){ out.innerHTML='<div class="card">Couldn’t build the chronology just now — try again.</div>'; });
+  };
+</script>
+</body>
+</html>
