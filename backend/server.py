@@ -479,6 +479,90 @@ async def explain_records(req: RecordsRequest):
         empty["summary"] = "Couldn't explain your records just now — please try again in a moment."
         return empty
 
+class ChronologyRequest(BaseModel):
+    # Attorney / paralegal lens on the SAME record engine: organize a client's
+    # medical records into a factual, dated chronology for an injury/med-mal matter.
+    labs: list = []
+    medications: list = []
+    conditions: list = []
+    notes: Optional[str] = ""        # pasted records / visit notes / free text
+    matter: Optional[str] = ""       # optional case context, e.g. "MVA 2025-03-14"
+    lang: Optional[str] = None
+
+@app.post("/chronology")
+async def chronology(req: ChronologyRequest):
+    """Attorney lens: turn a client's medical records into a factual, dated
+    medical chronology (timeline + key findings + gaps) for a legal workflow.
+    Factual organization ONLY — never legal advice, causation, or liability
+    opinions. A DRAFT to verify against source records. Stateless; not stored."""
+    import json as _json
+    labs, meds, conds = req.labs or [], req.medications or [], req.conditions or []
+    notes = (req.notes or "").strip()
+    empty = {"summary": "", "timeline": [], "key_findings": [], "gaps": [], "disclaimer": ""}
+    if not (labs or meds or conds or notes):
+        empty["summary"] = "No records provided. Import a FHIR/JSON export or paste the records to build a chronology."
+        return empty
+
+    def fmt(items, keys):
+        rows = []
+        for it in items[:120]:
+            if isinstance(it, dict):
+                rows.append(", ".join(f"{k}={it.get(k)}" for k in keys if it.get(k) not in (None, "", [])))
+            else:
+                rows.append(str(it))
+        return "\n".join(rows)
+    payload = ""
+    if req.matter: payload += f"MATTER CONTEXT: {req.matter}\n\n"
+    if labs:  payload += "LABS/RESULTS:\n" + fmt(labs, ["name", "value", "unit", "range", "date"]) + "\n\n"
+    if meds:  payload += "MEDICATIONS:\n" + fmt(meds, ["name", "dose", "reason", "date"]) + "\n\n"
+    if conds: payload += "CONDITIONS/DIAGNOSES:\n" + fmt(conds, ["name", "date"]) + "\n\n"
+    if notes: payload += "RECORDS / NOTES (free text):\n" + notes[:8000] + "\n\n"
+    lang_line = f"\nWrite everything in this language (code): {req.lang}." if req.lang else ""
+    try:
+        import anthropic
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=3000,
+            system=(
+                "You organize a person's MEDICAL RECORDS into a factual, dated medical chronology for a "
+                "paralegal/attorney workflow (e.g., personal-injury or med-mal case prep). You EXTRACT and "
+                "ORDER facts that are present in the provided records. "
+                "HARD RULES — this is factual organization, NOT advice: "
+                "(1) NEVER give legal advice; NEVER opine on causation, fault, liability, damages, settlement, "
+                "or prognosis. (2) NEVER invent facts, dates, providers, or findings not in the records. "
+                "(3) When a date is missing/ambiguous, put the entry with date='' and note it under gaps — do not guess. "
+                "(4) Flag missing or discontinuous records under gaps. "
+                "(5) This is a DRAFT to be verified against the source records by a qualified person. "
+                "Return ONLY a JSON object with keys: "
+                "summary (3-5 factual sentences, no opinion), "
+                "timeline (array of {date: 'YYYY-MM-DD' or '', event: short factual label, detail: one factual sentence, "
+                "category: 'visit'|'lab'|'medication'|'diagnosis'|'procedure'|'imaging'|'other'}), sorted earliest first, "
+                "key_findings (array of factual, record-cited strings), "
+                "gaps (array of strings: missing dates, missing records, ambiguities to verify), "
+                "disclaimer (one sentence: factual draft from provided records, not legal or medical advice, verify against source). "
+                "No prose outside the JSON."
+            ),
+            messages=[{"role": "user", "content": f"Records to organize into a chronology:\n\n{payload}{lang_line}"}],
+        )
+        out = "".join(getattr(b, "text", "") for b in resp.content).strip()
+        if out.startswith("```"):
+            out = out.strip("`")
+            if out[:4].lower() == "json":
+                out = out[4:]
+            out = out.strip()
+        data = _json.loads(out)
+        for k, dflt in empty.items():
+            data.setdefault(k, dflt)
+        if not data.get("disclaimer"):
+            data["disclaimer"] = ("Factual draft organized from the records provided — not legal or medical advice. "
+                                  "Verify every entry against the source records.")
+        return data
+    except Exception as e:
+        logger.error(f"chronology error: {e}")
+        empty["summary"] = "Couldn't build the chronology just now — please try again."
+        return empty
+
 class VisitSummaryRequest(BaseModel):
     reason: Optional[str] = ""      # why they're going / main concern (patient's words)
     checkins: list = []             # from the Health Journal (on-device)
