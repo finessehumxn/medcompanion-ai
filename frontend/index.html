@@ -2385,6 +2385,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <a href="javascript:void(0)" class="nav-link" onclick="openJournal()"><i class="ti ti-notebook" aria-hidden="true"></i> Health Journal</a>
     <a href="javascript:void(0)" class="nav-link" onclick="openRecords()"><i class="ti ti-file-text" aria-hidden="true"></i> My Records</a>
     <a href="javascript:void(0)" class="nav-link" onclick="openVisit()"><i class="ti ti-clipboard-heart" aria-hidden="true"></i> Prep for my visit</a>
+    <a href="javascript:void(0)" class="nav-link" onclick="openNote()"><i class="ti ti-file-description" aria-hidden="true"></i> Understand my visit</a>
     <a href="javascript:void(0)" class="nav-link" onclick="openTrust()"><i class="ti ti-lock" aria-hidden="true"></i> Your data &amp; AI</a>
     <a href="#crisis-help" class="nav-link nav-link-crisis"><i class="ti ti-life-buoy" aria-hidden="true"></i> Need help now</a>
     <a href="#questions" class="nav-link"><i class="ti ti-help-circle" aria-hidden="true"></i> Common questions</a>
@@ -2413,6 +2414,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openJournal()"><i class="ti ti-notebook"></i> Health Journal</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openRecords()"><i class="ti ti-file-text"></i> My Records</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openVisit()"><i class="ti ti-clipboard-heart"></i> Prep for my visit</a>
+  <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openNote()"><i class="ti ti-file-description"></i> Understand my visit</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openTrust()"><i class="ti ti-lock"></i> Your data &amp; AI</a>
   <a href="#crisis-help" class="mobile-link mobile-link-crisis" onclick="toggleMobileMenu()"><i class="ti ti-life-buoy"></i> Need help right now</a>
   <a href="#questions" class="mobile-link" onclick="toggleMobileMenu()"><i class="ti ti-help-circle"></i> Common questions</a>
@@ -6373,5 +6375,63 @@ document.addEventListener('DOMContentLoaded', function() {
     }).catch(function(){ box.innerHTML='<div class="mcj-inssum">Couldn\'t load the live facts just now — check your connection and reopen.</div>'; });
   };
   window.closeTrust=function(){ var m=document.getElementById('mcTrust'); if(m) m.classList.remove('show'); };
+})();
+</script>
+
+<!-- ══ MedCompanion — Understand my visit (make sense of the doctor's note) ══ -->
+<style>
+  .mcn-badge{ font-size:10px; font-weight:800; text-transform:uppercase; border-radius:5px; padding:2px 7px; flex:none; margin-right:7px; }
+  .mcn-watch{ background:rgba(224,87,77,.1); border:1px solid rgba(224,87,77,.4); border-radius:12px; padding:14px 16px; margin-top:8px; }
+  .mcn-watch li{ color:#ffc9c3; }
+  .mcn-gl{ padding:8px 0; border-top:1px solid rgba(255,255,255,.07); }
+  .mcn-gl:first-child{ border-top:none; }
+  .mcn-term{ font-weight:700; color:#7fe6b4; font-size:13.5px; }
+  .mcn-def{ font-size:13px; color:#cfe3d8; margin-top:2px; line-height:1.5; }
+</style>
+<div id="mcNote" class="mcj-screen" role="dialog" aria-label="Understand my visit">
+  <div class="mcj-wrap">
+    <div class="mcj-top"><div class="mcj-title">Understand my visit</div><button class="mcj-x" onclick="closeNote()" aria-label="Close">&times;</button></div>
+    <p class="mcj-sub">Paste the visit note or After Visit Summary your doctor shared (from MyChart or any portal) and I'll make it make sense &mdash; what happened, your plan, med changes, and what to watch for. Kept private on your device.</p>
+    <div class="mcj-card">
+      <div class="mcj-lbl" style="margin-top:0">Your visit note</div>
+      <textarea class="mcj-area" id="mcnText" style="min-height:150px" placeholder="Paste the note here — jargon and all. e.g. 'S: 54M w/ h/o HTN, T2DM… A1c 8.4%… P: increase metformin…'"></textarea>
+      <button class="mcj-save" onclick="mcNoteExplain()">&#10022; Make sense of it</button>
+    </div>
+    <div id="mcnOut"></div>
+    <p class="mcj-disc">This explains your doctor's note in plain language &mdash; it's information, not a diagnosis, and your care team is the final word. <a href="javascript:void(0)" onclick="openTrust()" style="color:#7fe6b4;text-decoration:underline">🔒 How your data is handled</a></p>
+  </div>
+</div>
+<script>
+(function(){
+  function base(){ return (typeof API!=='undefined')?API:''; }
+  function esc(x){ return String(x==null?'':x).replace(/</g,'&lt;'); }
+  window.openNote=function(){ var m=document.getElementById('mcNote'); if(m) m.classList.add('show'); };
+  window.closeNote=function(){ var m=document.getElementById('mcNote'); if(m) m.classList.remove('show'); };
+  window.mcNoteExplain=function(){
+    var t=(document.getElementById('mcnText').value||'').trim(), out=document.getElementById('mcnOut');
+    if(!t){ out.innerHTML='<div class="mcj-inssum">Paste your visit note above first.</div>'; return; }
+    if(!(window.mcAIAllowed?window.mcAIAllowed('Your visit note text is sent to translate it into plain language.'):true)) return;
+    out.innerHTML='<div class="mcj-inssum">Making sense of your note&hellip;</div>';
+    fetch(base()+'/explain-note',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({note:t, lang:(window.currentLang||null)})})
+      .then(function(r){return r.json();}).then(function(d){
+        var h='';
+        if(d.headline) h+='<div class="mcj-inssum">'+esc(d.headline)+'</div>';
+        if(d.what_happened) h+='<div class="mcj-insh">📋 What happened</div><div class="mcj-card"><div style="font-size:14px;line-height:1.6;color:#eaf3ee">'+esc(d.what_happened)+'</div></div>';
+        if(d.your_plan&&d.your_plan.length) h+='<div class="mcj-insh">✅ Your plan</div><ul class="mcj-il">'+d.your_plan.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>';
+        if(d.medications&&d.medications.length){
+          h+='<div class="mcj-insh">💊 Medications</div><div class="mcj-card">';
+          d.medications.forEach(function(m){
+            var ch=(m.change||'').toLowerCase(), col= ch==='started'?'#34c78c': ch==='stopped'?'#e0574d': ch==='changed'?'#e0a63f':'#8fbfa8';
+            h+='<div class="mcr-lab"><div class="mcr-labtop">'+(ch?'<span class="mcn-badge" style="background:'+col+'22;color:'+col+'">'+esc(ch)+'</span>':'')+'<span class="mcr-labn">'+esc(m.name||'')+'</span></div><div class="mcr-labp">'+esc(m.plain||'')+'</div></div>';
+          });
+          h+='</div>';
+        }
+        if(d.watch_for&&d.watch_for.length) h+='<div class="mcj-insh" style="color:#ff9c93">🚨 Watch for &mdash; when to get help</div><div class="mcn-watch"><ul class="mcj-il">'+d.watch_for.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>';
+        if(d.glossary&&d.glossary.length){ h+='<div class="mcj-insh">📖 What the words mean</div><div class="mcj-card">'+d.glossary.map(function(g){return '<div class="mcn-gl"><div class="mcn-term">'+esc(g.term)+'</div><div class="mcn-def">'+esc(g.plain)+'</div></div>';}).join('')+'</div>'; }
+        if(d.questions&&d.questions.length) h+='<div class="mcj-insh">🩺 Ask your doctor</div><ul class="mcj-il">'+d.questions.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>';
+        if(d.note) h+='<p class="mcj-disc">'+esc(d.note)+'</p>';
+        out.innerHTML=h;
+      }).catch(function(){ out.innerHTML='<div class="mcj-inssum">Couldn\'t make sense of it just now — try again.</div>'; });
+  };
 })();
 </script>
