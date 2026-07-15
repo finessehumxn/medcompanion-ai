@@ -567,6 +567,68 @@ async def chronology(req: ChronologyRequest):
         empty["summary"] = "Couldn't build the chronology just now — please try again."
         return empty
 
+class ExplainNoteRequest(BaseModel):
+    # THE core lens: take the visit note / After Visit Summary a doctor shared
+    # (via MyChart/Epic/any EHR) and make it make sense for the patient.
+    note: str                        # the visit note / AVS / clinical note text
+    lang: Optional[str] = None
+
+@app.post("/explain-note")
+async def explain_note(req: ExplainNoteRequest):
+    """Make sense of a doctor's VISIT NOTE for the patient: what happened, the
+    plan, med changes, what to watch for, jargon translated, questions to ask.
+    Explains the clinician's note — never second-guesses or contradicts it.
+    Information, not diagnosis. Stateless; the note is not stored."""
+    import json as _json
+    note = (req.note or "").strip()
+    empty = {"headline": "", "what_happened": "", "your_plan": [], "medications": [],
+             "watch_for": [], "glossary": [], "questions": [], "note": ""}
+    if not note:
+        empty["headline"] = "Paste the visit note your doctor shared and I'll make sense of it."
+        return empty
+    lang_line = f"\nWrite everything in this language (code): {req.lang}." if req.lang else ""
+    try:
+        import anthropic
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=2600,
+            system=(
+                "A patient is sharing a VISIT NOTE / After Visit Summary their doctor wrote (from MyChart/Epic "
+                "or any EHR). Your job is to make that note make sense to them, warmly and in plain language, so "
+                "they understand their own visit and know what to do next. "
+                "HARD RULES: you EXPLAIN the clinician's note — you do NOT diagnose, do NOT second-guess, and do "
+                "NOT contradict the doctor. Information, not medical advice. If the note contains urgent/red-flag "
+                "instructions (e.g., return to ER for X), surface them clearly under watch_for. Never invent facts "
+                "not in the note; if something is unclear, put it in questions to ask the doctor. Stay calm and reassuring. "
+                "Return ONLY a JSON object with keys: "
+                "headline (one warm sentence: what this visit was about), "
+                "what_happened (2-4 plain sentences summarizing the visit and any findings, as the note states them), "
+                "your_plan (array of plain next-step strings the doctor wants the patient to do), "
+                "medications (array of {name, change: 'started'|'stopped'|'changed'|'continued'|'', plain: what it's for / how to take it}), "
+                "watch_for (array of plain warning-sign strings — when to call the office or seek care), "
+                "glossary (array of {term, plain} translating the medical jargon that appears in the note), "
+                "questions (array of specific things to ask at the next visit or via the portal), "
+                "note (one gentle sentence: this explains your doctor's note, it's not a diagnosis, and your care team is the final word). "
+                "No prose outside the JSON."
+            ),
+            messages=[{"role": "user", "content": f"Here is the visit note my doctor shared:\n\n{note[:12000]}{lang_line}"}],
+        )
+        out = "".join(getattr(b, "text", "") for b in resp.content).strip()
+        if out.startswith("```"):
+            out = out.strip("`")
+            if out[:4].lower() == "json":
+                out = out[4:]
+            out = out.strip()
+        data = _json.loads(out)
+        for k, dflt in empty.items():
+            data.setdefault(k, dflt)
+        return data
+    except Exception as e:
+        logger.error(f"explain-note error: {e}")
+        empty["headline"] = "Couldn't make sense of that note just now — please try again."
+        return empty
+
 class VisitSummaryRequest(BaseModel):
     reason: Optional[str] = ""      # why they're going / main concern (patient's words)
     checkins: list = []             # from the Health Journal (on-device)
