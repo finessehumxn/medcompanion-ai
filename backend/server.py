@@ -567,6 +567,92 @@ async def chronology(req: ChronologyRequest):
         empty["summary"] = "Couldn't build the chronology just now — please try again."
         return empty
 
+class PreVisitRequest(BaseModel):
+    # Kills the two big time-sinks of an annual: re-asking history + typing.
+    # Patient fills this before the visit; the doctor gets a structured summary
+    # + a draft note to edit instead of typing from scratch.
+    visit_type: Optional[str] = "Annual wellness visit"
+    intake: Optional[str] = ""       # free-text of the patient's answers (easiest to populate)
+    medications: list = []
+    allergies: list = []
+    conditions: list = []
+    checkins: list = []              # daily logs → interval history since last visit
+    lang: Optional[str] = None
+
+@app.post("/previsit-intake")
+async def previsit_intake(req: PreVisitRequest):
+    """Turn a patient's pre-visit intake (+ their daily logs) into (a) a clinician-
+    ready structured pre-visit summary and (b) a DRAFT note the doctor edits — so
+    they aren't re-asking known history or typing from scratch. Patient-reported
+    draft to verify; not a diagnosis; the clinician documents and decides.
+    Stateless; nothing stored."""
+    import json as _json
+    empty = {"clinician_summary": "", "interval_update": "", "medications": [], "allergies": [],
+             "ros": {"positives": [], "negatives": []}, "health_maintenance": [],
+             "patient_concerns": [], "draft_note": "", "patient_summary": ""}
+    intake = (req.intake or "").strip()
+    if not (intake or req.medications or req.conditions or req.checkins or req.allergies):
+        empty["clinician_summary"] = "Add the patient's intake answers to generate a pre-visit summary."
+        return empty
+
+    def fmt(items):
+        rows = []
+        for it in items[:80]:
+            if isinstance(it, dict):
+                rows.append(", ".join(f"{k}={v}" for k, v in it.items() if v not in (None, "", [])))
+            else:
+                rows.append(str(it))
+        return "\n".join(rows)
+    payload = f"VISIT TYPE: {req.visit_type}\n\n"
+    if intake:            payload += "PATIENT INTAKE ANSWERS:\n" + intake[:8000] + "\n\n"
+    if req.medications:   payload += "MEDICATIONS (patient-reported):\n" + fmt(req.medications) + "\n\n"
+    if req.allergies:     payload += "ALLERGIES:\n" + fmt(req.allergies) + "\n\n"
+    if req.conditions:    payload += "CONDITIONS:\n" + fmt(req.conditions) + "\n\n"
+    if req.checkins:      payload += "DAILY LOGS SINCE LAST VISIT:\n" + fmt(req.checkins) + "\n\n"
+    lang_line = f"\nWrite the patient_summary in this language (code): {req.lang}." if req.lang else ""
+    try:
+        import anthropic
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=3200,
+            system=(
+                "A patient completed a PRE-VISIT intake before an appointment (often an annual/wellness visit). "
+                "Organize it so the clinician does NOT have to re-ask known history and does NOT type from scratch. "
+                "Everything here is PATIENT-REPORTED. HARD RULES: this is a draft to be verified and edited by the "
+                "clinician — it does NOT diagnose, does NOT order or change treatment, and the clinician documents and "
+                "decides. Never invent facts not provided; if something wasn't asked/answered, leave it out. "
+                "Return ONLY a JSON object with keys: "
+                "clinician_summary (3-5 tight clinical sentences a doctor can skim in 15 seconds), "
+                "interval_update (what has changed since the last visit, drawn from the daily logs / intake; '' if none), "
+                "medications (array of {name, note} for reconciliation), "
+                "allergies (array of strings), "
+                "ros (object with positives: array of patient-reported symptoms, and negatives: array of pertinent denials), "
+                "health_maintenance (array of strings: screenings/vaccines the patient reports done or overdue, patient-stated only), "
+                "patient_concerns (array of the patient's own questions/agenda for the visit), "
+                "draft_note (a plain-text, editable note skeleton in standard sections — Reason for Visit, Interval History, "
+                "Medications, Allergies, ROS, Patient Concerns — clearly labeled 'DRAFT — patient-reported, verify'; the "
+                "clinician edits this instead of typing from scratch), "
+                "patient_summary (2-3 warm plain-language sentences telling the patient what they've shared and that it'll help their visit go faster). "
+                "No prose outside the JSON."
+            ),
+            messages=[{"role": "user", "content": f"{payload}{lang_line}"}],
+        )
+        out = "".join(getattr(b, "text", "") for b in resp.content).strip()
+        if out.startswith("```"):
+            out = out.strip("`")
+            if out[:4].lower() == "json":
+                out = out[4:]
+            out = out.strip()
+        data = _json.loads(out)
+        for k, dflt in empty.items():
+            data.setdefault(k, dflt)
+        return data
+    except Exception as e:
+        logger.error(f"previsit-intake error: {e}")
+        empty["clinician_summary"] = "Couldn't build the pre-visit summary just now — please try again."
+        return empty
+
 class ExplainNoteRequest(BaseModel):
     # THE core lens: take the visit note / After Visit Summary a doctor shared
     # (via MyChart/Epic/any EHR) and make it make sense for the patient.
