@@ -5929,6 +5929,7 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class="mcj-h">Your timeline</div>
       <div id="mcjTimeline"></div>
     </div>
+    <button class="mcj-analyze" style="margin-bottom:10px" onclick="mcjSample()">Load a sample week</button>
     <button class="mcj-analyze" onclick="mcjAnalyze()">&#10022; See my patterns &amp; triggers</button>
     <div id="mcjInsights"></div>
     <p class="mcj-disc">This is information from your own logs &mdash; not a diagnosis or medical advice. Bring anything concerning to your clinician. <a href="javascript:void(0)" onclick="openTrust()" style="color:#7fe6b4;text-decoration:underline">🔒 How your data is handled</a></p>
@@ -5969,6 +5970,16 @@ document.addEventListener('DOMContentLoaded', function() {
         '<div class="mcj-esym">'+sym+'</div></div></div>';
     }).join('');
   }
+  window.mcjSample=function(){
+    save([
+      {date:'2026-07-10',severity:6,mood:'okay',energy:'low',sleep:'5',symptoms:['headache'],notes:'skipped lunch, busy day'},
+      {date:'2026-07-11',severity:7,mood:'low',energy:'low',sleep:'5',symptoms:['headache','tired'],notes:'stressful, little water'},
+      {date:'2026-07-12',severity:4,mood:'okay',energy:'medium',sleep:'7',symptoms:['mild headache'],notes:'ate regularly, felt better'},
+      {date:'2026-07-13',severity:8,mood:'low',energy:'low',sleep:'4',symptoms:['headache','nausea'],notes:'poor sleep, skipped breakfast'},
+      {date:'2026-07-14',severity:5,mood:'good',energy:'medium',sleep:'7',symptoms:['tired'],notes:'better day, stayed hydrated'}
+    ]);
+    mcjRender();
+  };
   window.mcjAnalyze=function(){
     var a=load(); var box=document.getElementById('mcjInsights');
     if(a.length<3){ box.innerHTML='<div class="mcj-inssum">Log about 3+ check-ins and I\'ll start finding patterns and triggers.</div>'; return; }
