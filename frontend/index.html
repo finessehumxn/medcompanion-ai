@@ -94,8 +94,8 @@
 }
 
 @media (max-width: 720px) {
-  .nav-links { display: none; }
-  .nav-menu-btn { display: flex; align-items: center; justify-content: center; }
+  .nav-links { display: none !important; }
+  .nav-menu-btn { display: flex !important; align-items: center; justify-content: center; }
 }
 /* In the native app, always use the hamburger nav (which has Sign in) — never the desktop links, regardless of the WebView's reported width */
 html.cap-app .nav-links { display: none !important; }
@@ -481,12 +481,18 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
 .patient-input::placeholder { color: #A8C5BC; font-style: italic; }
 .input-foot {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: 8px 14px;
   padding: 10px 14px 14px;
   border-top: 1.5px solid #EBF3F0;
 }
-.input-hint { font-size: 12px; color: #8AADA5; display: flex; align-items: center; gap: 5px; }
+@media (max-width: 600px) {
+  .input-foot { justify-content: flex-start; }
+  .input-foot .go-btn { flex: 1 1 100%; justify-content: center; margin-top: 4px; }
+}
+.input-hint { font-size: 12px; color: #8AADA5; display: flex; align-items: center; gap: 5px; min-width: 0; }
 .go-btn {
   background: var(--teal);
   border: none;
