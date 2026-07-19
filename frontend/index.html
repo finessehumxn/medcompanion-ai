@@ -2392,6 +2392,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <a href="javascript:void(0)" class="nav-link" onclick="openRecords()"><i class="ti ti-file-text" aria-hidden="true"></i> My Records</a>
     <a href="javascript:void(0)" class="nav-link" onclick="openVisit()"><i class="ti ti-clipboard-heart" aria-hidden="true"></i> Prep for my visit</a>
     <a href="javascript:void(0)" class="nav-link" onclick="openNote()"><i class="ti ti-file-description" aria-hidden="true"></i> Understand my visit</a>
+    <a href="javascript:void(0)" class="nav-link" onclick="openIntake()"><i class="ti ti-clipboard-text" aria-hidden="true"></i> Pre-visit intake</a>
     <a href="javascript:void(0)" class="nav-link" onclick="openTrust()"><i class="ti ti-lock" aria-hidden="true"></i> Your data &amp; AI</a>
     <a href="#crisis-help" class="nav-link nav-link-crisis"><i class="ti ti-life-buoy" aria-hidden="true"></i> Need help now</a>
     <a href="#questions" class="nav-link"><i class="ti ti-help-circle" aria-hidden="true"></i> Common questions</a>
@@ -2421,6 +2422,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openRecords()"><i class="ti ti-file-text"></i> My Records</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openVisit()"><i class="ti ti-clipboard-heart"></i> Prep for my visit</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openNote()"><i class="ti ti-file-description"></i> Understand my visit</a>
+  <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openIntake()"><i class="ti ti-clipboard-text"></i> Pre-visit intake</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openTrust()"><i class="ti ti-lock"></i> Your data &amp; AI</a>
   <a href="#crisis-help" class="mobile-link mobile-link-crisis" onclick="toggleMobileMenu()"><i class="ti ti-life-buoy"></i> Need help right now</a>
   <a href="#questions" class="mobile-link" onclick="toggleMobileMenu()"><i class="ti ti-help-circle"></i> Common questions</a>
@@ -6449,6 +6451,98 @@ document.addEventListener('DOMContentLoaded', function() {
         if(d.note) h+='<p class="mcj-disc">'+esc(d.note)+'</p>';
         out.innerHTML=h;
       }).catch(function(){ out.innerHTML='<div class="mcj-inssum">Couldn\'t make sense of it just now — try again.</div>'; });
+  };
+})();
+</script>
+
+<!-- ══ MedCompanion — Pre-visit intake (saves the doctor re-asking + typing) ══ -->
+<style>
+  .mci-doc{ background:#12281f; border:1px solid rgba(52,199,140,.35); border-radius:14px; padding:16px; margin-top:14px; }
+  .mci-doclbl{ font-size:11px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:#7fe6b4; margin-bottom:8px; }
+  .mci-note{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; line-height:1.55; color:#dcebe3; background:#0b1f18; border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:13px; white-space:pre-wrap; overflow-x:auto; margin-top:8px; }
+  .mci-copy{ width:100%; margin-top:10px; background:rgba(255,255,255,.1); color:#eaf3ee; border:none; font-weight:700; font-size:14px; padding:12px; border-radius:11px; cursor:pointer; }
+  .mci-ros{ display:grid; grid-template-columns:1fr; gap:10px; }
+  .mci-rosbox{ background:#0b1f18; border:1px solid rgba(255,255,255,.1); border-radius:10px; padding:11px 13px; }
+  .mci-rosh{ font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; margin-bottom:5px; }
+  .mci-pos{ color:#e0a63f; } .mci-neg{ color:#8fbfa8; }
+</style>
+<div id="mcIntake" class="mcj-screen" role="dialog" aria-label="Pre-visit intake">
+  <div class="mcj-wrap">
+    <div class="mcj-top"><div class="mcj-title">Pre-visit intake</div><button class="mcj-x" onclick="closeIntake()" aria-label="Close">&times;</button></div>
+    <p class="mcj-sub">Fill this out before your appointment &mdash; especially an annual. Your doctor gets a ready-to-read summary <b>and a draft note</b>, so they aren't re-asking questions you've already answered or typing from scratch.</p>
+    <div class="mcj-card">
+      <div class="mcj-lbl" style="margin-top:0">What's the visit?</div>
+      <input type="text" class="mcj-input" id="mciType" value="Annual wellness visit">
+      <div class="mcj-lbl">How have you been? What's changed?</div>
+      <textarea class="mcj-area" id="mciText" style="min-height:130px" placeholder="Anything new or bothering you, sleep, energy, lifestyle (smoking/alcohol/exercise), family history, screenings you've had or are due, and what you want to talk about."></textarea>
+      <div class="mcj-sub" id="mciCounts" style="margin:12px 0 0"></div>
+      <button class="mcj-save" onclick="mciBuild()">&#10022; Build my intake</button>
+    </div>
+    <div id="mciOut"></div>
+    <p class="mcj-disc">This is patient-reported information to save time at your visit &mdash; a draft your clinician verifies. It isn't a diagnosis, and your care team documents and decides. <a href="javascript:void(0)" onclick="openTrust()" style="color:#7fe6b4;text-decoration:underline">🔒 How your data is handled</a></p>
+  </div>
+</div>
+<script>
+(function(){
+  function base(){ return (typeof API!=='undefined')?API:''; }
+  function esc(x){ return String(x==null?'':x).replace(/</g,'&lt;'); }
+  function ld(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch(e){ return []; } }
+  function split(){
+    var a=ld('mc_records'), labs=[], meds=[], conds=[];
+    a.forEach(function(r){ if(r.type==='lab') labs.push({name:r.name,value:r.value||''}); else if(r.type==='med') meds.push({name:r.name}); else conds.push({name:r.name}); });
+    return {labs:labs, medications:meds, conditions:conds};
+  }
+  window.openIntake=function(){
+    var m=document.getElementById('mcIntake'); if(!m) return;
+    m.classList.add('show');
+    var rec=split(), c=document.getElementById('mciCounts');
+    if(c) c.textContent='Automatically including '+ld('mc_track').length+' daily log(s), '+rec.medications.length+' medication(s) and '+rec.conditions.length+' condition(s) from your records.';
+  };
+  window.closeIntake=function(){ var m=document.getElementById('mcIntake'); if(m) m.classList.remove('show'); };
+  window._mciNote='';
+  window.mciCopyNote=function(){
+    var t=window._mciNote||''; if(!t) return;
+    if(navigator.share){ navigator.share({title:'Pre-visit intake — draft note', text:t}).catch(function(){}); }
+    else if(navigator.clipboard){ navigator.clipboard.writeText(t).then(function(){ alert('Draft note copied — your doctor can paste it and edit.'); }); }
+    else { prompt('Copy the draft note:', t); }
+  };
+  window.mciBuild=function(){
+    var out=document.getElementById('mciOut');
+    var txt=(document.getElementById('mciText').value||'').trim();
+    var rec=split();
+    if(!txt && !rec.medications.length && !rec.conditions.length && !ld('mc_track').length){
+      out.innerHTML='<div class="mcj-inssum">Tell me how you\'ve been first — even a couple of sentences helps.</div>'; return;
+    }
+    if(!(window.mcAIAllowed?window.mcAIAllowed('Your intake answers, your records and your daily logs are sent to build a summary and draft note for your doctor.'):true)) return;
+    out.innerHTML='<div class="mcj-inssum">Building your intake&hellip; (about 20 seconds)</div>';
+    var body={ visit_type:(document.getElementById('mciType').value||'Annual wellness visit'), intake:txt,
+      medications:rec.medications, conditions:rec.conditions, checkins:ld('mc_track'), lang:(window.currentLang||null) };
+    fetch(base()+'/previsit-intake',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(function(r){return r.json();}).then(function(d){
+        var h='';
+        if(d.patient_summary) h+='<div class="mcj-inssum">'+esc(d.patient_summary)+'</div>';
+        h+='<div class="mcj-insh">🩺 What your doctor will see</div>';
+        h+='<div class="mci-doc">';
+        if(d.clinician_summary) h+='<div class="mci-doclbl">Summary</div><div style="font-size:14px;line-height:1.6">'+esc(d.clinician_summary)+'</div>';
+        if(d.interval_update) h+='<div class="mci-doclbl" style="margin-top:14px">Since your last visit</div><div style="font-size:13.5px;line-height:1.55;color:#cfe3d8">'+esc(d.interval_update)+'</div>';
+        h+='</div>';
+        var ros=d.ros||{};
+        if((ros.positives&&ros.positives.length)||(ros.negatives&&ros.negatives.length)){
+          h+='<div class="mcj-insh">📋 Symptoms review</div><div class="mci-ros">';
+          if(ros.positives&&ros.positives.length) h+='<div class="mci-rosbox"><div class="mci-rosh mci-pos">Reported</div><ul class="mcj-il">'+ros.positives.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>';
+          if(ros.negatives&&ros.negatives.length) h+='<div class="mci-rosbox"><div class="mci-rosh mci-neg">Denied</div><ul class="mcj-il">'+ros.negatives.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>';
+          h+='</div>';
+        }
+        if(d.health_maintenance&&d.health_maintenance.length) h+='<div class="mcj-insh">✅ Screenings &amp; vaccines</div><ul class="mcj-il">'+d.health_maintenance.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>';
+        if(d.patient_concerns&&d.patient_concerns.length) h+='<div class="mcj-insh">💬 What you want to cover</div><ul class="mcj-il">'+d.patient_concerns.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>';
+        if(d.draft_note){
+          window._mciNote=d.draft_note;
+          h+='<div class="mcj-insh">📝 Draft note for your doctor</div><div class="mcj-sub" style="margin:0 0 6px">They edit this instead of typing it from scratch.</div>';
+          h+='<div class="mci-note">'+esc(d.draft_note)+'</div>';
+          h+='<button class="mci-copy" onclick="mciCopyNote()">📋 Copy / share the draft note</button>';
+        }
+        out.innerHTML=h;
+      }).catch(function(){ out.innerHTML='<div class="mcj-inssum">Couldn\'t build your intake just now — try again.</div>'; });
   };
 })();
 </script>
