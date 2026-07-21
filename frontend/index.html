@@ -2392,6 +2392,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <a href="javascript:void(0)" class="nav-link" onclick="openRecords()"><i class="ti ti-file-text" aria-hidden="true"></i> My Records</a>
     <a href="javascript:void(0)" class="nav-link" onclick="openVisit()"><i class="ti ti-clipboard-heart" aria-hidden="true"></i> Prep for my visit</a>
     <a href="javascript:void(0)" class="nav-link" onclick="openNote()"><i class="ti ti-file-description" aria-hidden="true"></i> Understand my visit</a>
+    <a href="javascript:void(0)" class="nav-link" onclick="openPass()"><i class="ti ti-id-badge-2" aria-hidden="true"></i> Health Passport</a>
     <a href="javascript:void(0)" class="nav-link" onclick="openIntake()"><i class="ti ti-clipboard-text" aria-hidden="true"></i> Pre-visit intake</a>
     <a href="javascript:void(0)" class="nav-link" onclick="openTrust()"><i class="ti ti-lock" aria-hidden="true"></i> Your data &amp; AI</a>
     <a href="#crisis-help" class="nav-link nav-link-crisis"><i class="ti ti-life-buoy" aria-hidden="true"></i> Need help now</a>
@@ -2422,6 +2423,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openRecords()"><i class="ti ti-file-text"></i> My Records</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openVisit()"><i class="ti ti-clipboard-heart"></i> Prep for my visit</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openNote()"><i class="ti ti-file-description"></i> Understand my visit</a>
+  <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openPass()"><i class="ti ti-id-badge-2"></i> Health Passport</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openIntake()"><i class="ti ti-clipboard-text"></i> Pre-visit intake</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openTrust()"><i class="ti ti-lock"></i> Your data &amp; AI</a>
   <a href="#crisis-help" class="mobile-link mobile-link-crisis" onclick="toggleMobileMenu()"><i class="ti ti-life-buoy"></i> Need help right now</a>
@@ -6546,6 +6548,111 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         out.innerHTML=h;
       }).catch(function(){ out.innerHTML='<div class="mcj-inssum">Couldn\'t build your intake just now — try again.</div>'; });
+  };
+})();
+</script>
+
+<!-- ══ MedCompanion — Health Passport (portable, verifiable, zero-storage care handoff) ══ -->
+<script src="/qrcode.min.js"></script>
+<style>
+  .mcp-qrwrap{ text-align:center; background:#fff; border-radius:16px; padding:20px; margin-top:14px; }
+  .mcp-qr{ width:260px; height:260px; max-width:80%; image-rendering:pixelated; }
+  .mcp-qrcap{ font-size:12.5px; color:#5a6c78; margin-top:10px; font-weight:600; }
+  .mcp-link{ font-family:ui-monospace,Menlo,monospace; font-size:11.5px; color:#8fbfa8; word-break:break-all; background:#0b1f18; border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:11px 13px; margin-top:12px; }
+  .mcp-btn{ width:100%; margin-top:10px; background:rgba(255,255,255,.1); color:#eaf3ee; border:none; font-weight:700; font-size:14px; padding:12px; border-radius:11px; cursor:pointer; }
+  .mcp-btn.primary{ background:#34c78c; color:#062418; font-weight:800; }
+  .mcp-counts{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+  .mcp-chip{ font-size:12px; font-weight:600; color:#cfe3d8; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:999px; padding:6px 11px; }
+  .mcp-chip.al{ color:#ffc9c3; border-color:rgba(224,87,77,.4); background:rgba(224,87,77,.1); }
+  .mcp-two{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+</style>
+<div id="mcPass" class="mcj-screen" role="dialog" aria-label="Health Passport">
+  <div class="mcj-wrap">
+    <div class="mcj-top"><div class="mcj-title">Health Passport</div><button class="mcj-x" onclick="closePass()" aria-label="Close">&times;</button></div>
+    <p class="mcj-sub">One link any clinician can open in 20 seconds &mdash; <b>no login, no app, no EHR</b>. It carries your essentials and is <b>never stored on our servers</b>: it travels only inside the link. Perfect for the ER, a specialist, urgent care, or a parent's visit.</p>
+    <div class="mcj-card">
+      <div class="mcj-h">What it will include</div>
+      <div class="mcp-counts" id="mcpCounts"></div>
+      <div class="mcp-two" style="margin-top:14px">
+        <div><div class="mcj-lbl" style="margin-top:0">Name (optional)</div><input type="text" class="mcj-input" id="mcpName" placeholder="e.g. Alex R."></div>
+        <div><div class="mcj-lbl" style="margin-top:0">Age / sex (optional)</div><input type="text" class="mcj-input" id="mcpAge" placeholder="e.g. 52 F"></div>
+      </div>
+      <div class="mcj-lbl">Why are you seeing the doctor? What's going on?</div>
+      <textarea class="mcj-area" id="mcpWhy" placeholder="e.g. Chest tightness on and off for 3 days, and I'm here for my annual."></textarea>
+      <div class="mcj-lbl">Your top questions (one per line, optional)</div>
+      <textarea class="mcj-area" id="mcpQ" placeholder="Is this related to my blood pressure?&#10;Do I need to change my meds?"></textarea>
+      <button class="mcj-save" onclick="mcpBuild()">&#10022; Create my passport</button>
+    </div>
+    <div id="mcpOut"></div>
+    <p class="mcj-disc">Shares patient-reported essentials to make a visit faster &mdash; information, not a diagnosis; your care team is the final word. Nothing is uploaded or stored. <a href="javascript:void(0)" onclick="openTrust()" style="color:#7fe6b4;text-decoration:underline">🔒 How your data is handled</a></p>
+  </div>
+</div>
+<script>
+(function(){
+  function ld(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch(e){ return []; } }
+  function esc(x){ return String(x==null?'':x).replace(/</g,'&lt;'); }
+  function splitP(){
+    var a=ld('mc_records'), conds=[], meds=[], labs=[], al=[];
+    a.forEach(function(r){
+      if(r.type==='lab') labs.push({n:r.name, v:r.value||''});
+      else if(r.type==='med') meds.push(r.name);
+      else { // condition — allergies are stored as "Allergy: X"
+        var m=/^allergy:\s*/i.exec(r.name);
+        if(m) al.push(r.name.replace(/^allergy:\s*/i,'')); else conds.push(r.name);
+      }
+    });
+    return {conds:conds, meds:meds, labs:labs, al:al};
+  }
+  window.openPass=function(){
+    var m=document.getElementById('mcPass'); if(!m) return; m.classList.add('show');
+    var s=splitP(), c=document.getElementById('mcpCounts');
+    var chips=[];
+    chips.push('<span class="mcp-chip al">⚠ '+s.al.length+' allerg'+(s.al.length===1?'y':'ies')+'</span>');
+    chips.push('<span class="mcp-chip">'+s.conds.length+' condition(s)</span>');
+    chips.push('<span class="mcp-chip">'+s.meds.length+' medication(s)</span>');
+    chips.push('<span class="mcp-chip">'+s.labs.length+' lab(s)</span>');
+    c.innerHTML=chips.join('');
+    if(!(s.conds.length||s.meds.length||s.labs.length||s.al.length)){
+      c.innerHTML+='<div class="mcj-sub" style="width:100%;margin-top:8px">Tip: add or import records in <b>My Records</b> first — your passport pulls from them automatically.</div>';
+    }
+  };
+  window.closePass=function(){ var m=document.getElementById('mcPass'); if(m) m.classList.remove('show'); };
+  window._mcpUrl='';
+  window.mcpBuild=function(){
+    var s=splitP(), out=document.getElementById('mcpOut');
+    function lines(v){ return (v||'').split('\n').map(function(x){return x.trim();}).filter(Boolean).slice(0,6); }
+    var d={
+      n:(document.getElementById('mcpName').value||'').trim().slice(0,40),
+      a:(document.getElementById('mcpAge').value||'').trim().slice(0,20),
+      w:(document.getElementById('mcpWhy').value||'').trim().slice(0,320),
+      al:s.al.slice(0,12), c:s.conds.slice(0,14), m:s.meds.slice(0,14),
+      l:s.labs.slice(0,10), q:lines(document.getElementById('mcpQ').value),
+      d:(new Date()).toISOString().slice(0,10)
+    };
+    Object.keys(d).forEach(function(k){ if(d[k]==='' || (Array.isArray(d[k])&&!d[k].length)) delete d[k]; });
+    if(!d.w && !d.al && !d.c && !d.m && !d.l){
+      out.innerHTML='<div class="mcj-inssum">Add a reason for your visit, or some records in My Records, so your passport has something to carry.</div>'; return;
+    }
+    var url;
+    try{ url=location.origin+'/p#'+encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(d))))); }
+    catch(e){ out.innerHTML='<div class="mcj-inssum">Couldn\'t build the passport link.</div>'; return; }
+    window._mcpUrl=url;
+    var h='';
+    var qrOk=false;
+    if(typeof qrcode!=='undefined'){
+      try{ var q=qrcode(0,'L'); q.addData(url); q.make(); h+='<div class="mcp-qrwrap"><img class="mcp-qr" alt="Health Passport QR" src="'+q.createDataURL(6,4)+'"><div class="mcp-qrcap">Have the clinician scan this with any phone camera</div></div>'; qrOk=true; }catch(e){}
+    }
+    if(!qrOk) h+='<div class="mcj-inssum">Your passport link is ready below (too much detail for a scannable code — trim records for a QR).</div>';
+    h+='<div class="mcp-link">'+esc(url)+'</div>';
+    h+='<button class="mcp-btn primary" onclick="mcpShare()">📤 Share the link</button>';
+    h+='<button class="mcp-btn" onclick="window.open(_mcpUrl,\'_blank\')">👁 Preview what the doctor sees</button>';
+    out.innerHTML=h;
+  };
+  window.mcpShare=function(){
+    var u=window._mcpUrl||''; if(!u) return;
+    if(navigator.share){ navigator.share({title:'My Health Passport', text:'My health summary for the visit', url:u}).catch(function(){}); }
+    else if(navigator.clipboard){ navigator.clipboard.writeText(u).then(function(){ alert('Link copied — send it to your doctor, or show them the QR code.'); }); }
+    else { prompt('Copy your passport link:', u); }
   };
 })();
 </script>

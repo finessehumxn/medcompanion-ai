@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Health Passport · MedCompanion</title>
+<style>
+  :root{ --bg:#eef2f4; --card:#fff; --ink:#14212b; --sub:#5a6c78; --line:#e2e9ee; --accent:#0f7a5a; --accent-soft:#e7f4ee; --alert:#c0392b; --alert-soft:#fbe9e7; --gold:#9a6b12; --gold-soft:#fbf1de; }
+  @media (prefers-color-scheme:dark){ :root{ --bg:#0b1520; --card:#12212b; --ink:#e9f0f5; --sub:#93a4b2; --line:rgba(255,255,255,.09); --accent:#34c78c; --accent-soft:rgba(52,199,140,.12); --alert:#ff9c93; --alert-soft:rgba(224,87,77,.14); --gold:#e0b46a; --gold-soft:rgba(224,180,106,.12); } }
+  *{ box-sizing:border-box; } html,body{ margin:0; }
+  body{ background:var(--bg); color:var(--ink); font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; -webkit-font-smoothing:antialiased; }
+  .sheet{ max-width:720px; margin:0 auto; padding:20px 18px 60px; }
+  .band{ background:var(--accent); color:#fff; border-radius:16px; padding:18px 20px; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; }
+  .band .l{ min-width:0; }
+  .band .ey{ font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; opacity:.85; }
+  .band h1{ font-size:23px; font-weight:850; margin:3px 0 0; letter-spacing:-.02em; }
+  .band .who{ font-size:14px; opacity:.92; margin-top:3px; }
+  .band .date{ font-size:12px; opacity:.85; text-align:right; white-space:nowrap; }
+  .proof{ display:flex; align-items:center; gap:9px; background:var(--accent-soft); border:1px solid var(--line); border-radius:11px; padding:11px 14px; font-size:12.5px; color:var(--sub); margin:14px 0; }
+  .proof b{ color:var(--ink); }
+  .proof a{ color:var(--accent); }
+  h2{ font-size:11px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--sub); margin:24px 0 9px; }
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:13px; padding:15px 17px; }
+  .allergy{ border:2px solid var(--alert); background:var(--alert-soft); border-radius:13px; padding:14px 17px; margin-top:16px; }
+  .allergy .h{ font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--alert); display:flex; align-items:center; gap:7px; }
+  .allergy .items{ font-size:16px; font-weight:700; color:var(--ink); margin-top:6px; }
+  .allergy.none{ border-color:var(--line); background:var(--card); }
+  .allergy.none .h{ color:var(--sub); } .allergy.none .items{ font-weight:600; font-size:14px; color:var(--sub); }
+  .why{ font-size:15.5px; line-height:1.6; }
+  ul{ margin:0; padding-left:20px; } li{ margin-bottom:7px; line-height:1.5; }
+  .lab{ display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-top:1px solid var(--line); font-size:14px; }
+  .lab:first-child{ border-top:none; } .lab .v{ font-variant-numeric:tabular-nums; color:var(--sub); font-weight:600; text-align:right; }
+  .actions{ margin-top:22px; }
+  .print{ background:var(--accent); color:#fff; border:none; font-weight:700; font-size:14px; padding:11px 20px; border-radius:10px; cursor:pointer; }
+  .foot{ margin-top:26px; font-size:11.5px; color:var(--sub); line-height:1.55; border-top:1px solid var(--line); padding-top:14px; }
+  .empty{ text-align:center; color:var(--sub); padding:64px 20px; } .empty h1{ margin:0 0 8px; }
+  @media print{ body{ background:#fff; } .sheet{ padding:0; } .actions,.proof{ display:none; } .band{ color:#000; background:#fff; border:1px solid #000; } .card,.allergy{ border-color:#bbb; } }
+</style>
+</head>
+<body>
+<div class="sheet" id="sheet"></div>
+<script>
+(function(){
+  function esc(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function decode(){
+    var h=(location.hash||'').replace(/^#/,''); if(!h) return null;
+    try{ return JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(h))))); }catch(e){ return null; }
+  }
+  var d=decode(), el=document.getElementById('sheet');
+  if(!d){
+    el.innerHTML='<div class="empty"><h1>No passport to show</h1><p>This link needs a Health Passport shared from the MedCompanion app. Ask the patient to open <b>Health Passport</b> and share the link or QR code.</p></div>';
+    return;
+  }
+  var who=[]; if(d.a) who.push(esc(d.a));
+  var h='';
+  h+='<div class="band"><div class="l"><div class="ey">Health Passport</div><h1>'+(esc(d.n)||'Patient')+'</h1>'+(who.length?'<div class="who">'+who.join(' · ')+'</div>':'')+'</div><div class="date">'+(esc(d.d)||'')+'<br>shared by the patient</div></div>';
+  h+='<div class="proof">🔒&nbsp;<span><b>Nothing was stored.</b> This passport traveled only inside the link — it was never uploaded to a server. <a href="/data-policy" target="_blank" rel="noopener">Verify our data policy →</a></span></div>';
+
+  // Allergies — always shown, safety-critical
+  var al=(d.al&&d.al.length)?d.al:null;
+  h+='<div class="allergy'+(al?'':' none')+'"><div class="h">⚠ Allergies</div><div class="items">'+(al?al.map(esc).join(' · '):'No known allergies reported')+'</div></div>';
+
+  if(d.w){ h+='<h2>Why I’m here</h2><div class="card why">'+esc(d.w)+'</div>'; }
+  if(d.c&&d.c.length){ h+='<h2>Conditions (patient-reported)</h2><div class="card"><ul>'+d.c.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>'; }
+  if(d.m&&d.m.length){ h+='<h2>Medications (patient-reported)</h2><div class="card"><ul>'+d.m.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>'; }
+  if(d.l&&d.l.length){ h+='<h2>Recent labs (patient-provided)</h2><div class="card">'+d.l.map(function(x){return '<div class="lab"><span>'+esc(x.n)+'</span><span class="v">'+esc(x.v)+'</span></div>';}).join('')+'</div>'; }
+  if(d.q&&d.q.length){ h+='<h2>The patient’s questions</h2><div class="card"><ul>'+d.q.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>'; }
+
+  h+='<div class="actions"><button class="print" onclick="window.print()">Print / Save PDF</button></div>';
+  h+='<div class="foot">Patient-reported information the patient chose to share to make this visit faster. It is information, not a diagnosis, and does not replace your clinical judgment — verify against the record. Assembled on the patient’s device by MedCompanion; nothing is stored on MedCompanion’s servers.</div>';
+  el.innerHTML=h;
+})();
+</script>
+</body>
+</html>

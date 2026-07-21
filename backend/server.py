@@ -103,6 +103,10 @@ async def serve_pro():
 async def serve_clinical():
     return FileResponse(os.path.join(frontend_dir, "clinical.html"))
 
+@app.get("/p")
+async def serve_passport():
+    return FileResponse(os.path.join(frontend_dir, "passport.html"))
+
 @app.get("/doctor")
 async def serve_doctor():
     return FileResponse(os.path.join(frontend_dir, "doctor.html"))
