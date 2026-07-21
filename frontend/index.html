@@ -2310,7 +2310,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <span class="role-opt-ic">🤝</span>
         <span><span class="role-opt-t">For a loved one</span><span class="role-opt-s">Support someone I care about and know what to ask.</span></span>
       </button>
-      <button class="role-opt" onclick="chooseRole('professional',null)">
+      <button class="role-opt" onclick="chooseRole('professional',null);location.href='/clinical'">
         <span class="role-opt-ic">🩺</span>
         <span><span class="role-opt-t">I'm a medical professional</span><span class="role-opt-s">Clinical depth for you — plain-language tools to explain it to your patients.</span></span>
       </button>
@@ -2427,6 +2427,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <a href="#crisis-help" class="mobile-link mobile-link-crisis" onclick="toggleMobileMenu()"><i class="ti ti-life-buoy"></i> Need help right now</a>
   <a href="#questions" class="mobile-link" onclick="toggleMobileMenu()"><i class="ti ti-help-circle"></i> Common questions</a>
   <a href="/clinical" class="mobile-link"><i class="ti ti-stethoscope"></i> For practices (Clinical)</a>
+  <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();showHowTo()"><i class="ti ti-player-play"></i> How it works</a>
   <a href="/about.html" class="mobile-link" onclick="toggleMobileMenu()"><i class="ti ti-rosette-discount-check"></i> Our standards</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();if(typeof currentUser!=='undefined'&&currentUser&&currentUser.user_id){openHealthHub()}else{openAuth('login')}"><i class="ti ti-user-circle"></i> Sign in / My account</a>
   <a href="https://millennialscreatives.com" target="_blank" class="mobile-link mobile-link-sub" rel="noopener"><i class="ti ti-building-skyscraper"></i> A Millennials Creatives company</a>
@@ -5674,7 +5675,8 @@ document.addEventListener('DOMContentLoaded', function() {
       else if(tries>60){ clearInterval(t); }
     }, 500);
   }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', maybeShow); else maybeShow();
+  // Tour is opt-in (not auto-shown): first load stays to just the consent + role gates.
+  window.showHowTo=function(){ i=0; show(); };
 })();
 </script>
 
