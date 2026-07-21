@@ -99,6 +99,10 @@ async def serve_trust():
 async def serve_pro():
     return FileResponse(os.path.join(frontend_dir, "pro.html"))
 
+@app.get("/clinical")
+async def serve_clinical():
+    return FileResponse(os.path.join(frontend_dir, "clinical.html"))
+
 @app.get("/doctor")
 async def serve_doctor():
     return FileResponse(os.path.join(frontend_dir, "doctor.html"))

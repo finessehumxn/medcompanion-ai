@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MedCompanion Clinical — for your whole practice</title>
+<meta name="description" content="The health companion patients love, now for your practice: patients arrive prepared, understand their visit, and message you less. One platform, one brand.">
+<style>
+  :root{ --bg:#f4f7f5; --panel:#fff; --ink:#12211b; --sub:#566b60; --line:#e3ebe6; --accent:#0f7a5a; --accent-ink:#0b5c44; --accent-soft:#e7f4ee; --gold:#b6893b; --max:900px; --sans:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; }
+  @media (prefers-color-scheme:dark){ :root{ --bg:#0b1611; --panel:#12211a; --ink:#e9f2ec; --sub:#93a89c; --line:rgba(255,255,255,.09); --accent:#34c78c; --accent-ink:#7fe6b4; --accent-soft:rgba(52,199,140,.12); --gold:#e0b46a; } }
+  :root[data-theme="light"]{ --bg:#f4f7f5; --panel:#fff; --ink:#12211b; --sub:#566b60; --line:#e3ebe6; --accent:#0f7a5a; --accent-ink:#0b5c44; --accent-soft:#e7f4ee; --gold:#b6893b; }
+  :root[data-theme="dark"]{ --bg:#0b1611; --panel:#12211a; --ink:#e9f2ec; --sub:#93a89c; --line:rgba(255,255,255,.09); --accent:#34c78c; --accent-ink:#7fe6b4; --accent-soft:rgba(52,199,140,.12); --gold:#e0b46a; }
+  *{ box-sizing:border-box; } html,body{ margin:0; }
+  body{ background:var(--bg); color:var(--ink); font-family:var(--sans); line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:var(--max); margin:0 auto; padding:0 22px; }
+  header.top{ display:flex; align-items:center; justify-content:space-between; padding:20px 0; flex-wrap:wrap; gap:12px; }
+  .brand{ font-weight:800; letter-spacing:-.01em; font-size:17px; }
+  .brand .c{ color:var(--accent); }
+  .topnav{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .lnk{ font-size:13.5px; color:var(--sub); text-decoration:none; font-weight:600; padding:7px 10px; border-radius:8px; }
+  .lnk:hover{ color:var(--ink); }
+  .btn{ display:inline-block; background:var(--accent); color:#fff; text-decoration:none; font-weight:700; font-size:14px; padding:10px 18px; border-radius:10px; border:none; cursor:pointer; }
+  .btn.ghost{ background:transparent; color:var(--accent); border:1px solid var(--line); }
+  .hero{ padding:38px 0 20px; max-width:64ch; }
+  .eyebrow{ font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); }
+  h1{ font-size:40px; line-height:1.06; font-weight:850; letter-spacing:-.03em; margin:14px 0 14px; text-wrap:balance; }
+  @media(max-width:560px){ h1{ font-size:30px; } }
+  .lede{ font-size:18px; color:var(--sub); margin:0 0 22px; }
+  .lede b{ color:var(--ink); font-weight:700; }
+  .cta-row{ display:flex; gap:10px; flex-wrap:wrap; }
+  section{ padding:30px 0; border-top:1px solid var(--line); }
+  .kicker{ font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--sub); margin:0 0 6px; }
+  h2{ font-size:24px; font-weight:800; letter-spacing:-.02em; margin:0 0 6px; text-wrap:balance; }
+  .lead{ font-size:16px; color:var(--sub); margin:0 0 22px; max-width:60ch; }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media(max-width:640px){ .grid{ grid-template-columns:1fr; } }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:20px 22px; }
+  .card .ic{ font-size:22px; }
+  .card h3{ font-size:17px; font-weight:800; margin:10px 0 6px; }
+  .card p{ margin:0; color:var(--sub); font-size:14.5px; }
+  .card .win{ display:inline-block; margin-top:12px; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:var(--accent-ink); background:var(--accent-soft); border-radius:6px; padding:4px 9px; }
+  .wedge{ background:var(--accent-soft); border:1px solid var(--line); border-radius:18px; padding:26px; }
+  .wedge h2{ margin-top:0; }
+  .wedge p{ font-size:16px; color:var(--ink); max-width:62ch; }
+  .wedge b{ color:var(--accent-ink); }
+  .prices{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media(max-width:640px){ .prices{ grid-template-columns:1fr; } }
+  .price{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:24px; }
+  .price.feat{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
+  .price .tier{ font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--accent-ink); }
+  .price .amt{ font-size:36px; font-weight:850; letter-spacing:-.02em; margin:6px 0 2px; }
+  .price .amt span{ font-size:15px; font-weight:600; color:var(--sub); }
+  .price .who{ font-size:14px; color:var(--sub); margin-bottom:14px; }
+  .price ul{ margin:0 0 18px; padding-left:0; list-style:none; }
+  .price li{ font-size:14px; padding:6px 0 6px 24px; position:relative; }
+  .price li::before{ content:"\2713"; position:absolute; left:2px; color:var(--accent); font-weight:800; }
+  .pill{ display:inline-block; font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--gold); background:color-mix(in srgb, var(--gold) 14%, transparent); border-radius:999px; padding:4px 11px; margin-bottom:16px; }
+  .trustrow{ display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
+  .chip{ font-size:13px; font-weight:600; color:var(--sub); background:var(--panel); border:1px solid var(--line); border-radius:999px; padding:8px 13px; }
+  .foot{ padding:34px 0 60px; color:var(--sub); font-size:12.5px; line-height:1.6; border-top:1px solid var(--line); }
+  a.inline{ color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">MedCompanion <span class="c">Clinical</span></div>
+    <nav class="topnav">
+      <a class="lnk" href="/pro">Chronology tool</a>
+      <a class="lnk" href="/trust">Trust &amp; data</a>
+      <a class="lnk" href="/app">Patient app</a>
+      <a class="btn" href="#access">Request access</a>
+    </nav>
+  </header>
+  <div class="hero">
+    <div class="eyebrow">MedCompanion for Practices</div>
+    <h1>The companion your patients love &mdash; now for your whole practice.</h1>
+    <p class="lede">Patients arrive prepared, understand their visit, and message you less. The same platform your patients already use, extended for your clinic &mdash; <b>one brand, one login, one story.</b></p>
+    <div class="cta-row">
+      <a class="btn" href="#access">Request early access</a>
+      <a class="btn ghost" href="/app">Try the patient app free &rarr;</a>
+    </div>
+  </div>
+  <section>
+    <div class="kicker">Both sides of the visit</div>
+    <h2>Less re-asking. Less typing. Fewer confused messages.</h2>
+    <p class="lead">It's the same engine your patients use to understand their health &mdash; pointed at the two things that cost your practice the most time.</p>
+    <div class="grid">
+      <div class="card"><div class="ic">&#128451;&#65039;</div><h3>Patients arrive prepared</h3><p>They complete a pre-visit intake at home. You get a ready-to-read summary and a <b>draft note</b> &mdash; so you're not re-asking history or typing from scratch.</p><span class="win">Saves the annual's worst 10 minutes</span></div>
+      <div class="card"><div class="ic">&#128172;</div><h3>Patients understand their visit</h3><p>Your after-visit note, translated into plain language &mdash; med changes, next steps, and red-flags surfaced. Fewer "what did this mean?" portal messages.</p><span class="win">Cuts follow-up message load</span></div>
+      <div class="card"><div class="ic">&#128196;</div><h3>Patient education at scale</h3><p>Generate a clear, plain-language handout for any diagnosis, in any language, in seconds &mdash; consistent across every provider in the practice.</p><span class="win">Any condition &middot; any language</span></div>
+      <div class="card"><div class="ic">&#129514;</div><h3>Records, made plain</h3><p>Explain labs, meds and conditions for patients, and build factual medical <a class="inline" href="/pro">chronologies</a> from records &mdash; the same trusted engine.</p><span class="win">Shared with the patient app</span></div>
+    </div>
+  </section>
+  <section>
+    <div class="wedge">
+      <div class="kicker">Why one platform beats another vendor</div>
+      <h2>Your patients are already your demo.</h2>
+      <p>Most clinical software asks you to trust a screenshot. With MedCompanion, your patients can <b>download the consumer app today and feel it</b> &mdash; then the practice tier simply turns those same tools on for your team. One brand patients recognize, one place their data lives, one story: <b>the health companion patients love, now for your whole practice.</b></p>
+    </div>
+  </section>
+  <section id="access">
+    <div class="kicker">Pricing</div>
+    <h2>Simple practice pricing.</h2>
+    <p class="lead">The patient app stays free. The practice tier adds the provider tools above for your whole team.</p>
+    <span class="pill">Now onboarding pilot practices</span>
+    <div class="prices">
+      <div class="price feat">
+        <div class="tier">Practice</div>
+        <div class="amt">$199<span>/mo</span></div>
+        <div class="who">Solo &amp; small practices</div>
+        <ul><li>Pre-visit intake + draft notes</li><li>After-visit note translation</li><li>Patient-education handouts (any language)</li><li>Records explained + medical chronology</li><li>Up to 5 providers</li></ul>
+        <a class="btn" href="mailto:hello@medcompanionai.com?subject=MedCompanion%20Clinical%20Practice%20pilot">Request access</a>
+      </div>
+      <div class="price">
+        <div class="tier">Clinic / Group</div>
+        <div class="amt">$499<span>/mo</span></div>
+        <div class="who">Multi-provider clinics &amp; groups</div>
+        <ul><li>Everything in Practice</li><li>Unlimited providers</li><li>Shared practice templates</li><li>Priority onboarding &amp; support</li><li>Practice-wide patient education</li></ul>
+        <a class="btn ghost" href="mailto:hello@medcompanionai.com?subject=MedCompanion%20Clinical%20Group%20pilot">Talk to us</a>
+      </div>
+    </div>
+  </section>
+  <section>
+    <div class="kicker">Built to be trusted</div>
+    <h2>Local-first by design.</h2>
+    <p class="lead">Patient data lives on the patient's device; the AI is optional and stores nothing by default. You can verify our data policy yourself.</p>
+    <div class="trustrow">
+      <span class="chip">&#128241; Local-first</span>
+      <span class="chip">&#128274; Nothing stored by default</span>
+      <span class="chip"><a class="inline" href="/data-policy" style="text-decoration:none">&#128270; Verify /data-policy</a></span>
+    </div>
+    <p class="lead" style="margin-top:18px;font-size:14px"><b>Honest status:</b> formal practice assurances &mdash; signed BAAs, a HIPAA program, and SOC&nbsp;2 &mdash; are in progress, which is why we're onboarding pilot practices rather than selling self-serve. We'd rather tell you exactly where that stands than overstate it.</p>
+  </section>
+  <div class="foot">MedCompanion Clinical is provider-facing software that helps your patients understand their care and prepare for visits. It provides information and drafting assistance for your team to review &mdash; it is not a diagnosis, does not replace clinical judgment, and is not a medical device. &copy; Millennials Creatives LLC.</div>
+</div>
+</body>
+</html>
