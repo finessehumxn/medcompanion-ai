@@ -2403,6 +2403,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openPass()"><i class="ti ti-id-badge-2"></i> Health Passport</a>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openRecords()"><i class="ti ti-file-text"></i> My Records</a>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openJournal()"><i class="ti ti-notebook"></i> Health Journal</a>
+        <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openTrends()"><i class="ti ti-chart-line"></i> Trends</a>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openIntake()"><i class="ti ti-clipboard-text"></i> Pre-visit intake</a>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openVisit()"><i class="ti ti-clipboard-heart"></i> Prep for my visit</a>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openNote()"><i class="ti ti-file-description"></i> Understand my visit</a>
@@ -2440,6 +2441,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="mobile-menu" id="mobileMenu" role="navigation" aria-label="Mobile navigation" aria-hidden="true">
   <a href="#start" class="mobile-link" onclick="toggleMobileMenu()"><i class="ti ti-message-circle-heart"></i> Talk to me</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openJournal()"><i class="ti ti-notebook"></i> Health Journal</a>
+  <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openTrends()"><i class="ti ti-chart-line"></i> Trends</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openRecords()"><i class="ti ti-file-text"></i> My Records</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openVisit()"><i class="ti ti-clipboard-heart"></i> Prep for my visit</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openNote()"><i class="ti ti-file-description"></i> Understand my visit</a>
@@ -6715,5 +6717,155 @@ document.addEventListener('DOMContentLoaded', function() {
     else if(navigator.clipboard){ navigator.clipboard.writeText(u).then(function(){ alert('Link copied — send it to your doctor, or show them the QR code.'); }); }
     else { prompt('Copy your passport link:', u); }
   };
+})();
+</script>
+
+<!-- ══ MedCompanion — Trends over time (chart accent #2aa876, validated on the dark surface) ══ -->
+<style>
+  .mct-metric{ background:#12281f; border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:16px 16px 10px; margin-bottom:14px; }
+  .mct-head{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .mct-name{ font-size:14px; font-weight:700; color:#eaf3ee; }
+  .mct-now{ font-size:22px; font-weight:800; font-variant-numeric:tabular-nums; color:#eaf3ee; }
+  .mct-now .u{ font-size:12px; font-weight:600; color:#8fbfa8; margin-left:2px; }
+  .mct-delta{ font-size:12px; font-weight:700; padding:3px 8px; border-radius:999px; }
+  .mct-flat{ background:rgba(255,255,255,.07); color:#9fc2b2; }
+  .mct-up{ background:rgba(224,166,63,.14); color:#e0a63f; }
+  .mct-down{ background:rgba(42,168,118,.16); color:#7fe6b4; }
+  .mct-svg{ width:100%; height:auto; display:block; margin-top:6px; }
+  .mct-tbl{ margin-top:6px; }
+  .mct-tbl summary{ font-size:12px; color:#8fbfa8; cursor:pointer; padding:6px 0; }
+  .mct-tbl table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .mct-tbl td{ padding:5px 0; border-top:1px solid rgba(255,255,255,.07); color:#cfe3d8; }
+  .mct-tbl td:last-child{ text-align:right; font-variant-numeric:tabular-nums; font-weight:600; }
+  .mct-empty{ color:#8fbfa8; font-size:13.5px; text-align:center; padding:22px 10px; }
+  .mct-two{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+</style>
+<div id="mcTrends" class="mcj-screen" role="dialog" aria-label="Trends over time">
+  <div class="mcj-wrap">
+    <div class="mcj-top"><div class="mcj-title">Trends</div><button class="mcj-x" onclick="closeTrends()" aria-label="Close">&times;</button></div>
+    <p class="mcj-sub">How you're actually doing <b>over time</b> &mdash; not just today. Your check-ins chart themselves; add a number below to track it too. All on your device.</p>
+    <div class="mcj-card">
+      <div class="mcj-h">Log a number</div>
+      <div class="mct-two">
+        <div>
+          <div class="mcj-lbl" style="margin-top:0">What</div>
+          <select class="mcj-input" id="mctMetric" onchange="mctMetricChange()">
+            <option value="Blood pressure (systolic)|mmHg">Blood pressure (top number)</option>
+            <option value="Blood glucose|mg/dL">Blood glucose</option>
+            <option value="Weight|lb">Weight</option>
+            <option value="A1c|%">A1c</option>
+            <option value="Resting heart rate|bpm">Resting heart rate</option>
+            <option value="custom|">Something else&hellip;</option>
+          </select>
+        </div>
+        <div>
+          <div class="mcj-lbl" style="margin-top:0">Value</div>
+          <input type="number" step="any" class="mcj-input" id="mctVal" placeholder="e.g. 128">
+        </div>
+      </div>
+      <div id="mctCustomWrap" style="display:none">
+        <div class="mcj-lbl">Name it</div>
+        <input type="text" class="mcj-input" id="mctCustom" placeholder="e.g. Peak flow">
+      </div>
+      <div class="mcj-lbl">Date</div>
+      <input type="date" class="mcj-input" id="mctDate">
+      <button class="mcj-save" onclick="mctAdd()">Add to my trends</button>
+    </div>
+    <div id="mctOut"></div>
+    <p class="mcj-disc">Trends from your own numbers &mdash; information, not a diagnosis. Bring anything concerning to your clinician. <a href="javascript:void(0)" onclick="openTrust()" style="color:#7fe6b4;text-decoration:underline">🔒 How your data is handled</a></p>
+  </div>
+</div>
+<script>
+(function(){
+  var ACCENT='#2aa876', GRID='rgba(255,255,255,.10)', INK='#8fbfa8';
+  function ld(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch(e){ return []; } }
+  function sv(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  function esc(x){ return String(x==null?'':x).replace(/</g,'&lt;'); }
+  function num(x){ var n=parseFloat(x); return isFinite(n)?n:null; }
+
+  // ---- one chart = one metric = one series (never dual-axis) ----
+  function chart(pts){
+    var W=320,H=118,pl=6,pr=44,pt=14,pb=20,n=pts.length;
+    var vals=pts.map(function(p){return p.v;});
+    var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals);
+    if(mn===mx){ mn=mn-1; mx=mx+1; }
+    var x=function(i){ return n<2?pl:(pl+i*(W-pl-pr)/(n-1)); };
+    var y=function(v){ return pt+(1-(v-mn)/(mx-mn))*(H-pt-pb); };
+    var s='<svg class="mct-svg" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Trend chart">';
+    // recessive grid
+    [0,0.5,1].forEach(function(f){ var yy=pt+f*(H-pt-pb); s+='<line x1="'+pl+'" y1="'+yy+'" x2="'+(W-pr)+'" y2="'+yy+'" stroke="'+GRID+'" stroke-width="1"/>'; });
+    // 2px line
+    if(n>1){ s+='<polyline fill="none" stroke="'+ACCENT+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="'+pts.map(function(p,i){return x(i)+','+y(p.v);}).join(' ')+'"/>'; }
+    // markers (>=8px) with native hover tooltips
+    pts.forEach(function(p,i){
+      var last=i===n-1;
+      s+='<circle cx="'+x(i)+'" cy="'+y(p.v)+'" r="'+(last?5:4)+'" fill="'+(last?ACCENT:'#12281f')+'" stroke="'+ACCENT+'" stroke-width="2"><title>'+esc(p.d)+': '+esc(p.v)+'</title></circle>';
+    });
+    // selective direct label — latest only
+    var lp=pts[n-1];
+    s+='<text x="'+(W-pr+8)+'" y="'+(y(lp.v)+4)+'" fill="#eaf3ee" font-size="13" font-weight="700" font-family="system-ui">'+esc(lp.v)+'</text>';
+    s+='<text x="'+pl+'" y="'+(H-6)+'" fill="'+INK+'" font-size="10" font-family="system-ui">'+esc(pts[0].d)+'</text>';
+    s+='<text x="'+(W-pr)+'" y="'+(H-6)+'" fill="'+INK+'" font-size="10" text-anchor="end" font-family="system-ui">'+esc(lp.d)+'</text>';
+    return s+'</svg>';
+  }
+  function block(name, unit, pts, lowerIsBetter){
+    if(!pts.length) return '';
+    var first=pts[0].v, last=pts[pts.length-1].v, d=last-first;
+    var cls='mct-flat', txt='no change';
+    if(Math.abs(d)>0.0001){
+      var better=lowerIsBetter?(d<0):(d>0);
+      cls=better?'mct-down':'mct-up';
+      txt=(d>0?'▲ +':'▼ ')+(Math.round(d*10)/10)+' since '+pts[0].d;
+    }
+    var h='<div class="mct-metric"><div class="mct-head"><span class="mct-name">'+esc(name)+'</span>'
+      +'<span><span class="mct-now">'+esc(last)+(unit?'<span class="u">'+esc(unit)+'</span>':'')+'</span></span></div>'
+      +'<div style="margin-top:4px"><span class="mct-delta '+cls+'">'+txt+'</span></div>'
+      + chart(pts)
+      + '<details class="mct-tbl"><summary>See the numbers</summary><table><tbody>'
+      + pts.slice().reverse().map(function(p){return '<tr><td>'+esc(p.d)+'</td><td>'+esc(p.v)+(unit?' '+esc(unit):'')+'</td></tr>';}).join('')
+      + '</tbody></table></details></div>';
+    return h;
+  }
+  function render(){
+    var out=document.getElementById('mctOut'); if(!out) return;
+    var h='';
+    // from the Health Journal (already time-series)
+    var t=ld('mc_track').filter(function(e){return e && e.date;}).sort(function(a,b){return a.date<b.date?-1:1;});
+    var sev=t.filter(function(e){return num(e.severity)!==null;}).map(function(e){return {d:e.date, v:num(e.severity)};});
+    var slp=t.filter(function(e){return num(e.sleep)!==null;}).map(function(e){return {d:e.date, v:num(e.sleep)};});
+    h+=block('How rough it\'s been','/10',sev,true);
+    h+=block('Sleep','hrs',slp,false);
+    // user-logged numbers
+    var v=ld('mc_vitals').filter(function(e){return e&&e.d&&num(e.v)!==null;});
+    var byMetric={};
+    v.forEach(function(e){ (byMetric[e.m]=byMetric[e.m]||[]).push({d:e.d, v:num(e.v), u:e.u||''}); });
+    Object.keys(byMetric).forEach(function(m){
+      var pts=byMetric[m].sort(function(a,b){return a.d<b.d?-1:1;});
+      var lower=/pressure|glucose|a1c|weight|heart rate/i.test(m);
+      h+=block(m, pts[0].u, pts, lower);
+    });
+    out.innerHTML=h||'<div class="mct-empty">No trends yet.<br>Log a number above, or save a few check-ins in the <b>Health Journal</b> — they chart themselves.</div>';
+  }
+  window.mctMetricChange=function(){
+    var v=document.getElementById('mctMetric').value;
+    document.getElementById('mctCustomWrap').style.display=(v.indexOf('custom')===0)?'block':'none';
+  };
+  window.mctAdd=function(){
+    var sel=document.getElementById('mctMetric').value.split('|');
+    var name=sel[0], unit=sel[1]||'';
+    if(name==='custom'){ name=(document.getElementById('mctCustom').value||'').trim(); unit=''; }
+    var val=num(document.getElementById('mctVal').value);
+    var date=document.getElementById('mctDate').value||(new Date()).toISOString().slice(0,10);
+    if(!name || val===null){ return; }
+    var a=ld('mc_vitals'); a.push({d:date, m:name, v:val, u:unit}); sv('mc_vitals',a);
+    document.getElementById('mctVal').value='';
+    render();
+  };
+  window.openTrends=function(){
+    var m=document.getElementById('mcTrends'); if(!m) return; m.classList.add('show');
+    var dt=document.getElementById('mctDate'); if(dt && !dt.value) dt.value=(new Date()).toISOString().slice(0,10);
+    render();
+  };
+  window.closeTrends=function(){ var m=document.getElementById('mcTrends'); if(m) m.classList.remove('show'); };
 })();
 </script>
