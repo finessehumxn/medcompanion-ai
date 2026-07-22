@@ -723,6 +723,74 @@ async def explain_note(req: ExplainNoteRequest):
         empty["headline"] = "Couldn't make sense of that note just now — please try again."
         return empty
 
+class HandoutRequest(BaseModel):
+    # Clinician lens: generate a plain-language patient-education handout for a
+    # diagnosis, in any language. Education material the clinician hands out.
+    diagnosis: str
+    language: Optional[str] = None      # language name/code; default English
+    reading_level: Optional[str] = "plain"   # 'plain' (~6th grade) | 'simple' (very basic)
+    context: Optional[str] = ""         # optional clinician note to tailor it
+
+@app.post("/handout")
+async def handout(req: HandoutRequest):
+    """Generate a plain-language PATIENT-EDUCATION handout for a diagnosis, in any
+    language, for a clinician to review and give to their patient. General education
+    material — NOT a diagnosis, NOT personalized dosing/treatment; defers to the
+    treating clinician. Stateless; nothing stored."""
+    import json as _json
+    dx = (req.diagnosis or "").strip()
+    empty = {"title": "", "what_it_is": "", "what_to_expect": [], "managing_it": [],
+             "medications_note": "", "red_flags": [], "questions": [], "reassurance": "", "footer": ""}
+    if not dx:
+        empty["title"] = "Enter a diagnosis to generate a patient handout."
+        return empty
+    lang_line = f"\nWrite the ENTIRE handout in this language: {req.language}." if req.language else ""
+    level = "very basic, short sentences, about a 4th-grade reading level" if (req.reading_level == "simple") else "plain, warm, about a 6th-grade reading level"
+    ctx = f"\nClinician context to tailor it (do not contradict): {req.context}" if req.context else ""
+    try:
+        import anthropic
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=2600,
+            system=(
+                "You write PATIENT-EDUCATION handouts a clinician reviews and gives to their patient. "
+                f"Write at a {level}, warm and non-alarming. "
+                "HARD RULES: this is general education, NOT a diagnosis and NOT a personalized treatment plan. "
+                "Do NOT give specific medication doses or tell the patient to start/stop/change a medication — say to follow "
+                "their clinician's instructions. Always include red-flag symptoms that mean 'seek care.' Never invent scary "
+                "statistics. Make clear the clinician's specific instructions take precedence. "
+                "Return ONLY a JSON object with keys: "
+                "title (e.g. 'Understanding <condition>'), "
+                "what_it_is (2-4 plain sentences explaining the condition), "
+                "what_to_expect (array of plain strings: common symptoms/course), "
+                "managing_it (array of plain strings: lifestyle/self-care steps that are safe general advice), "
+                "medications_note (one general sentence: meds are individualized — take them as your clinician prescribed; do not change without asking), "
+                "red_flags (array of plain strings: warning signs that mean call the office or seek urgent/emergency care), "
+                "questions (array: good questions to ask at the next visit), "
+                "reassurance (one warm, honest sentence), "
+                "footer (one sentence: this is general education; your care team's specific instructions always take precedence). "
+                "No prose outside the JSON."
+            ),
+            messages=[{"role": "user", "content": f"Create a patient handout for: {dx}{ctx}{lang_line}"}],
+        )
+        out = "".join(getattr(b, "text", "") for b in resp.content).strip()
+        if out.startswith("```"):
+            out = out.strip("`")
+            if out[:4].lower() == "json":
+                out = out[4:]
+            out = out.strip()
+        data = _json.loads(out)
+        for k, dflt in empty.items():
+            data.setdefault(k, dflt)
+        if not data.get("footer"):
+            data["footer"] = "This is general education. Your care team's specific instructions always take precedence."
+        return data
+    except Exception as e:
+        logger.error(f"handout error: {e}")
+        empty["title"] = "Couldn't generate the handout just now — please try again."
+        return empty
+
 class VisitSummaryRequest(BaseModel):
     reason: Optional[str] = ""      # why they're going / main concern (patient's words)
     checkins: list = []             # from the Health Journal (on-device)
