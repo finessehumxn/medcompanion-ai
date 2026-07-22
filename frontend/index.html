@@ -6591,6 +6591,20 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="mcj-top"><div class="mcj-title">Health Passport</div><button class="mcj-x" onclick="closePass()" aria-label="Close">&times;</button></div>
     <p class="mcj-sub">One link any clinician can open in 20 seconds &mdash; <b>no login, no app, no EHR</b>. It carries your essentials and is <b>never stored on our servers</b>: it travels only inside the link. Perfect for the ER, a specialist, urgent care, or a parent's visit.</p>
     <div class="mcj-card">
+      <div class="mcj-h">Who is this passport for?</div>
+      <div class="mcj-chips" id="mcpWho" style="margin-bottom:14px">
+        <button type="button" class="mcj-chip on" data-v="me" onclick="mcpSetWho(this)">Me</button>
+        <button type="button" class="mcj-chip" data-v="care" onclick="mcpSetWho(this)">Someone I care for</button>
+      </div>
+      <div id="mcpCareBox" style="display:none">
+        <div class="mcj-lbl" style="margin-top:0">Their allergies (one per line)</div>
+        <textarea class="mcj-area" id="mcpCareAl" oninput="mcpRefresh()" placeholder="Penicillin"></textarea>
+        <div class="mcj-lbl">Their conditions (one per line)</div>
+        <textarea class="mcj-area" id="mcpCareC" oninput="mcpRefresh()" placeholder="Type 2 diabetes"></textarea>
+        <div class="mcj-lbl">Their medications (one per line)</div>
+        <textarea class="mcj-area" id="mcpCareM" oninput="mcpRefresh()" placeholder="Metformin 500mg"></textarea>
+        <p class="mcj-sub" style="margin:10px 0 14px">Kept on this device so you don't retype it next visit.</p>
+      </div>
       <div class="mcj-h">What it will include</div>
       <div class="mcp-counts" id="mcpCounts"></div>
       <div class="mcp-two" style="margin-top:14px">
@@ -6611,7 +6625,28 @@ document.addEventListener('DOMContentLoaded', function() {
 (function(){
   function ld(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch(e){ return []; } }
   function esc(x){ return String(x==null?'':x).replace(/</g,'&lt;'); }
+  function whoIs(){ var el=document.querySelector('#mcpWho .mcj-chip.on'); return el?el.getAttribute('data-v'):'me'; }
+  function ta(id){ var e=document.getElementById(id); return e?e.value.split('\n').map(function(x){return x.trim();}).filter(Boolean):[]; }
+  function prefillCare(){
+    try{ var c=JSON.parse(localStorage.getItem('mc_care')||'null'); if(!c) return;
+      var n=document.getElementById('mcpName'), g=document.getElementById('mcpAge');
+      if(c.n&&n&&!n.value) n.value=c.n; if(c.a&&g&&!g.value) g.value=c.a;
+      document.getElementById('mcpCareAl').value=(c.al||[]).join('\n');
+      document.getElementById('mcpCareC').value=(c.c||[]).join('\n');
+      document.getElementById('mcpCareM').value=(c.m||[]).join('\n');
+    }catch(e){}
+  }
+  window.mcpSetWho=function(btn){
+    var g=document.getElementById('mcpWho');
+    [].forEach.call(g.querySelectorAll('.mcj-chip'),function(c){c.classList.remove('on');});
+    btn.classList.add('on');
+    var care=btn.getAttribute('data-v')==='care';
+    document.getElementById('mcpCareBox').style.display=care?'block':'none';
+    if(care) prefillCare();
+    refreshCounts();
+  };
   function splitP(){
+    if(whoIs()==='care'){ return {conds:ta('mcpCareC'), meds:ta('mcpCareM'), labs:[], al:ta('mcpCareAl')}; }
     var a=ld('mc_records'), conds=[], meds=[], labs=[], al=[];
     a.forEach(function(r){
       if(r.type==='lab') labs.push({n:r.name, v:r.value||''});
@@ -6623,9 +6658,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     return {conds:conds, meds:meds, labs:labs, al:al};
   }
-  window.openPass=function(){
-    var m=document.getElementById('mcPass'); if(!m) return; m.classList.add('show');
-    var s=splitP(), c=document.getElementById('mcpCounts');
+  function refreshCounts(){
+    var s=splitP(), c=document.getElementById('mcpCounts'); if(!c) return;
     var chips=[];
     chips.push('<span class="mcp-chip al">⚠ '+s.al.length+' allerg'+(s.al.length===1?'y':'ies')+'</span>');
     chips.push('<span class="mcp-chip">'+s.conds.length+' condition(s)</span>');
@@ -6633,8 +6667,14 @@ document.addEventListener('DOMContentLoaded', function() {
     chips.push('<span class="mcp-chip">'+s.labs.length+' lab(s)</span>');
     c.innerHTML=chips.join('');
     if(!(s.conds.length||s.meds.length||s.labs.length||s.al.length)){
-      c.innerHTML+='<div class="mcj-sub" style="width:100%;margin-top:8px">Tip: add or import records in <b>My Records</b> first — your passport pulls from them automatically.</div>';
+      c.innerHTML+='<div class="mcj-sub" style="width:100%;margin-top:8px">Tip: switch to <b>Someone I care for</b> above, or add records in <b>My Records</b>.</div>';
     }
+  }
+  window.mcpRefresh=refreshCounts;
+  window.openPass=function(){
+    var m=document.getElementById('mcPass'); if(!m) return; m.classList.add('show');
+    if(whoIs()==='care') prefillCare();
+    refreshCounts();
   };
   window.closePass=function(){ var m=document.getElementById('mcPass'); if(m) m.classList.remove('show'); };
   window._mcpUrl='';
@@ -6653,6 +6693,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if(!d.w && !d.al && !d.c && !d.m && !d.l){
       out.innerHTML='<div class="mcj-inssum">Add a reason for your visit, or some records in My Records, so your passport has something to carry.</div>'; return;
     }
+    if(whoIs()==='care'){ try{ localStorage.setItem('mc_care', JSON.stringify({n:d.n||'',a:d.a||'',al:s.al,c:s.conds,m:s.meds})); }catch(e){} }
     var url;
     try{ url=location.origin+'/p#'+encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(d))))); }
     catch(e){ out.innerHTML='<div class="mcj-inssum">Couldn\'t build the passport link.</div>'; return; }
