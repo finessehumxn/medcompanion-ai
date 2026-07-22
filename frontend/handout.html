@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patient Education Handouts · MedCompanion Clinical</title>
+<meta name="description" content="Generate a clear, plain-language patient handout for any diagnosis, in any language — ready to print and hand to your patient.">
+<style>
+  :root{ --bg:#f4f7f5; --panel:#fff; --ink:#12211b; --sub:#566b60; --line:#e3ebe6; --accent:#0f7a5a; --accent-ink:#0b5c44; --accent-soft:#e7f4ee; --alert:#c0392b; --alert-soft:#fbe9e7; --sans:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; }
+  @media (prefers-color-scheme:dark){ :root{ --bg:#0b1611; --panel:#12211a; --ink:#e9f2ec; --sub:#93a89c; --line:rgba(255,255,255,.09); --accent:#34c78c; --accent-ink:#7fe6b4; --accent-soft:rgba(52,199,140,.12); --alert:#ff9c93; --alert-soft:rgba(224,87,77,.13); } }
+  *{ box-sizing:border-box; } html,body{ margin:0; }
+  body{ background:var(--bg); color:var(--ink); font-family:var(--sans); line-height:1.55; font-size:15px; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:780px; margin:0 auto; padding:0 20px 60px; }
+  header.top{ display:flex; align-items:center; justify-content:space-between; padding:18px 0; flex-wrap:wrap; gap:10px; }
+  .brand{ font-weight:800; font-size:16px; } .brand .c{ color:var(--accent); }
+  .lnk{ font-size:13px; color:var(--accent); text-decoration:none; font-weight:700; }
+  h1{ font-size:29px; font-weight:850; letter-spacing:-.025em; margin:12px 0 8px; text-wrap:balance; }
+  .lede{ font-size:16px; color:var(--sub); margin:0 0 14px; max-width:58ch; }
+  .banner{ background:var(--accent-soft); border:1px solid var(--line); border-radius:11px; padding:11px 14px; font-size:12.5px; color:var(--sub); margin-bottom:16px; }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:15px; padding:18px 20px; margin-bottom:16px; }
+  label{ display:block; font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--sub); margin:0 0 6px; }
+  input[type=text],select,textarea{ width:100%; background:var(--bg); border:1px solid var(--line); color:var(--ink); border-radius:10px; padding:11px 13px; font-size:14.5px; font-family:inherit; }
+  textarea{ min-height:64px; resize:vertical; }
+  .row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
+  @media(max-width:560px){ .row{ grid-template-columns:1fr; } }
+  .btn{ background:var(--accent); color:#fff; border:none; font-weight:700; font-size:15px; padding:12px 22px; border-radius:10px; cursor:pointer; font-family:inherit; margin-top:14px; }
+  .btn.ghost{ background:transparent; color:var(--accent); border:1px solid var(--line); }
+  /* the handout itself */
+  .sheet{ background:var(--panel); border:1px solid var(--line); border-radius:15px; padding:26px 28px; margin-top:18px; }
+  .sheet h2{ font-size:24px; font-weight:850; letter-spacing:-.02em; margin:0 0 12px; }
+  .sheet h3{ font-size:11.5px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--sub); margin:22px 0 8px; }
+  .sheet p{ margin:0; font-size:15.5px; line-height:1.62; }
+  .sheet ul{ margin:0; padding-left:20px; } .sheet li{ margin-bottom:7px; line-height:1.55; font-size:15px; }
+  .flags{ border:2px solid var(--alert); background:var(--alert-soft); border-radius:12px; padding:14px 16px; margin-top:8px; }
+  .flags h3{ color:var(--alert); margin-top:0; }
+  .flags li{ color:var(--ink); }
+  .reassure{ background:var(--accent-soft); border-radius:11px; padding:13px 15px; margin-top:18px; font-size:15px; }
+  .foot{ margin-top:18px; padding-top:13px; border-top:1px solid var(--line); font-size:12px; color:var(--sub); font-style:italic; }
+  .acts{ margin-top:16px; display:flex; gap:10px; flex-wrap:wrap; }
+  @media print{
+    body{ background:#fff; } .wrap{ padding:0; max-width:none; }
+    header.top,.lede,h1,.banner,.card,.acts,.lnk{ display:none !important; }
+    .sheet{ border:none; padding:0; margin:0; border-radius:0; }
+    .flags{ border:2px solid #999; background:#fff; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">MedCompanion <span class="c">Clinical</span></div>
+    <a class="lnk" href="/clinical">← For practices</a>
+  </header>
+  <h1>Patient Education Handouts</h1>
+  <p class="lede">Enter a diagnosis and get a clear, plain-language handout — in any language — ready to review, print, and hand to your patient.</p>
+  <div class="banner">General patient education for <b>you to review</b> before giving to a patient. It is not a diagnosis and gives no specific dosing or treatment changes — your instructions always take precedence.</div>
+
+  <div class="card">
+    <label for="dx">Diagnosis or topic</label>
+    <input type="text" id="dx" placeholder="e.g. Type 2 diabetes, newly diagnosed">
+    <div class="row">
+      <div>
+        <label for="lang">Language</label>
+        <select id="lang">
+          <option value="">English</option>
+          <option>Spanish</option><option>Chinese (Simplified)</option><option>Vietnamese</option>
+          <option>Tagalog</option><option>Arabic</option><option>French</option>
+          <option>Haitian Creole</option><option>Korean</option><option>Russian</option>
+          <option>Portuguese</option><option>Polish</option><option>Hindi</option>
+        </select>
+      </div>
+      <div>
+        <label for="lvl">Reading level</label>
+        <select id="lvl"><option value="plain">Plain (~6th grade)</option><option value="simple">Very simple (~4th grade)</option></select>
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <label for="ctx">Anything to tailor it to? (optional)</label>
+      <textarea id="ctx" placeholder="e.g. Patient is also managing high blood pressure; focus on diet."></textarea>
+    </div>
+    <button class="btn" onclick="gen()">Generate handout</button>
+  </div>
+
+  <div id="out"></div>
+</div>
+<script>
+  function esc(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+  function list(a){ return '<ul>'+a.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>'; }
+  window.gen=function(){
+    var dx=(document.getElementById('dx').value||'').trim();
+    var out=document.getElementById('out');
+    if(!dx){ out.innerHTML='<div class="card">Enter a diagnosis or topic first.</div>'; return; }
+    out.innerHTML='<div class="card">Writing the handout… (about 15 seconds)</div>';
+    var body={ diagnosis:dx, language:(document.getElementById('lang').value||null),
+               reading_level:document.getElementById('lvl').value, context:(document.getElementById('ctx').value||'').trim() };
+    fetch('/handout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(function(r){return r.json();}).then(function(d){
+        var h='<div class="sheet">';
+        h+='<h2>'+esc(d.title||dx)+'</h2>';
+        if(d.what_it_is) h+='<p>'+esc(d.what_it_is)+'</p>';
+        if(d.what_to_expect&&d.what_to_expect.length){ h+='<h3>What to expect</h3>'+list(d.what_to_expect); }
+        if(d.managing_it&&d.managing_it.length){ h+='<h3>Managing it day to day</h3>'+list(d.managing_it); }
+        if(d.medications_note){ h+='<h3>About medications</h3><p>'+esc(d.medications_note)+'</p>'; }
+        if(d.red_flags&&d.red_flags.length){ h+='<div class="flags"><h3>⚠ When to get help right away</h3>'+list(d.red_flags)+'</div>'; }
+        if(d.questions&&d.questions.length){ h+='<h3>Questions to ask at your next visit</h3>'+list(d.questions); }
+        if(d.reassurance) h+='<div class="reassure">'+esc(d.reassurance)+'</div>';
+        h+='<div class="foot">'+esc(d.footer||'This is general education. Your care team\'s specific instructions always take precedence.')+'</div>';
+        h+='</div>';
+        h+='<div class="acts"><button class="btn" onclick="window.print()">Print / Save PDF</button><button class="btn ghost" onclick="copyOut()">Copy text</button></div>';
+        out.innerHTML=h;
+      }).catch(function(){ out.innerHTML='<div class="card">Couldn\'t generate the handout just now — try again.</div>'; });
+  };
+  window.copyOut=function(){
+    var s=document.querySelector('.sheet'); if(!s) return;
+    var t=s.innerText;
+    if(navigator.clipboard){ navigator.clipboard.writeText(t).then(function(){ alert('Handout copied.'); }); } else { prompt('Copy the handout:', t); }
+  };
+</script>
+</body>
+</html>
