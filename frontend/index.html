@@ -6157,7 +6157,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     return {labs:labs, medications:meds, conditions:conds};
   }
-  window.openRecords=function(){ var m=document.getElementById('mcRecords'); if(m){ m.classList.add('show'); mcrRender(); } };
+  window.mcCodeSys=window.mcCodeSys||null;
+  function loadCodeConfig(){
+    if(window.mcCodeSys) return;
+    var base=(typeof API!=='undefined')?API:'';
+    fetch(base+'/code-config').then(function(r){return r.json();}).then(function(c){ window.mcCodeSys=c; }).catch(function(){});
+  }
+  window.openRecords=function(){ var m=document.getElementById('mcRecords'); if(m){ m.classList.add('show'); loadCodeConfig(); mcrRender(); } };
   window.closeRecords=function(){ var m=document.getElementById('mcRecords'); if(m) m.classList.remove('show'); };
   window.mcrConnect=function(){ alert("Connecting your MyChart is coming soon — you'll link your hospital through Apple Health or a secure connection and your labs, meds and conditions import automatically. For now, add a few results or load a sample to see it work."); };
   window.mcrAdd=function(){
@@ -6189,7 +6195,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   window.mcrCode=function(i){
     var a=rload(), r=a[i]; if(!r) return;
-    var kind=(r.type==='lab')?'lab':'condition';
+    var kind=(r.type==='lab')?'lab':(window.mcCodeSys&&window.mcCodeSys.snomed?'snomed':'condition');
     var base=(typeof API!=='undefined')?API:'';
     var el=document.getElementById('mcrList');
     fetch(base+'/code-term',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({term:r.name, kind:kind})})
