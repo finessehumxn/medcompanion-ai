@@ -2412,6 +2412,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openTrends()"><i class="ti ti-chart-line"></i> Trends</a>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openJournal()"><i class="ti ti-notebook"></i> Health Journal</a>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();if(window.mcOpenMeds)mcOpenMeds()"><i class="ti ti-pill"></i> Medications</a>
+        <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openMedG()"><i class="ti ti-help-hexagon"></i> What is this medication?</a>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();if(window.mcOpenSchedule)mcOpenSchedule()"><i class="ti ti-alarm"></i> Med schedule</a>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();if(window.mcOpenVitals)mcOpenVitals()"><i class="ti ti-activity-heartbeat"></i> Vitals</a>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();if(window.mcOpenLabs)mcOpenLabs()"><i class="ti ti-flask"></i> Labs</a>
@@ -2456,6 +2457,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openJournal()"><i class="ti ti-notebook"></i> Health Journal</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openTrends()"><i class="ti ti-chart-line"></i> Trends</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();if(window.mcOpenMeds)mcOpenMeds()"><i class="ti ti-pill"></i> Medications</a>
+  <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openMedG()"><i class="ti ti-help-hexagon"></i> What is this medication?</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();if(window.mcOpenSchedule)mcOpenSchedule()"><i class="ti ti-alarm"></i> Med schedule</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();if(window.mcOpenVitals)mcOpenVitals()"><i class="ti ti-activity-heartbeat"></i> Vitals</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();if(window.mcOpenLabs)mcOpenLabs()"><i class="ti ti-flask"></i> Labs</a>
@@ -7064,5 +7066,59 @@ document.addEventListener('DOMContentLoaded', function() {
   window.mcvLock=function(){ pass=null; accounts=null; render(); };
   window.openVault=function(){ var m=document.getElementById('mcVault'); if(!m) return; pass=null; accounts=null; m.classList.add('show'); render(); };
   window.closeVault=function(){ pass=null; accounts=null; var m=document.getElementById('mcVault'); if(m) m.classList.remove('show'); };
+})();
+</script>
+
+<!-- ══ MedCompanion — What is this medication? (patient-facing med guide) ══ -->
+<div id="mcMedG" class="mcj-screen" role="dialog" aria-label="Medication guide">
+  <div class="mcj-wrap">
+    <div class="mcj-top"><div class="mcj-title">What is this medication?</div><button class="mcj-x" onclick="closeMedG()" aria-label="Close">&times;</button></div>
+    <p class="mcj-sub">What it's for, how it's usually taken, what's normal, and what means <b>call someone</b>. Pick one you're taking, or type any medicine.</p>
+    <div class="mcj-card">
+      <div id="mcgPicker"></div>
+      <div class="mcj-lbl">Medication</div>
+      <input type="text" class="mcj-input" id="mcgName" placeholder="e.g. Metformin">
+      <button class="mcj-save" onclick="mcgGo()">&#10022; Explain it</button>
+    </div>
+    <div id="mcgOut"></div>
+    <p class="mcj-disc">General information, not a prescription &mdash; your prescriber and pharmacist's instructions always come first. Never start, stop, or change a medicine based on this. <a href="javascript:void(0)" onclick="openTrust()" style="color:#7fe6b4;text-decoration:underline">🔒 How your data is handled</a></p>
+  </div>
+</div>
+<script>
+(function(){
+  function base(){ return (typeof API!=='undefined')?API:''; }
+  function esc(x){ return String(x==null?'':x).replace(/</g,'&lt;'); }
+  function ld(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch(e){ return []; } }
+  function list(a){ return '<ul class="mcj-il">'+a.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>'; }
+  window.openMedG=function(){
+    var m=document.getElementById('mcMedG'); if(!m) return; m.classList.add('show');
+    var meds=ld('mc_meds').filter(function(x){return x&&x.name;});
+    var p=document.getElementById('mcgPicker');
+    p.innerHTML = meds.length
+      ? '<div class="mcj-lbl" style="margin-top:0">Your medications</div><div class="mcj-chips">'+meds.map(function(x){
+          return '<button type="button" class="mcj-chip" onclick="mcgPick(this)">'+esc(x.name)+'</button>'; }).join('')+'</div>'
+      : '<p class="mcj-sub" style="margin:0 0 4px">Tip: add your medicines under <b>Medications</b> and they\'ll show up here.</p>';
+  };
+  window.closeMedG=function(){ var m=document.getElementById('mcMedG'); if(m) m.classList.remove('show'); };
+  window.mcgPick=function(btn){ document.getElementById('mcgName').value=btn.textContent.trim(); mcgGo(); };
+  window.mcgGo=function(){
+    var name=(document.getElementById('mcgName').value||'').trim(), out=document.getElementById('mcgOut');
+    if(!name){ out.innerHTML='<div class="mcj-inssum">Type a medication name first.</div>'; return; }
+    if(!(window.mcAIAllowed?window.mcAIAllowed('The medication name is sent to write a plain-language guide.'):true)) return;
+    out.innerHTML='<div class="mcj-inssum">Looking it up&hellip; (about 15 seconds)</div>';
+    fetch(base()+'/med-guide',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({medication:name, lang:null, language:(window.currentLang||null)})})
+      .then(function(r){return r.json();}).then(function(d){
+        var h='';
+        if(d.name) h+='<div class="mcj-inssum"><b>'+esc(d.name)+'</b><br>'+esc(d.what_it_is||'')+'</div>';
+        if(d.how_taken) h+='<div class="mcj-insh">💊 How it\'s usually taken</div><div class="mcj-card"><div style="font-size:14px;line-height:1.6">'+esc(d.how_taken)+'</div></div>';
+        if(d.common_side_effects&&d.common_side_effects.length) h+='<div class="mcj-insh">🙂 Common side effects</div>'+list(d.common_side_effects);
+        if(d.serious_side_effects&&d.serious_side_effects.length) h+='<div class="mcj-insh" style="color:#ff9c93">🚨 Get help right away if…</div><div class="mcn-watch">'+list(d.serious_side_effects)+'</div>';
+        if(d.food_drink&&d.food_drink.length) h+='<div class="mcj-insh">🍽 Food, drink &amp; other medicines</div>'+list(d.food_drink);
+        if(d.missed_dose) h+='<div class="mcj-insh">⏰ If you miss a dose</div><div class="mcj-card"><div style="font-size:14px;line-height:1.6">'+esc(d.missed_dose)+'</div></div>';
+        if(d.questions&&d.questions.length) h+='<div class="mcj-insh">🩺 Ask your pharmacist</div>'+list(d.questions);
+        if(d.footer) h+='<p class="mcj-disc">'+esc(d.footer)+'</p>';
+        out.innerHTML=h;
+      }).catch(function(){ out.innerHTML='<div class="mcj-inssum">Couldn\'t look that up just now — try again.</div>'; });
+  };
 })();
 </script>

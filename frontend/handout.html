@@ -56,7 +56,10 @@
   <div class="banner">General patient education for <b>you to review</b> before giving to a patient. It is not a diagnosis and gives no specific dosing or treatment changes — your instructions always take precedence.</div>
 
   <div class="card">
-    <label for="dx">Diagnosis or topic</label>
+    <label for="mode">Handout for</label>
+    <select id="mode" onchange="modeChange()"><option value="dx">A condition or topic</option><option value="med">A medication</option></select>
+    <div style="margin-top:12px"></div>
+    <label for="dx" id="dxLabel">Diagnosis or topic</label>
     <input type="text" id="dx" placeholder="e.g. Type 2 diabetes, newly diagnosed">
     <div class="row">
       <div>
@@ -86,6 +89,11 @@
 <script>
   function esc(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
   function list(a){ return '<ul>'+a.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>'; }
+  window.modeChange=function(){
+    var med=document.getElementById('mode').value==='med';
+    document.getElementById('dxLabel').textContent = med?'Medication':'Diagnosis or topic';
+    document.getElementById('dx').placeholder = med?'e.g. Warfarin':'e.g. Type 2 diabetes, newly diagnosed';
+  };
   window.gen=function(){
     var dx=(document.getElementById('dx').value||'').trim();
     var out=document.getElementById('out');
@@ -93,9 +101,24 @@
     out.innerHTML='<div class="card">Writing the handout… (about 15 seconds)</div>';
     var body={ diagnosis:dx, language:(document.getElementById('lang').value||null),
                reading_level:document.getElementById('lvl').value, context:(document.getElementById('ctx').value||'').trim() };
-    fetch('/handout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+    var isMed=document.getElementById('mode').value==='med';
+    if(isMed){ body={medication:dx, language:body.language, reading_level:body.reading_level, context:body.context}; }
+    fetch(isMed?'/med-guide':'/handout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
       .then(function(r){return r.json();}).then(function(d){
         var h='<div class="sheet">';
+        if(isMed){
+          h+='<h2>'+esc(d.name||dx)+'</h2>';
+          if(d.what_it_is) h+='<p>'+esc(d.what_it_is)+'</p>';
+          if(d.how_taken){ h+='<h3>How it\'s usually taken</h3><p>'+esc(d.how_taken)+'</p>'; }
+          if(d.common_side_effects&&d.common_side_effects.length){ h+='<h3>Common side effects</h3>'+list(d.common_side_effects); }
+          if(d.serious_side_effects&&d.serious_side_effects.length){ h+='<div class="flags"><h3>\u26a0 Get help right away if\u2026</h3>'+list(d.serious_side_effects)+'</div>'; }
+          if(d.food_drink&&d.food_drink.length){ h+='<h3>Food, drink &amp; other medicines</h3>'+list(d.food_drink); }
+          if(d.missed_dose){ h+='<h3>If you miss a dose</h3><p>'+esc(d.missed_dose)+'</p>'; }
+          if(d.questions&&d.questions.length){ h+='<h3>Questions to ask your prescriber or pharmacist</h3>'+list(d.questions); }
+          h+='<div class="foot">'+esc(d.footer||'')+'</div></div>';
+          h+='<div class="acts"><button class="btn" onclick="window.print()">Print / Save PDF</button><button class="btn ghost" onclick="copyOut()">Copy text</button></div>';
+          out.innerHTML=h; return;
+        }
         h+='<h2>'+esc(d.title||dx)+'</h2>';
         if(d.what_it_is) h+='<p>'+esc(d.what_it_is)+'</p>';
         if(d.what_to_expect&&d.what_to_expect.length){ h+='<h3>What to expect</h3>'+list(d.what_to_expect); }
