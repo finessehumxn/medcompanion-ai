@@ -2418,6 +2418,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();if(window.mcOpenAppts)mcOpenAppts()"><i class="ti ti-calendar-event"></i> Appointments</a>
         <div class="nav-dd-sec">More</div>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();if(window.mcOpenMedID)mcOpenMedID()"><i class="ti ti-id"></i> Medical ID</a>
+        <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openVault()"><i class="ti ti-key"></i> Medical accounts</a>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();if(window.mcOpenCare)mcOpenCare()"><i class="ti ti-users"></i> Care circle</a>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openTrust()"><i class="ti ti-lock"></i> Your data &amp; AI</a>
       </div>
@@ -2460,6 +2461,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();if(window.mcOpenLabs)mcOpenLabs()"><i class="ti ti-flask"></i> Labs</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();if(window.mcOpenAppts)mcOpenAppts()"><i class="ti ti-calendar-event"></i> Appointments</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();if(window.mcOpenMedID)mcOpenMedID()"><i class="ti ti-id"></i> Medical ID</a>
+  <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openVault()"><i class="ti ti-key"></i> Medical accounts</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();if(window.mcOpenCare)mcOpenCare()"><i class="ti ti-users"></i> Care circle</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openRecords()"><i class="ti ti-file-text"></i> My Records</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openVisit()"><i class="ti ti-clipboard-heart"></i> Prep for my visit</a>
@@ -6908,5 +6910,133 @@ document.addEventListener('DOMContentLoaded', function() {
     render();
   };
   window.closeTrends=function(){ var m=document.getElementById('mcTrends'); if(m) m.classList.remove('show'); };
+})();
+</script>
+
+<!-- ══ MedCompanion — Medical Accounts vault (AES-GCM encrypted on-device) ══ -->
+<style>
+  .mcv-lockbox{ text-align:center; padding:10px 4px 4px; }
+  .mcv-lockico{ font-size:34px; }
+  .mcv-acct{ background:#0b1f18; border:1px solid rgba(255,255,255,.12); border-radius:13px; padding:13px 15px; margin-bottom:10px; }
+  .mcv-atop{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .mcv-aname{ font-weight:700; font-size:14.5px; color:#eaf3ee; }
+  .mcv-atype{ font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:#8fbfa8; background:rgba(255,255,255,.07); border-radius:5px; padding:2px 7px; }
+  .mcv-row{ display:flex; align-items:center; gap:8px; margin-top:8px; font-size:13px; color:#cfe3d8; }
+  .mcv-row .k{ color:#8fbfa8; min-width:74px; font-size:12px; }
+  .mcv-row .v{ flex:1; min-width:0; word-break:break-all; font-family:ui-monospace,Menlo,monospace; }
+  .mcv-mini{ background:rgba(255,255,255,.09); color:#eaf3ee; border:none; border-radius:7px; padding:5px 9px; font-size:11.5px; font-weight:700; cursor:pointer; }
+  .mcv-del{ background:none; border:none; color:#ff9c93; font-size:12px; cursor:pointer; margin-top:8px; }
+  .mcv-warn{ background:rgba(224,166,63,.1); border:1px solid rgba(224,166,63,.35); border-radius:11px; padding:11px 13px; font-size:12.5px; color:#e8c98a; line-height:1.5; margin-bottom:14px; }
+</style>
+<div id="mcVault" class="mcj-screen" role="dialog" aria-label="Medical accounts">
+  <div class="mcj-wrap">
+    <div class="mcj-top"><div class="mcj-title">Medical accounts</div><button class="mcj-x" onclick="closeVault()" aria-label="Close">&times;</button></div>
+    <p class="mcj-sub">Every portal in one place &mdash; MyChart, insurance, pharmacy, labs, dental. <b>Encrypted on this device with your passphrase.</b> Never uploaded, never sent to the AI, and never included in your Health Passport.</p>
+    <div id="mcvBody"></div>
+    <p class="mcj-disc">We can't see or recover your passphrase &mdash; if you forget it, the vault can't be opened. For your most critical logins, a dedicated password manager is still the gold standard; this is for keeping your <i>medical</i> portals straight. <a href="javascript:void(0)" onclick="openTrust()" style="color:#7fe6b4;text-decoration:underline">🔒 How your data is handled</a></p>
+  </div>
+</div>
+<script>
+(function(){
+  var KEY='mc_vault', accounts=null;               // decrypted list lives in memory only
+  var TYPES=['Patient portal','Insurance','Pharmacy','Lab','Dental','Vision','Billing','Other'];
+  function esc(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function b64(u8){ var s=''; u8.forEach(function(b){ s+=String.fromCharCode(b); }); return btoa(s); }
+  function ub64(str){ return Uint8Array.from(atob(str), function(c){ return c.charCodeAt(0); }); }
+  function blob(){ try{ return JSON.parse(localStorage.getItem(KEY)||'null'); }catch(e){ return null; } }
+  function hasVault(){ var b=blob(); return !!(b && b.c); }
+
+  function deriveKey(pass, salt){
+    return crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey'])
+      .then(function(km){
+        return crypto.subtle.deriveKey({name:'PBKDF2', salt:salt, iterations:250000, hash:'SHA-256'},
+          km, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+      });
+  }
+  function seal(list, pass){
+    var salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12));
+    return deriveKey(pass, salt).then(function(k){
+      return crypto.subtle.encrypt({name:'AES-GCM', iv:iv}, k, new TextEncoder().encode(JSON.stringify(list)));
+    }).then(function(ct){
+      localStorage.setItem(KEY, JSON.stringify({v:1, s:b64(salt), i:b64(iv), c:b64(new Uint8Array(ct))}));
+    });
+  }
+  function unseal(pass){
+    var b=blob(); if(!b) return Promise.reject(new Error('no vault'));
+    return deriveKey(pass, ub64(b.s)).then(function(k){
+      return crypto.subtle.decrypt({name:'AES-GCM', iv:ub64(b.i)}, k, ub64(b.c));
+    }).then(function(pt){ return JSON.parse(new TextDecoder().decode(pt)); });
+  }
+
+  var pass=null;                                    // held only while unlocked
+  function lockUI(){
+    var setup=!hasVault();
+    return '<div class="mcj-card"><div class="mcv-lockbox"><div class="mcv-lockico">'+(setup?'🗝️':'🔒')+'</div>'
+      +'<div style="font-weight:800;font-size:16px;margin:8px 0 4px">'+(setup?'Create your vault':'Vault locked')+'</div>'
+      +'<p class="mcj-sub" style="margin:0 0 14px">'+(setup?'Pick a passphrase. It encrypts everything on this device — we never see it and can\'t reset it.':'Enter your passphrase to unlock.')+'</p></div>'
+      +'<input type="password" class="mcj-input" id="mcvPass" placeholder="Passphrase" autocomplete="off">'
+      +(setup?'<input type="password" class="mcj-input" id="mcvPass2" placeholder="Confirm passphrase" autocomplete="off" style="margin-top:10px">':'')
+      +'<button class="mcj-save" onclick="mcvUnlock('+(setup?'true':'false')+')">'+(setup?'Create vault':'Unlock')+'</button>'
+      +'<div id="mcvErr" class="mcj-sub" style="color:#ff9c93;margin:10px 0 0"></div></div>';
+  }
+  function acctCard(a,i){
+    function row(k,v,copy,secret){
+      if(!v) return '';
+      return '<div class="mcv-row"><span class="k">'+k+'</span><span class="v" id="mcvF'+i+'_'+k.replace(/\W/g,'')+'">'+(secret?'••••••••':esc(v))+'</span>'
+        +(secret?'<button class="mcv-mini" onclick="mcvReveal('+i+',\''+k.replace(/\W/g,'')+'\')">Show</button>':'')
+        +(copy?'<button class="mcv-mini" onclick="mcvCopy('+i+',\''+k+'\')">Copy</button>':'')+'</div>';
+    }
+    return '<div class="mcv-acct"><div class="mcv-atop"><span class="mcv-aname">'+esc(a.name||'Account')+'</span><span class="mcv-atype">'+esc(a.type||'Other')+'</span></div>'
+      +(a.url?'<div class="mcv-row"><span class="k">Site</span><span class="v"><a href="'+esc(a.url)+'" target="_blank" rel="noopener" style="color:#7fe6b4">'+esc(a.url)+'</a></span></div>':'')
+      +row('User',a.user,true,false)+row('Password',a.pass,true,true)+row('Member ID',a.member,true,false)
+      +(a.notes?'<div class="mcv-row"><span class="k">Notes</span><span class="v" style="font-family:inherit">'+esc(a.notes)+'</span></div>':'')
+      +'<button class="mcv-del" onclick="mcvDel('+i+')">Remove</button></div>';
+  }
+  function unlockedUI(){
+    var opts=TYPES.map(function(t){return '<option>'+t+'</option>';}).join('');
+    return '<div class="mcv-warn">🔓 Unlocked. It re-locks when you close this screen.</div>'
+      +'<div id="mcvList">'+(accounts.length?accounts.map(acctCard).join(''):'<div class="mcj-empty">No accounts yet — add your first below.</div>')+'</div>'
+      +'<div class="mcj-card"><div class="mcj-h">Add an account</div>'
+      +'<div class="mcj-lbl" style="margin-top:0">Name</div><input type="text" class="mcj-input" id="mcvN" placeholder="e.g. MyChart — Cedars-Sinai">'
+      +'<div class="mcj-lbl">Type</div><select class="mcj-input" id="mcvT">'+opts+'</select>'
+      +'<div class="mcj-lbl">Website</div><input type="text" class="mcj-input" id="mcvU" placeholder="https://mychart…">'
+      +'<div class="mcj-lbl">Username / email</div><input type="text" class="mcj-input" id="mcvUser" autocomplete="off">'
+      +'<div class="mcj-lbl">Password</div><input type="password" class="mcj-input" id="mcvP" autocomplete="new-password">'
+      +'<div class="mcj-lbl">Member / policy ID</div><input type="text" class="mcj-input" id="mcvM">'
+      +'<div class="mcj-lbl">Notes</div><input type="text" class="mcj-input" id="mcvNo" placeholder="e.g. security question: first pet">'
+      +'<button class="mcj-save" onclick="mcvAdd()">Add account</button></div>'
+      +'<button class="mcj-analyze" onclick="mcvLock()">🔒 Lock the vault</button>';
+  }
+  function render(){ document.getElementById('mcvBody').innerHTML = accounts ? unlockedUI() : lockUI(); }
+
+  window.mcvUnlock=function(setup){
+    var p=(document.getElementById('mcvPass').value||''), err=document.getElementById('mcvErr');
+    if(p.length<6){ err.textContent='Use at least 6 characters.'; return; }
+    if(setup){
+      var p2=(document.getElementById('mcvPass2').value||'');
+      if(p!==p2){ err.textContent='Those passphrases don\'t match.'; return; }
+      pass=p; accounts=[]; seal(accounts,pass).then(render);
+      return;
+    }
+    err.textContent='Unlocking…';
+    unseal(p).then(function(list){ pass=p; accounts=list||[]; render(); })
+      .catch(function(){ err.textContent='That passphrase didn\'t work.'; });
+  };
+  window.mcvAdd=function(){
+    function val(id){ var e=document.getElementById(id); return e?e.value.trim():''; }
+    var a={name:val('mcvN'), type:val('mcvT'), url:val('mcvU'), user:val('mcvUser'), pass:val('mcvP'), member:val('mcvM'), notes:val('mcvNo')};
+    if(!a.name){ return; }
+    accounts.push(a); seal(accounts,pass).then(render);
+  };
+  window.mcvDel=function(i){ if(!confirm('Remove this account from your vault?')) return; accounts.splice(i,1); seal(accounts,pass).then(render); };
+  window.mcvReveal=function(i,k){ var el=document.getElementById('mcvF'+i+'_'+k); if(el&&accounts[i]) el.textContent=accounts[i].pass||''; };
+  window.mcvCopy=function(i,k){
+    var a=accounts[i]; if(!a) return;
+    var v=(k==='User')?a.user:(k==='Password')?a.pass:(k==='Member ID')?a.member:'';
+    if(navigator.clipboard&&v) navigator.clipboard.writeText(v).then(function(){ alert(k+' copied.'); });
+  };
+  window.mcvLock=function(){ pass=null; accounts=null; render(); };
+  window.openVault=function(){ var m=document.getElementById('mcVault'); if(!m) return; pass=null; accounts=null; m.classList.add('show'); render(); };
+  window.closeVault=function(){ pass=null; accounts=null; var m=document.getElementById('mcVault'); if(m) m.classList.remove('show'); };
 })();
 </script>
