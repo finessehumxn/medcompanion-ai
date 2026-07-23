@@ -6712,7 +6712,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var s=splitP(), out=document.getElementById('mcpOut');
     function lines(v){ return (v||'').split('\n').map(function(x){return x.trim();}).filter(Boolean).slice(0,6); }
     var d={
-      n:(document.getElementById('mcpName').value||'').trim().slice(0,40),
+      n:((document.getElementById('mcpName').value||'').trim() || (whoIs()==='me'?(medId().name||''):'')).slice(0,40),
       a:(document.getElementById('mcpAge').value||'').trim().slice(0,20),
       w:(document.getElementById('mcpWhy').value||'').trim().slice(0,320),
       al:s.al.slice(0,12), c:s.conds.slice(0,14), m:s.meds.slice(0,14),
