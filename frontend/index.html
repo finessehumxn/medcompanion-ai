@@ -6180,8 +6180,35 @@ document.addEventListener('DOMContentLoaded', function() {
   function mcrRender(){
     var a=rload(), l=document.getElementById('mcrList'); if(!l) return;
     if(!a.length){ l.innerHTML='<div class="mcj-empty">No records yet. Add one above, load a sample, or connect your MyChart.</div>'; return; }
-    l.innerHTML=a.map(function(r,i){ return '<div class="mcr-rec"><span class="mcr-rt">'+esc(r.type)+'</span><span class="mcr-rn">'+esc(r.name)+(r.value?' <span style="color:#8fbfa8">'+esc(r.value)+'</span>':'')+'</span><button class="mcr-del" onclick="mcrDel('+i+')" aria-label="Remove">&times;</button></div>'; }).join('');
+    l.innerHTML=a.map(function(r,i){
+      var codeable=(r.type==='condition'||r.type==='lab');
+      var badge = r.code ? '<span style="font-size:10.5px;color:#7fe6b4;font-weight:700;background:rgba(52,199,140,.14);border-radius:5px;padding:2px 6px;margin-left:6px" title="'+esc(r.codeName||'')+'">'+esc(r.codeSystem)+' '+esc(r.code)+'</span>'
+                 : (codeable ? '<button class="mcv-mini" style="margin-left:6px;background:rgba(255,255,255,.09);color:#cfe3d8" onclick="mcrCode('+i+')">＋ code</button>' : '');
+      return '<div class="mcr-rec"><span class="mcr-rt">'+esc(r.type)+'</span><span class="mcr-rn">'+esc(r.name)+(r.value?' <span style="color:#8fbfa8">'+esc(r.value)+'</span>':'')+badge+'</span><button class="mcr-del" onclick="mcrDel('+i+')" aria-label="Remove">&times;</button></div>';
+    }).join('') + (a.some(function(r){return (r.type==='condition'||r.type==='lab')&&!r.code;})?'<button class="mcj-analyze" style="margin-top:10px" onclick="mcrCodeAll()">🏷 Standardize with medical codes (LOINC / ICD-10)</button>':'');
   }
+  window.mcrCode=function(i){
+    var a=rload(), r=a[i]; if(!r) return;
+    var kind=(r.type==='lab')?'lab':'condition';
+    var base=(typeof API!=='undefined')?API:'';
+    var el=document.getElementById('mcrList');
+    fetch(base+'/code-term',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({term:r.name, kind:kind})})
+      .then(function(res){return res.json();}).then(function(d){
+        if(!d.candidates||!d.candidates.length){ alert('No standard '+(kind==='lab'?'LOINC':'ICD-10')+' code found for "'+r.name+'". You can leave it as free text.'); return; }
+        var opts=d.candidates.map(function(c,n){ return (n+1)+'. '+c.code+' — '+c.name; }).join('\n');
+        var pick=prompt('Pick the best '+d.system+' code for "'+r.name+'":\n\n'+opts+'\n\nEnter 1-'+d.candidates.length+' (or Cancel):','1');
+        var n=parseInt(pick,10);
+        if(n>=1 && n<=d.candidates.length){
+          var c=d.candidates[n-1];
+          var arr=rload(); if(arr[i]){ arr[i].code=c.code; arr[i].codeSystem=c.system; arr[i].codeName=c.name; arr[i].codeUrl=c.url; rsave(arr); mcrRender(); }
+        }
+      }).catch(function(){ alert('Couldn\'t reach the coding service — try again.'); });
+  };
+  window.mcrCodeAll=function(){
+    var a=rload(), todo=[]; a.forEach(function(r,i){ if((r.type==='condition'||r.type==='lab')&&!r.code) todo.push(i); });
+    if(!todo.length) return;
+    (function next(k){ if(k>=todo.length){ mcrRender(); return; } window.mcrCode(todo[k]); setTimeout(function(){ next(k+1); }, 50); })(0);
+  };
   // ---- FHIR import (MyChart / Apple Health / Blue Button export) ----
   function _fhirName(res){
     var c = res.code || res.medicationCodeableConcept || res.vaccineCode;
