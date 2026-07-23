@@ -196,3 +196,22 @@ Target: a **minimum viable** compliant posture to run **one clinic pilot** — n
 ---
 
 *Reminder: practical guidance, not legal advice. Confirm current vendor HIPAA terms and have a healthcare attorney review before signing any BAA or sending PHI anywhere.*
+
+---
+
+## Addendum — Coded terminology status (2026-07)
+
+MedCompanion normalizes clinical free-text to standard codes via **NIH/NLM APIs** (codes are never model-generated):
+
+| Data | Standard | Source | Status |
+|---|---|---|---|
+| Medications | RxNorm (RxCUI) | NIH RxNav | ✅ live, key-free |
+| Labs | LOINC | NIH Clinical Tables | ✅ live, key-free |
+| Conditions (billing) | ICD-10-CM | NIH Clinical Tables | ✅ live, key-free |
+| Conditions (clinical) | **SNOMED CT** | NLM UMLS | ⏳ code-ready; set `UMLS_API_KEY` to activate |
+
+**To activate SNOMED (≈10 min, free):** request a UMLS account + API key at
+`https://uts.nlm.nih.gov/uts/signup-login` (SNOMED CT US edition is free under the
+NLM/UMLS license), then set `UMLS_API_KEY` in Railway. `/code-config` will report
+`snomed:true` and the app switches condition coding from ICD-10 to SNOMED automatically.
+Not-yet: SNOMED requires accepting the UMLS license — a governance step, not code.
