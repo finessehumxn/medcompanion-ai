@@ -5163,12 +5163,24 @@ document.addEventListener('DOMContentLoaded', function() {
     var m = meds();
     var badge = document.getElementById('mcMedCount'); if(badge){ badge.textContent = m.length ? m.length : ''; badge.style.display = m.length ? 'inline-flex' : 'none'; }
     if(!m.length){ list.innerHTML = '<div style="color:var(--text-soft);font-size:14px;padding:.4rem 0;line-height:1.5">No medications yet. Add what you take — it stays private on this device.</div>'; return; }
-    list.innerHTML = m.map(function(x,i){ return '<div style="display:flex;align-items:center;gap:.6rem;padding:.6rem .8rem;background:var(--lteal);border:1px solid var(--border);border-radius:12px;margin-bottom:.5rem"><span style="flex:1;min-width:0"><b>'+esc(x.name)+'</b>'+(x.dose?' <span style="color:var(--text-soft)">· '+esc(x.dose)+'</span>':'')+'</span><button data-i="'+i+'" class="mcRm" aria-label="Remove" style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:20px;line-height:1">×</button></div>'; }).join('');
+    list.innerHTML = m.map(function(x,i){ return '<div style="display:flex;align-items:center;gap:.6rem;padding:.6rem .8rem;background:var(--lteal);border:1px solid var(--border);border-radius:12px;margin-bottom:.5rem"><span style="flex:1;min-width:0"><b>'+esc(x.name)+'</b>'+(x.dose?' <span style="color:var(--text-soft)">· '+esc(x.dose)+'</span>':'')+(x.rxcui?'<br><span style="font-size:11px;color:var(--sage);font-weight:700" title="'+esc(x.rxnorm||'')+' · RxCUI '+esc(x.rxcui)+'">✓ '+esc(x.rxnorm||'standardized')+'</span>':(x.rxnorm==='__none__'?'<br><span style="font-size:11px;color:var(--text-soft)">not matched to a standard code</span>':''))+'</span><button data-i="'+i+'" class="mcRm" aria-label="Remove" style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:20px;line-height:1">×</button></div>'; }).join('');
     Array.prototype.forEach.call(document.querySelectorAll('.mcRm'), function(b){ b.onclick=function(){ var m=meds(); m.splice(+b.getAttribute('data-i'),1); saveMeds(m); render(); }; });
   }
   function openM(){ var mo=document.getElementById('mcMedModal'); if(mo){ mo.style.display='flex'; render(); var n=document.getElementById('mcMedName'); if(n) setTimeout(function(){n.focus();},50); } }
   function closeM(){ var mo=document.getElementById('mcMedModal'); if(mo) mo.style.display='none'; }
-  function addM(){ var n=document.getElementById('mcMedName'), d=document.getElementById('mcMedDose'); if(!n||!n.value.trim()) return; var m=meds(); m.push({name:n.value.trim(), dose:(d&&d.value.trim())||''}); saveMeds(m); n.value=''; if(d) d.value=''; n.focus(); render(); }
+  function normalizeMed(idx){
+    var m=meds(); var item=m[idx]; if(!item) return;
+    var q=(item.name+' '+(item.dose||'')).trim();
+    var base=(typeof API!=='undefined')?API:'';
+    fetch(base+'/normalize-med',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:q})})
+      .then(function(r){return r.json();}).then(function(res){
+        var mm=meds(); if(!mm[idx]) return;
+        if(res && res.matched){ mm[idx].rxcui=res.rxcui; mm[idx].rxnorm=res.normalized; mm[idx].rxurl=res.url; }
+        else { mm[idx].rxcui=null; mm[idx].rxnorm='__none__'; }
+        saveMeds(mm); render();
+      }).catch(function(){});
+  }
+  function addM(){ var n=document.getElementById('mcMedName'), d=document.getElementById('mcMedDose'); if(!n||!n.value.trim()) return; var m=meds(); m.push({name:n.value.trim(), dose:(d&&d.value.trim())||''}); saveMeds(m); var idx=m.length-1; n.value=''; if(d) d.value=''; n.focus(); render(); normalizeMed(idx); }
   function checkM(){ var m=meds(); if(!m.length){ alert('Add at least one medication first.'); return; }
     var listTxt = m.map(function(x){ return x.name + (x.dose?(' ('+x.dose+')'):''); }).join(', ');
     var prompt = 'I take these medications: ' + listTxt + '. In plain language, are there any interactions between them, and any foods, drinks, or over-the-counter medicines I should avoid? What warning signs should I watch for?';
