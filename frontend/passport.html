@@ -71,8 +71,26 @@
   if(d.nt){ h+='<h2>Important notes</h2><div class="card why">'+esc(d.nt)+'</div>'; }
   if(d.w){ h+='<h2>Why I’m here</h2><div class="card why">'+esc(d.w)+'</div>'; }
   if(d.c&&d.c.length){ h+='<h2>Conditions (patient-reported)</h2><div class="card"><ul>'+d.c.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>'; }
-  if(d.m&&d.m.length){ h+='<h2>Medications (patient-reported)</h2><div class="card"><ul>'+d.m.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>'; }
+  var THIN=/(warfarin|coumadin|eliquis|apixaban|xarelto|rivaroxaban|pradaxa|dabigatran|savaysa|edoxaban|heparin|lovenox|enoxaparin|plavix|clopidogrel|brilinta|ticagrelor|aspirin)/i;
+  if(d.m&&d.m.length){
+    var thinners=d.m.filter(function(x){ return THIN.test(x); });
+    if(thinners.length){
+      h+='<div class="allergy" style="margin-top:16px"><div class="h">\u26a0 Blood thinner / antiplatelet</div><div class="items">'+thinners.map(esc).join(' \u00b7 ')+'</div>'
+        +'<div style="font-size:12.5px;color:var(--sub);margin-top:6px">Bleeding &amp; pre-procedure risk — confirm timing of last dose.</div></div>';
+    }
+    h+='<h2>Medications (patient-reported)</h2><div class="card"><ul>'+d.m.map(function(x){
+        return '<li>'+esc(x)+(THIN.test(x)?' <b style="color:var(--alert)">\u26a0 blood thinner</b>':'')+'</li>';
+      }).join('')+'</ul></div>';
+  }
   if(d.l&&d.l.length){ h+='<h2>Recent labs (patient-provided)</h2><div class="card">'+d.l.map(function(x){return '<div class="lab"><span>'+esc(x.n)+'</span><span class="v">'+esc(x.v)+'</span></div>';}).join('')+'</div>'; }
+  if(d.lg && (d.lg.pn||d.lg.pp||d.lg.ad||d.lg.dnr||d.lg.od)){
+    var L=d.lg, bits='';
+    if(L.pn||L.pp) bits+='<div class="lab"><span>Healthcare proxy / POA</span><span class="v">'+(esc(L.pn)||'\u2014')+(L.pp?' \u00b7 '+esc(L.pp):'')+'</span></div>';
+    if(L.ad) bits+='<div class="lab"><span>Advance directive</span><span class="v">'+esc(L.ad)+'</span></div>';
+    if(L.dnr) bits+='<div class="lab"><span>DNR / DNI</span><span class="v" style="color:var(--alert);font-weight:800">On file \u2014 verify document</span></div>';
+    if(L.od) bits+='<div class="lab"><span>Organ donor</span><span class="v">Yes</span></div>';
+    h+='<h2>Advance directives &amp; proxy</h2><div class="card">'+bits+'</div>';
+  }
   if(d.q&&d.q.length){ h+='<h2>The patient’s questions</h2><div class="card"><ul>'+d.q.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>'; }
 
   h+='<div class="actions"><button class="print" onclick="window.print()">Print / Save PDF</button></div>';

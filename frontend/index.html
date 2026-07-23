@@ -6636,6 +6636,17 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
       <div class="mcj-lbl">Why are you seeing the doctor? What's going on?</div>
       <textarea class="mcj-area" id="mcpWhy" placeholder="e.g. Chest tightness on and off for 3 days, and I'm here for my annual."></textarea>
+      <div class="mcj-h" style="margin-top:16px">Advance directives &amp; proxy <span style="font-weight:500;text-transform:none;letter-spacing:0;color:#8fbfa8">(what admissions always asks)</span></div>
+      <div class="mcp-two">
+        <div><div class="mcj-lbl" style="margin-top:0">Healthcare proxy / POA</div><input type="text" class="mcj-input" id="mcpProxyN" placeholder="e.g. Lisa D. (daughter)"></div>
+        <div><div class="mcj-lbl" style="margin-top:0">Their phone</div><input type="tel" class="mcj-input" id="mcpProxyP" placeholder="555-0142"></div>
+      </div>
+      <div class="mcj-lbl">Advance directive / living will</div>
+      <input type="text" class="mcj-input" id="mcpDirective" placeholder="e.g. Yes — copy with Lisa &amp; on file at Cedars">
+      <div class="mcj-chips" style="margin-top:10px">
+        <button type="button" class="mcj-chip" id="mcpDNR" onclick="this.classList.toggle('on')">DNR / DNI on file</button>
+        <button type="button" class="mcj-chip" id="mcpDonor" onclick="this.classList.toggle('on')">Organ donor</button>
+      </div>
       <div class="mcj-lbl">Your top questions (one per line, optional)</div>
       <textarea class="mcj-area" id="mcpQ" placeholder="Is this related to my blood pressure?&#10;Do I need to change my meds?"></textarea>
       <button class="mcj-save" onclick="mcpBuild()">&#10022; Create my passport</button>
@@ -6703,8 +6714,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   window.mcpRefresh=refreshCounts;
+  function prefillLegal(){
+    var o={}; try{ o=JSON.parse(localStorage.getItem('mc_legal')||'{}')||{}; }catch(e){}
+    function set(id,v){ var e=document.getElementById(id); if(e&&!e.value) e.value=v||''; }
+    set('mcpProxyN',o.pn); set('mcpProxyP',o.pp); set('mcpDirective',o.ad);
+    var d=document.getElementById('mcpDNR'); if(d&&o.dnr) d.classList.add('on');
+    var g=document.getElementById('mcpDonor'); if(g&&o.od) g.classList.add('on');
+  }
   window.openPass=function(){
     var m=document.getElementById('mcPass'); if(!m) return; m.classList.add('show');
+    prefillLegal();
     if(whoIs()==='care') prefillCare();
     refreshCounts();
   };
@@ -6720,7 +6739,14 @@ document.addEventListener('DOMContentLoaded', function() {
       al:s.al.slice(0,12), c:s.conds.slice(0,14), m:s.meds.slice(0,14),
       l:s.labs.slice(0,10), q:lines(document.getElementById('mcpQ').value),
       d:(new Date()).toISOString().slice(0,10),
-      b:s.blood||'', ice:(s.iceN||s.iceP)?{n:s.iceN||'',p:s.iceP||''}:null, nt:s.notes||''
+      b:s.blood||'', ice:(s.iceN||s.iceP)?{n:s.iceN||'',p:s.iceP||''}:null, nt:s.notes||'',
+      lg:(function(){
+        function v(id){ var e=document.getElementById(id); return e?e.value.trim():''; }
+        function on(id){ var e=document.getElementById(id); return !!(e&&e.classList.contains('on')); }
+        var o={pn:v('mcpProxyN'), pp:v('mcpProxyP'), ad:v('mcpDirective'), dnr:on('mcpDNR'), od:on('mcpDonor')};
+        try{ localStorage.setItem('mc_legal', JSON.stringify(o)); }catch(e){}
+        return (o.pn||o.pp||o.ad||o.dnr||o.od)?o:null;
+      })()
     };
     Object.keys(d).forEach(function(k){ if(d[k]==='' || (Array.isArray(d[k])&&!d[k].length)) delete d[k]; });
     if(!d.w && !d.al && !d.c && !d.m && !d.l){
