@@ -823,6 +823,49 @@ async def handout(req: HandoutRequest):
         empty["title"] = "Couldn't generate the handout just now — please try again."
         return empty
 
+class NormalizeMedRequest(BaseModel):
+    name: str
+
+@app.post("/normalize-med")
+async def normalize_med(req: NormalizeMedRequest):
+    """Map a patient's free-text medication to a standard RxNorm concept (RxCUI +
+    normalized name) via the NIH RxNav API. Deterministic terminology lookup — the
+    code comes from NIH, never from the model, so it can't be fabricated. Fails
+    soft to unmatched. Stateless; nothing stored."""
+    import httpx
+    from urllib.parse import quote
+    name = (req.name or "").strip()
+    if not name:
+        return {"matched": False, "input": name}
+    q = quote(name)
+    try:
+        async with httpx.AsyncClient(timeout=12) as client:
+            # 1) exact/normalized name match
+            r = await client.get(f"https://rxnav.nlm.nih.gov/REST/rxcui.json?name={q}&search=2")
+            ids = (r.json().get("idGroup", {}) or {}).get("rxnormId") if r.status_code == 200 else None
+            rxcui = ids[0] if ids else None
+            score = 100 if rxcui else None
+            # 2) fall back to approximate match (brand names, doses, typos)
+            if not rxcui:
+                r2 = await client.get(f"https://rxnav.nlm.nih.gov/REST/approximateTerm.json?term={q}&maxEntries=1")
+                cands = ((r2.json().get("approximateGroup", {}) or {}).get("candidate") or []) if r2.status_code == 200 else []
+                if cands:
+                    rxcui = cands[0].get("rxcui")
+                    try: score = round(float(cands[0].get("score", 0)))
+                    except Exception: score = None
+            if not rxcui:
+                return {"matched": False, "input": name}
+            # normalized display name for the concept
+            r3 = await client.get(f"https://rxnav.nlm.nih.gov/REST/rxcui/{rxcui}/property.json?propName=RxNorm%20Name")
+            props = ((r3.json().get("propConceptGroup", {}) or {}).get("propConcept") or []) if r3.status_code == 200 else []
+            norm = props[0].get("propValue") if props else None
+        return {"matched": True, "input": name, "rxcui": rxcui, "normalized": norm or name,
+                "score": score, "source": "RxNorm (NIH RxNav)",
+                "url": f"https://mor.nlm.nih.gov/RxNav/search?searchBy=RXCUI&searchTerm={rxcui}"}
+    except Exception as e:
+        logger.error(f"normalize-med error: {type(e).__name__}")
+        return {"matched": False, "input": name}
+
 class MedGuideRequest(BaseModel):
     # Plain-language guide for ONE medication. Education only — never dosing changes.
     medication: str
