@@ -6666,6 +6666,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if(care) prefillCare();
     refreshCounts();
   };
+  function medId(){ try{ return JSON.parse(localStorage.getItem('mc_medid')||'{}')||{}; }catch(e){ return {}; } }
+  function pushSplit(str, arr){ String(str||'').split(/[,;\n]/).forEach(function(x){ x=x.trim(); if(x) arr.push(x); }); }
+  function dedupe(arr){ var seen={}, out=[]; arr.forEach(function(x){ var k=String(x).toLowerCase().trim(); if(k&&!seen[k]){ seen[k]=1; out.push(x); } }); return out; }
   function splitP(){
     if(whoIs()==='care'){ return {conds:ta('mcpCareC'), meds:ta('mcpCareM'), labs:[], al:ta('mcpCareAl')}; }
     var a=ld('mc_records'), conds=[], meds=[], labs=[], al=[];
@@ -6677,7 +6680,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if(m) al.push(r.name.replace(/^allergy:\s*/i,'')); else conds.push(r.name);
       }
     });
-    return {conds:conds, meds:meds, labs:labs, al:al};
+    // the Medications tool
+    ld('mc_meds').forEach(function(m){ if(m&&m.name) meds.push(m.name+(m.dose?' '+m.dose:'')); });
+    // the Medical ID (allergies / conditions / blood / emergency contact)
+    var id=medId();
+    pushSplit(id.allergies, al); pushSplit(id.conditions, conds);
+    return {conds:dedupe(conds), meds:dedupe(meds), labs:labs, al:dedupe(al),
+            blood:(id.blood&&id.blood!=='Unknown')?id.blood:'', iceN:id.iceName||'', iceP:id.icePhone||'', notes:id.notes||''};
   }
   function refreshCounts(){
     var s=splitP(), c=document.getElementById('mcpCounts'); if(!c) return;
@@ -6708,7 +6717,8 @@ document.addEventListener('DOMContentLoaded', function() {
       w:(document.getElementById('mcpWhy').value||'').trim().slice(0,320),
       al:s.al.slice(0,12), c:s.conds.slice(0,14), m:s.meds.slice(0,14),
       l:s.labs.slice(0,10), q:lines(document.getElementById('mcpQ').value),
-      d:(new Date()).toISOString().slice(0,10)
+      d:(new Date()).toISOString().slice(0,10),
+      b:s.blood||'', ice:(s.iceN||s.iceP)?{n:s.iceN||'',p:s.iceP||''}:null, nt:s.notes||''
     };
     Object.keys(d).forEach(function(k){ if(d[k]==='' || (Array.isArray(d[k])&&!d[k].length)) delete d[k]; });
     if(!d.w && !d.al && !d.c && !d.m && !d.l){

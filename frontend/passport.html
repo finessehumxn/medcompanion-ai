@@ -54,6 +54,7 @@
   }
   var who=[]; if(d.a) who.push(esc(d.a));
   var h='';
+  if(d.b) who.push('Blood type <b>'+esc(d.b)+'</b>');
   h+='<div class="band"><div class="l"><div class="ey">Health Passport</div><h1>'+(esc(d.n)||'Patient')+'</h1>'+(who.length?'<div class="who">'+who.join(' · ')+'</div>':'')+'</div><div class="date">'+(esc(d.d)||'')+'<br>shared by the patient</div></div>';
   h+='<div class="proof">🔒&nbsp;<span><b>Nothing was stored.</b> This passport traveled only inside the link — it was never uploaded to a server. <a href="/data-policy" target="_blank" rel="noopener">Verify our data policy →</a></span></div>';
 
@@ -61,6 +62,13 @@
   var al=(d.al&&d.al.length)?d.al:null;
   h+='<div class="allergy'+(al?'':' none')+'"><div class="h">⚠ Allergies</div><div class="items">'+(al?al.map(esc).join(' · '):'No known allergies reported')+'</div></div>';
 
+  if(d.ice && (d.ice.n||d.ice.p)){
+    h+='<h2>Emergency contact</h2><div class="card"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">'
+      +'<div><b>'+(esc(d.ice.n)||'Contact')+'</b>'+(d.ice.p?'<div style="color:var(--sub);font-size:13.5px">'+esc(d.ice.p)+'</div>':'')+'</div>'
+      +(d.ice.p?'<a href="tel:'+esc(d.ice.p)+'" style="background:var(--alert);color:#fff;text-decoration:none;font-weight:800;padding:10px 18px;border-radius:10px;white-space:nowrap">\ud83d\udcde Call</a>':'')
+      +'</div></div>';
+  }
+  if(d.nt){ h+='<h2>Important notes</h2><div class="card why">'+esc(d.nt)+'</div>'; }
   if(d.w){ h+='<h2>Why I’m here</h2><div class="card why">'+esc(d.w)+'</div>'; }
   if(d.c&&d.c.length){ h+='<h2>Conditions (patient-reported)</h2><div class="card"><ul>'+d.c.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>'; }
   if(d.m&&d.m.length){ h+='<h2>Medications (patient-reported)</h2><div class="card"><ul>'+d.m.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>'; }
