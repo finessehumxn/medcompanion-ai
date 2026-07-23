@@ -45,6 +45,8 @@ logger = logging.getLogger(__name__)
 # clear in-app consent). This makes the promise "your records stay on your
 # device" true unless a deployment deliberately, and disclosed-ly, changes it.
 STORE_HISTORY = os.getenv("MC_STORE_HISTORY", "0") == "1"
+UMLS_API_KEY = os.getenv("UMLS_API_KEY", "")   # free NLM key enables SNOMED CT coding
+
 
 # --- Epic / MyChart SMART-on-FHIR (patient standalone launch) -------------
 # Defaults point at Epic's PUBLIC SANDBOX so the flow is testable with Epic's
@@ -827,6 +829,11 @@ class CodeTermRequest(BaseModel):
     term: str
     kind: str = "condition"   # "condition" -> ICD-10-CM, "lab" -> LOINC
 
+@app.get("/code-config")
+async def code_config():
+    """Which coding systems are available (LOINC + ICD-10 are key-free; SNOMED needs an NLM key)."""
+    return {"loinc": True, "icd10": True, "snomed": bool(UMLS_API_KEY)}
+
 @app.post("/code-term")
 async def code_term(req: CodeTermRequest):
     """Map a free-text lab or condition to a standard code via NIH Clinical Tables:
@@ -840,6 +847,23 @@ async def code_term(req: CodeTermRequest):
         return {"matched": False, "term": term, "candidates": []}
     q = quote(term)
     try:
+        if req.kind == "snomed":
+            if not UMLS_API_KEY:
+                return {"matched": False, "configured": False, "system": "SNOMED CT", "term": term,
+                        "candidates": [], "note": "SNOMED coding needs a free NLM UMLS API key (set UMLS_API_KEY)."}
+            import httpx as _hx
+            url = (f"https://uts-ws.nlm.nih.gov/rest/search/current?string={q}"
+                   f"&sabs=SNOMEDCT_US&returnIdType=code&pageSize=3&apiKey={UMLS_API_KEY}")
+            async with _hx.AsyncClient(timeout=12) as client:
+                r = await client.get(url)
+                results = (((r.json() or {}).get("result") or {}).get("results") or []) if r.status_code == 200 else []
+            cands = []
+            for it in results[:3]:
+                code, name = it.get("ui"), it.get("name")
+                if code and code != "NONE":
+                    cands.append({"code": code, "name": name, "system": "SNOMED CT",
+                                  "url": f"https://browser.ihtsdotools.org/?perspective=full&conceptId1={quote(str(code))}"})
+            return {"matched": bool(cands), "configured": True, "system": "SNOMED CT", "term": term, "candidates": cands}
         if req.kind == "lab":
             url = (f"https://clinicaltables.nlm.nih.gov/api/loinc_items/v3/search"
                    f"?terms={q}&df=LOINC_NUM,LONG_COMMON_NAME&maxList=3&type=question")
