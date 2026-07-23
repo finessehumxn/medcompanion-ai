@@ -115,6 +115,7 @@
           if(d.food_drink&&d.food_drink.length){ h+='<h3>Food, drink &amp; other medicines</h3>'+list(d.food_drink); }
           if(d.missed_dose){ h+='<h3>If you miss a dose</h3><p>'+esc(d.missed_dose)+'</p>'; }
           if(d.questions&&d.questions.length){ h+='<h3>Questions to ask your prescriber or pharmacist</h3>'+list(d.questions); }
+          if(d.official&&d.official.length){ h+='<h3>Check the official source</h3><ul class="clean">'+d.official.map(function(o){return '<li><a href="'+esc(o.url)+'" target="_blank" rel="noopener">'+esc(o.label)+' \u2192</a></li>';}).join('')+'</ul>'; }
           h+='<div class="foot">'+esc(d.footer||'')+'</div></div>';
           h+='<div class="acts"><button class="btn" onclick="window.print()">Print / Save PDF</button><button class="btn ghost" onclick="copyOut()">Copy text</button></div>';
           out.innerHTML=h; return;
@@ -127,6 +128,7 @@
         if(d.red_flags&&d.red_flags.length){ h+='<div class="flags"><h3>⚠ When to get help right away</h3>'+list(d.red_flags)+'</div>'; }
         if(d.questions&&d.questions.length){ h+='<h3>Questions to ask at your next visit</h3>'+list(d.questions); }
         if(d.reassurance) h+='<div class="reassure">'+esc(d.reassurance)+'</div>';
+        if(d.official&&d.official.length){ h+='<h3>Check the official source</h3><ul class="clean">'+d.official.map(function(o){return '<li><a href="'+esc(o.url)+'" target="_blank" rel="noopener">'+esc(o.label)+' \u2192</a></li>';}).join('')+'</ul>'; }
         h+='<div class="foot">'+esc(d.footer||'This is general education. Your care team\'s specific instructions always take precedence.')+'</div>';
         h+='</div>';
         h+='<div class="acts"><button class="btn" onclick="window.print()">Print / Save PDF</button><button class="btn ghost" onclick="copyOut()">Copy text</button></div>';

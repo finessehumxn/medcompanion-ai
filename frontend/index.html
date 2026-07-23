@@ -6308,6 +6308,11 @@ document.addEventListener('DOMContentLoaded', function() {
         h+=sec('Medications','💊',d.medications);
         h+=sec('Conditions','📋',d.conditions);
         if(d.questions&&d.questions.length){ h+='<div class="mcj-insh">🩺 Ask your doctor</div><ul class="mcj-il">'+d.questions.map(function(q){return '<li>'+esc(q)+'</li>';}).join('')+'</ul>'; }
+        if(d.official&&d.official.length){
+          h+='<div class="mcj-insh">📚 Check the official source</div><ul class="mcj-il">'+d.official.map(function(o){
+            return '<li><a href="'+esc(o.url)+'" target="_blank" rel="noopener" style="color:#7fe6b4">'+esc(o.label)+' →</a></li>';
+          }).join('')+'</ul>';
+        }
         out.innerHTML=h;
       }).catch(function(){ out.innerHTML='<div class="mcj-inssum">Couldn\'t read your records just now — try again.</div>'; });
   };
@@ -7116,6 +7121,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if(d.food_drink&&d.food_drink.length) h+='<div class="mcj-insh">🍽 Food, drink &amp; other medicines</div>'+list(d.food_drink);
         if(d.missed_dose) h+='<div class="mcj-insh">⏰ If you miss a dose</div><div class="mcj-card"><div style="font-size:14px;line-height:1.6">'+esc(d.missed_dose)+'</div></div>';
         if(d.questions&&d.questions.length) h+='<div class="mcj-insh">🩺 Ask your pharmacist</div>'+list(d.questions);
+        if(d.official&&d.official.length){
+          h+='<div class="mcj-insh">📚 Check the official source</div><ul class="mcj-il">'+d.official.map(function(o){
+            return '<li><a href="'+esc(o.url)+'" target="_blank" rel="noopener" style="color:#7fe6b4">'+esc(o.label)+' →</a></li>';
+          }).join('')+'</ul>';
+        }
         if(d.footer) h+='<p class="mcj-disc">'+esc(d.footer)+'</p>';
         out.innerHTML=h;
       }).catch(function(){ out.innerHTML='<div class="mcj-inssum">Couldn\'t look that up just now — try again.</div>'; });
