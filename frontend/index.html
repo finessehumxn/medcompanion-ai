@@ -6750,11 +6750,13 @@ document.addEventListener('DOMContentLoaded', function() {
         <div>
           <div class="mcj-lbl" style="margin-top:0">What</div>
           <select class="mcj-input" id="mctMetric" onchange="mctMetricChange()">
-            <option value="Blood pressure (systolic)|mmHg">Blood pressure (top number)</option>
+            <option value="Blood pressure|mmHg">Blood pressure</option>
             <option value="Blood glucose|mg/dL">Blood glucose</option>
             <option value="Weight|lb">Weight</option>
             <option value="A1c|%">A1c</option>
-            <option value="Resting heart rate|bpm">Resting heart rate</option>
+            <option value="Heart rate|bpm">Heart rate</option>
+            <option value="Temperature|&deg;F">Temperature</option>
+            <option value="Oxygen (SpO&#8322;)|%">Oxygen (SpO&#8322;)</option>
             <option value="custom|">Something else&hellip;</option>
           </select>
         </div>
@@ -6835,13 +6837,21 @@ document.addEventListener('DOMContentLoaded', function() {
     var slp=t.filter(function(e){return num(e.sleep)!==null;}).map(function(e){return {d:e.date, v:num(e.sleep)};});
     h+=block('How rough it\'s been','/10',sev,true);
     h+=block('Sleep','hrs',slp,false);
-    // user-logged numbers
-    var v=ld('mc_vitals').filter(function(e){return e&&e.d&&num(e.v)!==null;});
+    // user-logged numbers — reads the SAME mc_vitals the Health hub writes
     var byMetric={};
-    v.forEach(function(e){ (byMetric[e.m]=byMetric[e.m]||[]).push({d:e.d, v:num(e.v), u:e.u||''}); });
+    ld('mc_vitals').forEach(function(e){
+      if(!e) return;
+      var type=e.type||e.m, raw=(e.value!=null?e.value:e.v), unit=e.unit||e.u||'', dt=e.date||e.d;
+      if(!type||raw==null||!dt) return;
+      var val=num(String(raw).split('/')[0]);           // "120/80" -> systolic
+      if(val===null) return;
+      var t=new Date(dt); if(isNaN(t.getTime())) return;
+      var label=/blood pressure/i.test(type)?(type+' (top number)'):type;
+      (byMetric[label]=byMetric[label]||[]).push({d:t.toISOString().slice(0,10), v:val, u:unit, _t:t.getTime()});
+    });
     Object.keys(byMetric).forEach(function(m){
-      var pts=byMetric[m].sort(function(a,b){return a.d<b.d?-1:1;});
-      var lower=/pressure|glucose|a1c|weight|heart rate/i.test(m);
+      var pts=byMetric[m].sort(function(a,b){return a._t-b._t;});
+      var lower=/pressure|glucose|a1c|weight|temperature/i.test(m);
       h+=block(m, pts[0].u, pts, lower);
     });
     out.innerHTML=h||'<div class="mct-empty">No trends yet.<br>Log a number above, or save a few check-ins in the <b>Health Journal</b> — they chart themselves.</div>';
@@ -6857,7 +6867,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var val=num(document.getElementById('mctVal').value);
     var date=document.getElementById('mctDate').value||(new Date()).toISOString().slice(0,10);
     if(!name || val===null){ return; }
-    var a=ld('mc_vitals'); a.push({d:date, m:name, v:val, u:unit}); sv('mc_vitals',a);
+    var dObj = date ? new Date(date+'T12:00:00') : new Date();
+    var dStr = dObj.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+    var a=ld('mc_vitals'); a.push({date:dStr, type:name, value:String(val), unit:unit, note:''}); sv('mc_vitals',a);
     document.getElementById('mctVal').value='';
     render();
   };
