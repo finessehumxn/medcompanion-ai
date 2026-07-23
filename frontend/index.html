@@ -2389,6 +2389,8 @@ document.addEventListener('DOMContentLoaded', function() {
   .nav-dd-menu a{ display:flex; align-items:center; gap:9px; padding:10px 12px; border-radius:9px; color:rgba(255,255,255,.82); text-decoration:none; font-size:13.5px; font-weight:500; white-space:nowrap; }
   .nav-dd-menu a:hover{ background:rgba(255,255,255,.09); color:#fff; }
   .nav-dd-menu a i{ font-size:15px; opacity:.85; width:18px; text-align:center; }
+  .nav-dd-menu{ max-height:min(70vh,560px); overflow-y:auto; }
+  .nav-dd-sec{ font-size:10px; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:rgba(255,255,255,.45); padding:9px 12px 4px; }
 </style>
 <nav class="nav" role="navigation" aria-label="Main navigation">
   <a href="#top" class="nav-brand" aria-label="MedCompanion AI home">
@@ -2400,13 +2402,23 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="nav-dd">
       <button class="nav-link nav-dd-btn" onclick="toggleNavDD(event)" aria-haspopup="true" aria-expanded="false"><i class="ti ti-heart-plus" aria-hidden="true"></i> My Health <i class="ti ti-chevron-down" aria-hidden="true" style="font-size:13px;margin-left:-2px"></i></button>
       <div class="nav-dd-menu" id="navDD" role="menu">
+        <div class="nav-dd-sec">Understand</div>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openPass()"><i class="ti ti-id-badge-2"></i> Health Passport</a>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openRecords()"><i class="ti ti-file-text"></i> My Records</a>
-        <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openJournal()"><i class="ti ti-notebook"></i> Health Journal</a>
-        <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openTrends()"><i class="ti ti-chart-line"></i> Trends</a>
+        <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openNote()"><i class="ti ti-file-description"></i> Understand my visit</a>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openIntake()"><i class="ti ti-clipboard-text"></i> Pre-visit intake</a>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openVisit()"><i class="ti ti-clipboard-heart"></i> Prep for my visit</a>
-        <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openNote()"><i class="ti ti-file-description"></i> Understand my visit</a>
+        <div class="nav-dd-sec">Track</div>
+        <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openTrends()"><i class="ti ti-chart-line"></i> Trends</a>
+        <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openJournal()"><i class="ti ti-notebook"></i> Health Journal</a>
+        <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();if(window.mcOpenMeds)mcOpenMeds()"><i class="ti ti-pill"></i> Medications</a>
+        <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();if(window.mcOpenSchedule)mcOpenSchedule()"><i class="ti ti-alarm"></i> Med schedule</a>
+        <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();if(window.mcOpenVitals)mcOpenVitals()"><i class="ti ti-activity-heartbeat"></i> Vitals</a>
+        <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();if(window.mcOpenLabs)mcOpenLabs()"><i class="ti ti-flask"></i> Labs</a>
+        <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();if(window.mcOpenAppts)mcOpenAppts()"><i class="ti ti-calendar-event"></i> Appointments</a>
+        <div class="nav-dd-sec">More</div>
+        <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();if(window.mcOpenMedID)mcOpenMedID()"><i class="ti ti-id"></i> Medical ID</a>
+        <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();if(window.mcOpenCare)mcOpenCare()"><i class="ti ti-users"></i> Care circle</a>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openTrust()"><i class="ti ti-lock"></i> Your data &amp; AI</a>
       </div>
     </div>
@@ -2442,6 +2454,13 @@ document.addEventListener('DOMContentLoaded', function() {
   <a href="#start" class="mobile-link" onclick="toggleMobileMenu()"><i class="ti ti-message-circle-heart"></i> Talk to me</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openJournal()"><i class="ti ti-notebook"></i> Health Journal</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openTrends()"><i class="ti ti-chart-line"></i> Trends</a>
+  <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();if(window.mcOpenMeds)mcOpenMeds()"><i class="ti ti-pill"></i> Medications</a>
+  <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();if(window.mcOpenSchedule)mcOpenSchedule()"><i class="ti ti-alarm"></i> Med schedule</a>
+  <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();if(window.mcOpenVitals)mcOpenVitals()"><i class="ti ti-activity-heartbeat"></i> Vitals</a>
+  <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();if(window.mcOpenLabs)mcOpenLabs()"><i class="ti ti-flask"></i> Labs</a>
+  <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();if(window.mcOpenAppts)mcOpenAppts()"><i class="ti ti-calendar-event"></i> Appointments</a>
+  <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();if(window.mcOpenMedID)mcOpenMedID()"><i class="ti ti-id"></i> Medical ID</a>
+  <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();if(window.mcOpenCare)mcOpenCare()"><i class="ti ti-users"></i> Care circle</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openRecords()"><i class="ti ti-file-text"></i> My Records</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openVisit()"><i class="ti ti-clipboard-heart"></i> Prep for my visit</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openNote()"><i class="ti ti-file-description"></i> Understand my visit</a>
