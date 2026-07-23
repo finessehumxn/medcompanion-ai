@@ -823,6 +823,46 @@ async def handout(req: HandoutRequest):
         empty["title"] = "Couldn't generate the handout just now — please try again."
         return empty
 
+class CodeTermRequest(BaseModel):
+    term: str
+    kind: str = "condition"   # "condition" -> ICD-10-CM, "lab" -> LOINC
+
+@app.post("/code-term")
+async def code_term(req: CodeTermRequest):
+    """Map a free-text lab or condition to a standard code via NIH Clinical Tables:
+    labs -> LOINC, conditions -> ICD-10-CM. Deterministic terminology lookup — the
+    code comes from NIH, never the model. Returns up to 3 candidates (coding is
+    ambiguous; a human picks). Fails soft. Stateless; nothing stored."""
+    import httpx
+    from urllib.parse import quote
+    term = (req.term or "").strip()
+    if not term:
+        return {"matched": False, "term": term, "candidates": []}
+    q = quote(term)
+    try:
+        if req.kind == "lab":
+            url = (f"https://clinicaltables.nlm.nih.gov/api/loinc_items/v3/search"
+                   f"?terms={q}&df=LOINC_NUM,LONG_COMMON_NAME&maxList=3&type=question")
+            system, sysurl = "LOINC", "https://loinc.org/{code}/"
+        else:
+            url = (f"https://clinicaltables.nlm.nih.gov/api/icd10cm/v3/search"
+                   f"?terms={q}&df=code,name&maxList=3")
+            system, sysurl = "ICD-10-CM", "https://www.icd10data.com/search?s={code}"
+        async with httpx.AsyncClient(timeout=12) as client:
+            r = await client.get(url)
+            data = r.json() if r.status_code == 200 else [0, [], None, []]
+        rows = data[3] if len(data) > 3 and isinstance(data[3], list) else []
+        cands = []
+        for row in rows[:3]:
+            if isinstance(row, list) and len(row) >= 2:
+                code, name = row[0], row[1]
+                cands.append({"code": code, "name": name, "system": system,
+                              "url": sysurl.format(code=quote(str(code)))})
+        return {"matched": bool(cands), "term": term, "system": system, "candidates": cands}
+    except Exception as e:
+        logger.error(f"code-term error: {type(e).__name__}")
+        return {"matched": False, "term": term, "candidates": []}
+
 class NormalizeMedRequest(BaseModel):
     name: str
 
