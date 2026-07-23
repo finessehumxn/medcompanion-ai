@@ -796,6 +796,74 @@ async def handout(req: HandoutRequest):
         empty["title"] = "Couldn't generate the handout just now — please try again."
         return empty
 
+class MedGuideRequest(BaseModel):
+    # Plain-language guide for ONE medication. Education only — never dosing changes.
+    medication: str
+    language: Optional[str] = None
+    reading_level: Optional[str] = "plain"
+    context: Optional[str] = ""      # e.g. "also takes warfarin" (for general caution wording)
+
+@app.post("/med-guide")
+async def med_guide(req: MedGuideRequest):
+    """Explain a medication in plain language: what it's for, how it's usually taken,
+    common vs serious side effects, food/drink cautions, missed dose, questions to ask.
+    General education for the patient's own understanding — NOT a prescription, NOT
+    personalized dosing, and never tells anyone to start/stop/change a medicine.
+    Stateless; nothing stored."""
+    import json as _json
+    med = (req.medication or "").strip()
+    empty = {"name": "", "what_it_is": "", "how_taken": "", "common_side_effects": [],
+             "serious_side_effects": [], "food_drink": [], "missed_dose": "",
+             "questions": [], "footer": ""}
+    if not med:
+        empty["name"] = "Enter a medication to see a plain-language guide."
+        return empty
+    lang_line = f"\nWrite the ENTIRE guide in this language: {req.language}." if req.language else ""
+    level = "very basic, short sentences (~4th-grade reading level)" if (req.reading_level == "simple") else "plain and warm (~6th-grade reading level)"
+    ctx = f"\nAdditional context (do not contradict, keep guidance general): {req.context}" if req.context else ""
+    try:
+        import anthropic
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=2400,
+            system=(
+                f"You write plain-language MEDICATION GUIDES for patients, at a {level}, warm and non-alarming. "
+                "HARD RULES: general education only. NEVER give a specific dose to take, NEVER tell the patient to "
+                "start, stop, split, or change a medication, and NEVER contradict their prescriber. Describe how the "
+                "medicine is *generally* taken and say their prescriber's and pharmacist's instructions come first. "
+                "Always include serious side effects that mean 'get help now.' Do not invent statistics or brand claims. "
+                "Return ONLY a JSON object with keys: "
+                "name (the medicine, with common brand/generic in parentheses if helpful), "
+                "what_it_is (2-4 plain sentences: what it is and what it's generally used for), "
+                "how_taken (one or two general sentences — e.g. 'usually taken once daily with food' — plus 'follow your prescriber's instructions'), "
+                "common_side_effects (array of plain, non-alarming strings), "
+                "serious_side_effects (array: warning signs that mean call the doctor or seek urgent/emergency care), "
+                "food_drink (array: food, drink, or common-medicine cautions people ask about, e.g. alcohol, grapefruit, NSAIDs), "
+                "missed_dose (one general sentence, ending with 'ask your pharmacist' rather than a specific rule), "
+                "questions (array: good questions to ask the prescriber or pharmacist), "
+                "footer (one sentence: general information, not a prescription; your prescriber and pharmacist's instructions always come first). "
+                "No prose outside the JSON."
+            ),
+            messages=[{"role": "user", "content": f"Write a patient medication guide for: {med}{ctx}{lang_line}"}],
+        )
+        out = "".join(getattr(b, "text", "") for b in resp.content).strip()
+        if out.startswith("```"):
+            out = out.strip("`")
+            if out[:4].lower() == "json":
+                out = out[4:]
+            out = out.strip()
+        data = _json.loads(out)
+        for k, dflt in empty.items():
+            data.setdefault(k, dflt)
+        if not data.get("footer"):
+            data["footer"] = "General information, not a prescription. Your prescriber and pharmacist's instructions always come first."
+        return data
+    except Exception as e:
+        logger.error(f"med-guide error: {e}")
+        empty["name"] = "Couldn't build the medication guide just now — please try again."
+        return empty
+
 class VisitSummaryRequest(BaseModel):
     reason: Optional[str] = ""      # why they're going / main concern (patient's words)
     checkins: list = []             # from the Health Journal (on-device)
