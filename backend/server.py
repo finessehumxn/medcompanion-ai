@@ -490,6 +490,9 @@ async def explain_records(req: RecordsRequest):
         data = _json.loads(out)
         for k, dflt in empty.items():
             data.setdefault(k, dflt)
+        first = (conds[0].get("name") if conds and isinstance(conds[0], dict) else None) or \
+                (labs[0].get("name") if labs and isinstance(labs[0], dict) else None) or ""
+        data["official"] = _official_sources(first, "condition")
         return data
     except Exception as e:
         logger.error(f"explain-records error: {e}")
@@ -728,6 +731,29 @@ async def explain_note(req: ExplainNoteRequest):
         empty["headline"] = "Couldn't make sense of that note just now — please try again."
         return empty
 
+
+def _official_sources(term: str, kind: str = "condition"):
+    """Deterministic links to authoritative US government sources. Built from the
+    user's term with URL-encoding — never model-generated, so they cannot be
+    hallucinated and always resolve to a real search page."""
+    from urllib.parse import quote
+    q = quote((term or "").strip())
+    if not q:
+        return []
+    if kind == "medication":
+        return [
+            {"label": "FDA prescribing information (DailyMed)",
+             "url": f"https://dailymed.nlm.nih.gov/dailymed/search.cfm?labeltype=all&query={q}"},
+            {"label": "MedlinePlus drug information (NIH)",
+             "url": f"https://medlineplus.gov/search/?query={q}"},
+        ]
+    return [
+        {"label": "MedlinePlus (NIH National Library of Medicine)",
+         "url": f"https://medlineplus.gov/search/?query={q}"},
+        {"label": "PubMed research (NIH)",
+         "url": f"https://pubmed.ncbi.nlm.nih.gov/?term={q}"},
+    ]
+
 class HandoutRequest(BaseModel):
     # Clinician lens: generate a plain-language patient-education handout for a
     # diagnosis, in any language. Education material the clinician hands out.
@@ -790,6 +816,7 @@ async def handout(req: HandoutRequest):
             data.setdefault(k, dflt)
         if not data.get("footer"):
             data["footer"] = "This is general education. Your care team's specific instructions always take precedence."
+        data["official"] = _official_sources(dx, "condition")
         return data
     except Exception as e:
         logger.error(f"handout error: {e}")
@@ -858,6 +885,7 @@ async def med_guide(req: MedGuideRequest):
             data.setdefault(k, dflt)
         if not data.get("footer"):
             data["footer"] = "General information, not a prescription. Your prescriber and pharmacist's instructions always come first."
+        data["official"] = _official_sources(med, "medication")
         return data
     except Exception as e:
         logger.error(f"med-guide error: {e}")
