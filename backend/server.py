@@ -846,7 +846,7 @@ async def code_term(req: CodeTermRequest):
             system, sysurl = "LOINC", "https://loinc.org/{code}/"
         else:
             url = (f"https://clinicaltables.nlm.nih.gov/api/icd10cm/v3/search"
-                   f"?terms={q}&df=code,name&maxList=3")
+                   f"?sf=code,name&df=code,name&terms={q}&maxList=3")
             system, sysurl = "ICD-10-CM", "https://www.icd10data.com/search?s={code}"
         async with httpx.AsyncClient(timeout=12) as client:
             r = await client.get(url)
