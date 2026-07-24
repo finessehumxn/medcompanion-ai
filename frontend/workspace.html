@@ -60,7 +60,11 @@
     <div class="banner">Paste today's visit note → a version your patient can read. For you to review before you hand it over. Nothing is stored.</div>
     <label for="note">Visit note / assessment &amp; plan</label>
     <textarea id="note" placeholder="S: 54M w/ HTN, T2DM… A: T2DM uncontrolled… P: increase metformin, start lisinopril, RTC 3mo, return precautions: CP, SOB…"></textarea>
-    <button class="btn" onclick="summarize()">Make patient-friendly summary</button>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn" onclick="summarize()">Make patient-friendly summary</button>
+      <button class="btn ghost" onclick="document.getElementById('chart').click()">Auto-fill from chart (FHIR/JSON)</button>
+      <input type="file" id="chart" accept=".json,application/json,.fhir" style="display:none" onchange="importChart(event)">
+    </div>
     <div id="out" class="out"></div>
   </div>
 
@@ -69,6 +73,37 @@
 <script>
   function esc(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
   function list(a){ return '<ul>'+a.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>'; }
+  // Auto-fill from a connected chart export — map a FHIR bundle / JSON records file into a readable note.
+  function fhirName(res){ var c=res.code||res.medicationCodeableConcept||res.vaccineCode; if(c){ if(c.text) return c.text; if(c.coding&&c.coding[0]) return c.coding[0].display||c.coding[0].code; } if(res.medicationReference&&res.medicationReference.display) return res.medicationReference.display; return ''; }
+  function obsVal(res){ var vq=res.valueQuantity,p=''; if(vq){ p=(vq.value!=null?vq.value:'')+(vq.unit?' '+vq.unit:''); } else if(res.valueString){ p=res.valueString; } var d=res.effectiveDateTime||res.issued||(res.effectivePeriod&&res.effectivePeriod.start)||''; return {v:p, d:(d||'').slice(0,10)}; }
+  window.importChart=function(ev){
+    var f=ev.target.files&&ev.target.files[0]; if(!f) return;
+    var rd=new FileReader();
+    rd.onload=function(){
+      try{
+        var data=JSON.parse(rd.result), res=[];
+        function push(x){ if(!x) return; if(x.resource) res.push(x.resource); else if(x.resourceType) res.push(x); }
+        if(Array.isArray(data)) data.forEach(push); else if(data.entry) data.entry.forEach(push); else if(data.resourceType) res.push(data);
+        var lines=[];
+        res.forEach(function(r){
+          var t=r.resourceType, dt=(r.effectiveDateTime||r.recordedDate||r.authoredOn||r.onsetDateTime||'').slice(0,10);
+          if(t==='Condition'){ lines.push((dt?dt+' ':'')+'Dx: '+fhirName(r)); }
+          else if(t==='MedicationRequest'||t==='MedicationStatement'){ lines.push((dt?dt+' ':'')+'Med: '+fhirName(r)); }
+          else if(t==='Observation'){ var o=obsVal(r); lines.push((o.d||dt||'')+' '+fhirName(r)+' = '+o.v); }
+          else if(t==='Procedure'){ lines.push((dt?dt+' ':'')+'Procedure: '+fhirName(r)); }
+          else if(t==='AllergyIntolerance'){ lines.push('Allergy: '+fhirName(r)); }
+          else if(t==='DocumentReference'&&r.description){ lines.push('Note: '+r.description); }
+        });
+        lines=lines.filter(Boolean);
+        var box=document.getElementById('note');
+        box.value=(box.value?box.value.trim()+'\n':'')+lines.join('\n');
+        var out=document.getElementById('out');
+        out.innerHTML='<div class="card">Loaded '+lines.length+' items from the chart into the note. Review / edit, then <b>Make patient-friendly summary</b>.</div>';
+      }catch(e){ document.getElementById('out').innerHTML='<div class="card">That file isn\'t valid FHIR/JSON.</div>'; }
+      ev.target.value='';
+    };
+    rd.readAsText(f);
+  };
   window.summarize=function(){
     if(window.mcProGate && !window.mcProGate("summarize")) return;
     var note=(document.getElementById('note').value||'').trim(), out=document.getElementById('out');

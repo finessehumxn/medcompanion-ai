@@ -5181,13 +5181,29 @@ document.addEventListener('DOMContentLoaded', function() {
   function meds(){ try { return JSON.parse(localStorage.getItem('mc_meds')||'[]'); } catch(e){ return []; } }
   function saveMeds(m){ try { localStorage.setItem('mc_meds', JSON.stringify(m)); } catch(e){} }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function perDay(name){ try{ var s=JSON.parse(localStorage.getItem('mc_medsched')||'{}'); return (s[name]||[]).length||1; }catch(e){ return 1; } }
+  function daysLeft(x){ if(x.supply==null||x.supply==='') return null; var per=perDay(x.name); var base=Math.floor(Number(x.supply)/per); if(!isFinite(base)) return null; var el=x.supplyDate?Math.floor((Date.now()-new Date(x.supplyDate+'T00:00:00').getTime())/86400000):0; return base-el; }
+  function setSupply(i){ var m=meds(), x=m[i]; if(!x) return; var per=perDay(x.name);
+    var v=window.prompt('How many '+x.name+' do you have on hand right now?\n\n(Taken '+per+'× a day on your schedule — we\'ll estimate days left and warn you before you run out. Leave blank to stop tracking.)', (x.supply!=null?x.supply:''));
+    if(v===null) return; v=(''+v).trim();
+    if(v===''){ delete x.supply; delete x.supplyDate; } else { var n=parseInt(v,10); if(isNaN(n)||n<0){ alert('Please enter a number.'); return; } x.supply=n; x.supplyDate=new Date().toISOString().slice(0,10); }
+    saveMeds(m); render();
+  }
+  window.mcSetSupply=setSupply;
   function render(){
     var list = document.getElementById('mcMedList'); if(!list) return;
     var m = meds();
     var badge = document.getElementById('mcMedCount'); if(badge){ badge.textContent = m.length ? m.length : ''; badge.style.display = m.length ? 'inline-flex' : 'none'; }
     if(!m.length){ list.innerHTML = '<div style="color:var(--text-soft);font-size:14px;padding:.4rem 0;line-height:1.5">No medications yet. Add what you take — it stays private on this device.</div>'; return; }
-    list.innerHTML = m.map(function(x,i){ return '<div style="display:flex;align-items:center;gap:.6rem;padding:.6rem .8rem;background:var(--lteal);border:1px solid var(--border);border-radius:12px;margin-bottom:.5rem"><span style="flex:1;min-width:0"><b>'+esc(x.name)+'</b>'+(x.dose?' <span style="color:var(--text-soft)">· '+esc(x.dose)+'</span>':'')+(x.rxcui?'<br><span style="font-size:11px;color:var(--sage);font-weight:700" title="'+esc(x.rxnorm||'')+' · RxCUI '+esc(x.rxcui)+'">✓ '+esc(x.rxnorm||'standardized')+'</span>':(x.rxnorm==='__none__'?'<br><span style="font-size:11px;color:var(--text-soft)">not matched to a standard code</span>':''))+'</span><button data-i="'+i+'" class="mcRm" aria-label="Remove" style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:20px;line-height:1">×</button></div>'; }).join('');
+    list.innerHTML = m.map(function(x,i){
+      var rx = x.rxcui?'<span style="font-size:11px;color:var(--sage);font-weight:700" title="'+esc(x.rxnorm||'')+' · RxCUI '+esc(x.rxcui)+'">✓ '+esc(x.rxnorm||'standardized')+'</span>':(x.rxnorm==='__none__'?'<span style="font-size:11px;color:var(--text-soft)">not matched to a standard code</span>':'');
+      var dl=daysLeft(x), refill;
+      if(dl==null){ refill='<button class="mcSup" data-i="'+i+'" style="background:none;border:none;color:var(--teal);font-size:11px;font-weight:700;cursor:pointer;padding:0;text-decoration:underline">+ track refills</button>'; }
+      else { var col=dl<=0?'#c0392b':(dl<=7?'#b7791f':'var(--sage)'), lbl=dl<=0?'⚠ Refill now':('💊 ~'+dl+' day'+(dl===1?'':'s')+' left'); refill='<button class="mcSup" data-i="'+i+'" title="Tap to update how many you have" style="background:none;border:none;color:'+col+';font-size:11px;font-weight:700;cursor:pointer;padding:0">'+lbl+'</button>'; }
+      return '<div style="display:flex;align-items:center;gap:.6rem;padding:.6rem .8rem;background:var(--lteal);border:1px solid var(--border);border-radius:12px;margin-bottom:.5rem"><span style="flex:1;min-width:0"><b>'+esc(x.name)+'</b>'+(x.dose?' <span style="color:var(--text-soft)">· '+esc(x.dose)+'</span>':'')+'<br><span style="display:inline-flex;gap:.5rem;align-items:center;flex-wrap:wrap">'+rx+(rx?'<span style="color:var(--border);font-size:11px">·</span>':'')+refill+'</span></span><button data-i="'+i+'" class="mcRm" aria-label="Remove" style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:20px;line-height:1">×</button></div>';
+    }).join('');
     Array.prototype.forEach.call(document.querySelectorAll('.mcRm'), function(b){ b.onclick=function(){ var m=meds(); m.splice(+b.getAttribute('data-i'),1); saveMeds(m); render(); }; });
+    Array.prototype.forEach.call(document.querySelectorAll('.mcSup'), function(b){ b.onclick=function(){ setSupply(+b.getAttribute('data-i')); }; });
   }
   function openM(){ var mo=document.getElementById('mcMedModal'); if(mo){ mo.style.display='flex'; render(); var n=document.getElementById('mcMedName'); if(n) setTimeout(function(){n.focus();},50); } }
   function closeM(){ var mo=document.getElementById('mcMedModal'); if(mo) mo.style.display='none'; }
@@ -5586,6 +5602,14 @@ document.addEventListener('DOMContentLoaded', function() {
       if(sl.length){ sl.forEach(function(s){ doses.push({med:x.name,dose:x.dose,slot:s,key:s+':'+x.name}); }); }
       else { doses.push({med:x.name,dose:x.dose,slot:'any',key:x.name}); } });
     var doneN=doses.filter(function(d){ return taken.indexOf(d.key)>=0; }).length;
+    // Refill watch — meds running low (from supply tracked in My Meds)
+    var lowList=[]; m.forEach(function(x){ if(x.supply!=null&&x.supply!==''){ var per=(sched2[x.name]||[]).length||1; var dl=Math.floor(Number(x.supply)/per)-(x.supplyDate?Math.floor((Date.now()-new Date(x.supplyDate+'T00:00:00').getTime())/86400000):0); if(dl<=7) lowList.push({name:x.name,dl:dl}); } });
+    var lowBanner = lowList.length ? '<div style="background:#fdf1e7;border:1px solid #f0c9a8;border-radius:12px;padding:.6rem .8rem;margin-bottom:.7rem;font-size:12.5px;color:#8a5a1f;line-height:1.5">🔔 <b>Refill soon:</b> '+lowList.map(function(l){ return esc(l.name)+(l.dl<=0?' — out':' — '+l.dl+'d left'); }).join(' · ')+'</div>' : '';
+    // 7-day adherence history
+    var a=adh(), denom=doses.length||0, DOW=['S','M','T','W','T','F','S'];
+    var wk=[]; for(var wi=6;wi>=0;wi--){ var wd=new Date(); wd.setDate(wd.getDate()-wi); var wk_k=wd.getFullYear()+'-'+('0'+(wd.getMonth()+1)).slice(-2)+'-'+('0'+wd.getDate()).slice(-2); var wt=(a[wk_k]||[]).length; wk.push({k:wk_k, t:wt, st:(!denom||wt===0)?0:(wt>=denom?2:1), dow:wd.getDay()}); }
+    var weekOn=wk.filter(function(w){ return w.st===2; }).length;
+    var weekHtml = doses.length ? ('<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-soft);margin:1.1rem 0 .5rem">This week · '+weekOn+' of 7 days on track</div><div style="display:flex;gap:.3rem">'+wk.map(function(w){ var c=w.st===2?'var(--sage)':(w.st===1?'#e6b800':'var(--border)'), tc=w.st===2?'#fff':(w.st===1?'#6b5200':'var(--text-soft)'); return '<div style="flex:1;text-align:center"><div style="height:30px;border-radius:9px;background:'+c+';color:'+tc+';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800">'+(w.st===2?'✓':(w.t||''))+'</div><div style="font-size:10px;color:var(--text-soft);margin-top:.2rem">'+DOW[w.dow]+'</div></div>'; }).join('')+'</div>') : '';
     var medHtml;
     if(!m.length){ medHtml='<div style="color:var(--text-soft);font-size:13px;line-height:1.5">No medications added yet. <button id="mcTAddMeds" style="background:none;border:none;color:var(--teal);font-weight:700;cursor:pointer;text-decoration:underline;padding:0">Add your meds →</button></div>'; }
     else { medHtml=TSLOTS.map(function(sl){
@@ -5602,17 +5626,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
     body.innerHTML =
         '<div style="margin-bottom:1.1rem"><div style="font-size:13px;color:var(--text-soft)">'+greeting()+'</div><div style="font-family:Lora,serif;font-size:22px;font-weight:700;color:var(--text-dark)">How are you today?</div></div>'
+      + lowBanner
       + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem"><div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-soft)">Today\'s medications</div>'+(doses.length?'<span style="font-size:12px;font-weight:700;color:'+(doneN===doses.length?'var(--sage)':'var(--text-soft)')+'">'+doneN+' of '+doses.length+' taken</span>':'')+'</div>'
       + medHtml
-      + '<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-soft);margin:1rem 0 .5rem">Next appointment</div>'
+      + weekHtml
+      + '<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-soft);margin:1.1rem 0 .5rem">Next appointment</div>'
       + apptHtml
-      + '<button id="mcTFeel" style="width:100%;background:var(--teal);color:#fff;border:none;border-radius:12px;padding:.85rem;font-weight:800;cursor:pointer;font-size:15px;margin-top:1.1rem">📓 Log how I\'m feeling</button>';
+      + '<button id="mcTFeel" style="width:100%;background:var(--teal);color:#fff;border:none;border-radius:12px;padding:.85rem;font-weight:800;cursor:pointer;font-size:15px;margin-top:1.1rem">📓 Log how I\'m feeling</button>'
+      + (doses.length?'<button id="mcTShare" style="width:100%;background:var(--white);color:var(--teal);border:1.5px solid var(--teal);border-radius:12px;padding:.7rem;font-weight:800;cursor:pointer;font-size:14px;margin-top:.6rem">👨‍👩‍👧 Share update with family</button>':'');
 
     Array.prototype.forEach.call(document.querySelectorAll('.mcTMed'),function(b){ b.onclick=function(){ toggle(b.getAttribute('data-k')); }; });
     var af=document.getElementById('mcTFeel'); if(af) af.onclick=function(){ closeT(); var it=document.querySelector('.mcHubItem[data-t=journal]'); if(it) it.click(); };
     var pp=document.getElementById('mcTPrep'); if(pp) pp.onclick=function(){ closeT(); if(typeof window.mcOpenAppts==='function') window.mcOpenAppts(); };
     var am=document.getElementById('mcTAddMeds'); if(am) am.onclick=function(){ closeT(); if(typeof window.mcOpenMeds==='function') window.mcOpenMeds(); };
     var aa=document.getElementById('mcTAddAppt'); if(aa) aa.onclick=function(){ closeT(); if(typeof window.mcOpenAppts==='function') window.mcOpenAppts(); };
+    var sh=document.getElementById('mcTShare'); if(sh) sh.onclick=function(){
+      var msg='MedCompanion — medication update\n\nToday: '+doneN+' of '+doses.length+' doses taken.\nThis week: '+weekOn+' of 7 days fully on track.'
+        +(lowList.length?('\nRefill soon: '+lowList.map(function(l){return l.name+(l.dl<=0?' (out)':' ('+l.dl+'d)');}).join(', ')):'');
+      if(navigator.share){ navigator.share({title:'Medication update', text:msg}).catch(function(){}); }
+      else { try{ navigator.clipboard.writeText(msg); }catch(e){} if(window.mcToast) window.mcToast('Copied — paste it to your family'); else alert(msg); }
+    };
   }
   function openT(){ var m=document.getElementById('mcTModal'); if(m){ m.style.display='flex'; render(); } var hm=document.getElementById('mcHubMenu'); if(hm) hm.style.display='none'; }
   function closeT(){ var m=document.getElementById('mcTModal'); if(m) m.style.display='none'; }
