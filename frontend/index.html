@@ -6527,6 +6527,14 @@ document.addEventListener('DOMContentLoaded', function() {
       <p class="mcj-sub" style="margin:8px 0 0">Turn AI off and the app still works &mdash; your journal, records and timeline are all on-device.</p>
       <button class="mct-del" onclick="mctWipe()">Delete everything on this device</button>
     </div>
+    <div class="mcj-card">
+      <div class="mcj-h">Back up &amp; restore</div>
+      <p class="mcj-sub" style="margin-top:0">Your data lives on this phone. Save a backup file <b>you</b> control — so a lost or new phone doesn't mean losing your meds, journal, records, and family plans. You can password-protect it.</p>
+      <button onclick="mcBackup()" style="width:100%;background:rgba(52,199,140,.2);border:1px solid rgba(52,199,140,.5);color:#7fe6b4;font-weight:700;font-size:14px;padding:12px;border-radius:11px;cursor:pointer">⬇ Back up my data</button>
+      <button onclick="document.getElementById('mcRestoreFile').click()" style="width:100%;margin-top:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#cfe3d8;font-weight:700;font-size:14px;padding:12px;border-radius:11px;cursor:pointer">⬆ Restore from a backup</button>
+      <input type="file" id="mcRestoreFile" accept=".mcbak,.json,application/json" style="display:none" onchange="mcRestore(event)">
+      <p class="mcj-sub" style="margin:8px 0 0;font-size:12px">The backup file never leaves your device unless you send it somewhere. If you set a password, keep it safe — it can't be recovered.</p>
+    </div>
     <div id="mctPolicy"><div class="mcj-inssum">Loading the live facts&hellip;</div></div>
     <p class="mcj-disc">MedCompanion gives information, not a diagnosis. It doesn't replace your clinician's judgment.</p>
   </div>
@@ -6571,6 +6579,43 @@ document.addEventListener('DOMContentLoaded', function() {
     var keys=[]; for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k && (k.indexOf('mc_')===0 || k.indexOf('mc.')===0)) keys.push(k); }
     keys.forEach(function(k){ localStorage.removeItem(k); });
     window.mcToast('Everything on this device was deleted'); });
+  };
+
+  // ---- Back up & restore (a file the user controls; optional passphrase, same crypto as the vault) ----
+  function isBackable(k){ return k && /^mc/.test(k) && k!=='mc_tier' && k!=='mc_gating_test' && k.indexOf('mc_ai_used_')!==0; }
+  function b64(buf){ var b=new Uint8Array(buf), s=''; for(var i=0;i<b.length;i++) s+=String.fromCharCode(b[i]); return btoa(s); }
+  function unb64(str){ var s=atob(str), b=new Uint8Array(s.length); for(var i=0;i<s.length;i++) b[i]=s.charCodeAt(i); return b; }
+  function deriveKey(pass, salt){ var enc=new TextEncoder(); return crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']).then(function(km){ return crypto.subtle.deriveKey({name:'PBKDF2', salt:salt, iterations:250000, hash:'SHA-256'}, km, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']); }); }
+  function encryptObj(obj, pass){ var salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12)); return deriveKey(pass, salt).then(function(key){ return crypto.subtle.encrypt({name:'AES-GCM', iv:iv}, key, new TextEncoder().encode(JSON.stringify(obj))); }).then(function(ct){ return {v:1, s:b64(salt), i:b64(iv), c:b64(ct)}; }); }
+  function decryptObj(blob, pass){ return deriveKey(pass, unb64(blob.s)).then(function(key){ return crypto.subtle.decrypt({name:'AES-GCM', iv:unb64(blob.i)}, key, unb64(blob.c)); }).then(function(pt){ return JSON.parse(new TextDecoder().decode(pt)); }); }
+  window.mcBackup=function(){
+    var data={}; for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(isBackable(k)) data[k]=localStorage.getItem(k); }
+    if(!Object.keys(data).length){ if(window.mcToast) window.mcToast('Nothing to back up yet'); else alert('Nothing to back up yet.'); return; }
+    var pass=window.prompt('Optional: set a password to encrypt this backup.\n\nLeave blank for an unencrypted file. If you set a password you\'ll need it to restore — it can\'t be recovered.','');
+    if(pass===null) return;
+    function finish(payload){ var blob=new Blob([JSON.stringify(payload)],{type:'application/json'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='medcompanion-backup-'+new Date().toISOString().slice(0,10)+'.mcbak'; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function(){ URL.revokeObjectURL(url); },1000); if(window.mcToast) window.mcToast('Backup saved — keep it somewhere safe'); }
+    var meta={app:'MedCompanion', created:new Date().toISOString()};
+    if(pass.trim()){ encryptObj(data, pass).then(function(enc){ finish({app:'MedCompanion', kind:'backup-encrypted', version:1, created:meta.created, enc:enc}); }).catch(function(){ alert('Couldn\'t encrypt the backup — please try again.'); }); }
+    else { finish({app:'MedCompanion', kind:'backup', version:1, created:meta.created, data:data}); }
+  };
+  window.mcRestore=function(ev){
+    var f=ev.target.files&&ev.target.files[0]; if(!f) return;
+    var rd=new FileReader();
+    rd.onload=function(){
+      var payload; try{ payload=JSON.parse(rd.result); }catch(e){ alert('That file isn\'t a MedCompanion backup.'); ev.target.value=''; return; }
+      if(!payload || payload.app!=='MedCompanion' || (payload.kind!=='backup' && payload.kind!=='backup-encrypted')){ alert('That file isn\'t a MedCompanion backup.'); ev.target.value=''; return; }
+      function apply(data){
+        window.mcConfirm({title:'Restore this backup?', message:'This replaces the MedCompanion data on this device with the backup from '+((payload.created||'').slice(0,10)||'your file')+'. Your current data on this phone will be overwritten.', ok:'Restore', danger:true}).then(function(ok){ if(!ok){ ev.target.value=''; return; }
+          var rm=[]; for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(isBackable(k)) rm.push(k); }
+          rm.forEach(function(k){ localStorage.removeItem(k); });
+          Object.keys(data||{}).forEach(function(k){ if(isBackable(k)){ try{ localStorage.setItem(k, data[k]); }catch(e){} } });
+          if(window.mcToast) window.mcToast('Restored — reloading…'); setTimeout(function(){ location.reload(); }, 900);
+        });
+      }
+      if(payload.kind==='backup-encrypted'){ var pass=window.prompt('This backup is password-protected. Enter its password to restore.',''); if(pass===null){ ev.target.value=''; return; } decryptObj(payload.enc, pass).then(apply).catch(function(){ alert('Wrong password, or the file is damaged.'); ev.target.value=''; }); }
+      else { apply(payload.data||{}); }
+    };
+    rd.readAsText(f);
   };
   window.openTrust=function(){
     var m=document.getElementById('mcTrust'); if(!m) return;
