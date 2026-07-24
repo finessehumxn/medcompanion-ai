@@ -5684,7 +5684,14 @@ document.addEventListener('DOMContentLoaded', function() {
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function circle(){ try { return JSON.parse(localStorage.getItem('mc_carecircle')||'[]'); } catch(e){ return []; } }
   function saveCircle(c){ try { localStorage.setItem('mc_carecircle', JSON.stringify(c)); } catch(e){} }
-  var editing=null;
+  var editing=null, curPerson=null;
+  // Per-recipient daily med tracking (parsed from their profile's Meds field)
+  function careAdh(){ try{ return JSON.parse(localStorage.getItem('mc_care_adh')||'{}'); }catch(e){ return {}; } }
+  function saveCareAdh(a){ try{ localStorage.setItem('mc_care_adh', JSON.stringify(a)); }catch(e){} }
+  function todayKey(){ var d=new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+  function medList(p){ return (p&&p.meds?p.meds:'').split(/[,;\n]/).map(function(s){ return s.trim(); }).filter(Boolean); }
+  function takenFor(id){ var a=careAdh(); return (a[id]&&a[id][todayKey()])||[]; }
+  function byId(id){ var c=circle(); for(var i=0;i<c.length;i++){ if(String(c[i].id)===String(id)) return c[i]; } return null; }
 
   function cRender(){
     var list=document.getElementById('mcCList'); if(!list) return;
@@ -5695,11 +5702,13 @@ document.addEventListener('DOMContentLoaded', function() {
       return '<div style="padding:.8rem;background:var(--lteal);border:1px solid var(--border);border-radius:14px;margin-bottom:.6rem">'
         +'<div style="display:flex;align-items:center;gap:.6rem"><span style="font-size:26px">'+(p.emoji||'🧑')+'</span><span style="flex:1"><b style="color:var(--text-dark);font-size:15px">'+esc(p.name)+'</b>'+(p.relation?' <span style="color:var(--text-soft);font-size:13px">· '+esc(p.relation)+'</span>':'')+'</span></div>'
         +(bits.length?'<div style="font-size:13px;color:var(--text-body);line-height:1.6;margin-top:.5rem">'+bits.join('<br>')+'</div>':'')
-        +'<div style="display:flex;gap:.5rem;margin-top:.7rem"><button class="mcCAsk" data-id="'+esc(p.id)+'" style="flex:1;background:var(--teal);color:#fff;border:none;border-radius:10px;padding:.55rem;font-weight:700;font-size:12px;cursor:pointer">💬 Guidance for their care</button><button class="mcCDel" data-id="'+esc(p.id)+'" style="background:var(--white);border:1px solid var(--border);color:#c0392b;border-radius:10px;padding:.55rem .8rem;cursor:pointer;font-size:12px">Remove</button></div>'
+        +(function(){ var ml=medList(p); if(!ml.length) return ''; var tn=takenFor(p.id).filter(function(x){return ml.indexOf(x)>=0;}).length; var done=tn===ml.length; return '<button class="mcCMeds" data-id="'+esc(p.id)+'" style="width:100%;margin-top:.6rem;background:'+(done?'var(--sage)':'var(--white)')+';color:'+(done?'#fff':'var(--sage)')+';border:1.5px solid var(--sage);border-radius:10px;padding:.55rem;font-weight:700;font-size:12px;cursor:pointer">💊 Today\'s meds · '+tn+' of '+ml.length+(done?' ✓':'')+'</button>'; })()
+        +'<div style="display:flex;gap:.5rem;margin-top:.5rem"><button class="mcCAsk" data-id="'+esc(p.id)+'" style="flex:1;background:var(--teal);color:#fff;border:none;border-radius:10px;padding:.55rem;font-weight:700;font-size:12px;cursor:pointer">💬 Guidance for their care</button><button class="mcCDel" data-id="'+esc(p.id)+'" style="background:var(--white);border:1px solid var(--border);color:#c0392b;border-radius:10px;padding:.55rem .8rem;cursor:pointer;font-size:12px">Remove</button></div>'
         +'</div>';
     }).join(''); }
     Array.prototype.forEach.call(document.querySelectorAll('.mcCDel'),function(b){ b.onclick=function(){ saveCircle(circle().filter(function(x){ return String(x.id)!==b.getAttribute('data-id'); })); cRender(); }; });
     Array.prototype.forEach.call(document.querySelectorAll('.mcCAsk'),function(b){ b.onclick=function(){ askCare(b.getAttribute('data-id')); }; });
+    Array.prototype.forEach.call(document.querySelectorAll('.mcCMeds'),function(b){ b.onclick=function(){ openCareMeds(b.getAttribute('data-id')); }; });
   }
   function cAdd(){ var f={}; ['name','relation','conditions','meds','allergies','notes'].forEach(function(k){ var el=document.getElementById('mcC_'+k); f[k]=el?el.value.trim():''; });
     if(!f.name){ alert('Add their name.'); return; }
@@ -5718,6 +5727,28 @@ document.addEventListener('DOMContentLoaded', function() {
   function openC(){ var m=document.getElementById('mcCModal'); if(m){ m.style.display='flex'; cRender(); } var hm=document.getElementById('mcHubMenu'); if(hm) hm.style.display='none'; }
   function closeC(){ var m=document.getElementById('mcCModal'); if(m) m.style.display='none'; }
 
+  // ── Care-recipient daily med check-off ──
+  function cmToggle(name){ var p=byId(curPerson); if(!p) return; var a=careAdh(), id=String(p.id), k=todayKey(); a[id]=a[id]||{}; var t=(a[id][k]||[]).slice(); var i=t.indexOf(name); if(i>=0) t.splice(i,1); else t.push(name); a[id][k]=t; saveCareAdh(a); cmRender(); }
+  function cmRender(){ var body=document.getElementById('mcCareMedsBody'); if(!body) return; var p=byId(curPerson); if(!p){ body.innerHTML=''; return; }
+    var ml=medList(p), taken=takenFor(p.id); var done=ml.filter(function(x){ return taken.indexOf(x)>=0; }).length;
+    var rows=ml.map(function(n){ var on=taken.indexOf(n)>=0;
+      return '<button class="mcCMTog" data-n="'+esc(n)+'" style="width:100%;display:flex;align-items:center;gap:.7rem;text-align:left;background:'+(on?'var(--lteal)':'var(--white)')+';border:1px solid '+(on?'var(--sage)':'var(--border)')+';border-radius:12px;padding:.65rem .8rem;margin-bottom:.45rem;cursor:pointer"><span style="width:24px;height:24px;border-radius:50%;border:2px solid '+(on?'var(--sage)':'var(--border)')+';background:'+(on?'var(--sage)':'transparent')+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">'+(on?'✓':'')+'</span><span style="flex:1"><b style="color:var(--text-dark)">'+esc(n)+'</b></span></button>'; }).join('');
+    body.innerHTML='<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.2rem"><span style="font-size:26px">'+(p.emoji||'🧑')+'</span><div style="flex:1"><div style="font-family:Lora,serif;font-size:20px;font-weight:700;color:var(--text-dark)">'+esc(p.name)+'</div><div style="font-size:12px;color:var(--text-soft)">Today\'s medications · '+done+' of '+ml.length+' taken</div></div></div>'
+      +'<div style="margin:1rem 0 .3rem">'+rows+'</div>'
+      +'<button id="mcCMShare" style="width:100%;background:var(--white);color:var(--teal);border:1.5px solid var(--teal);border-radius:12px;padding:.7rem;font-weight:800;cursor:pointer;font-size:14px;margin-top:.4rem">👨‍👩‍👧 Share '+esc((p.name||'their').split(' ')[0])+'\'s status</button>'
+      +'<div style="font-size:11px;color:var(--text-soft);text-align:center;margin-top:.7rem;line-height:1.5">Tracked on your device to help you keep their care on schedule. Not a substitute for their own records.</div>';
+    Array.prototype.forEach.call(document.querySelectorAll('.mcCMTog'),function(b){ b.onclick=function(){ cmToggle(b.getAttribute('data-n')); }; });
+    var sh=document.getElementById('mcCMShare'); if(sh) sh.onclick=function(){
+      var pers=byId(curPerson); if(!pers) return; var ml2=medList(pers), tk=takenFor(pers.id).filter(function(x){return ml2.indexOf(x)>=0;});
+      var rem=ml2.filter(function(x){ return tk.indexOf(x)<0; });
+      var msg='MedCompanion — '+pers.name+'\'s medications today\n'+tk.length+' of '+ml2.length+' taken.'+(rem.length?('\nStill to take: '+rem.join(', ')):'\nAll done ✓');
+      if(navigator.share){ navigator.share({title:pers.name+'\'s meds', text:msg}).catch(function(){}); }
+      else { try{ navigator.clipboard.writeText(msg); }catch(e){} if(window.mcToast) window.mcToast('Copied — paste it to family'); else alert(msg); }
+    };
+  }
+  function openCareMeds(id){ curPerson=id; var m=document.getElementById('mcCareMeds'); if(m){ cmRender(); m.style.display='flex'; } }
+  function closeCareMeds(){ var m=document.getElementById('mcCareMeds'); if(m) m.style.display='none'; cRender(); }
+
   function init(){
     if(document.getElementById('mcCModal')) return;
     var m=document.createElement('div'); m.id='mcCModal';
@@ -5735,6 +5766,13 @@ document.addEventListener('DOMContentLoaded', function() {
       +'<button id="mcCAdd" style="width:100%;background:var(--sage);color:#fff;border:none;border-radius:12px;padding:.7rem;font-weight:700;cursor:pointer">+ Add to my Care Circle</button></div>'
       +'</div>';
     document.body.appendChild(m);
+    // Care-recipient meds check-off modal (layered above Care Circle)
+    var cm=document.createElement('div'); cm.id='mcCareMeds';
+    cm.style.cssText='display:none;position:fixed;inset:0;background:rgba(10,31,26,0.6);z-index:100001;align-items:center;justify-content:center;padding:18px';
+    cm.innerHTML='<div role="dialog" aria-label="Their medications today" style="background:var(--cream);border-radius:20px;max-width:420px;width:100%;max-height:88vh;overflow-y:auto;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,0.45)"><div style="display:flex;justify-content:flex-end;margin-bottom:-.4rem"><button id="mcCMClose" aria-label="Close" style="background:none;border:none;font-size:28px;cursor:pointer;color:var(--text-soft);line-height:1">×</button></div><div id="mcCareMedsBody"></div></div>';
+    document.body.appendChild(cm);
+    cm.addEventListener('click',function(e){ if(e.target===cm) closeCareMeds(); });
+    document.getElementById('mcCMClose').onclick=closeCareMeds;
     m.addEventListener('click',function(e){ if(e.target===m) closeC(); });
     document.getElementById('mcCClose').onclick=closeC;
     document.getElementById('mcCAdd').onclick=cAdd;
