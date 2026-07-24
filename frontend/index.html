@@ -6200,7 +6200,7 @@ document.addEventListener('DOMContentLoaded', function() {
       {type:'condition',name:'Type 2 Diabetes'}]);
     mcrRender();
   };
-  window.mcrDel=function(i){ var a=rload(); a.splice(i,1); rsave(a); mcrRender(); };
+  window.mcrDel=function(i){ window.mcConfirm({title:'Remove this record?',ok:'Remove',danger:true}).then(function(ok){ if(!ok) return; var a=rload(); a.splice(i,1); rsave(a); mcrRender(); }); };
   function mcrRender(){
     var a=rload(), l=document.getElementById('mcrList'); if(!l) return;
     if(!a.length){ l.innerHTML='<div class="mcj-empty">No records yet. Add one above, load a sample, or connect your MyChart.</div>'; return; }
@@ -6219,19 +6219,19 @@ document.addEventListener('DOMContentLoaded', function() {
     fetch(base+'/code-term',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({term:r.name, kind:kind})})
       .then(function(res){return res.json();}).then(function(d){
         if(!d.candidates||!d.candidates.length){ alert('No standard '+(kind==='lab'?'LOINC':'ICD-10')+' code found for "'+r.name+'". You can leave it as free text.'); return; }
-        var opts=d.candidates.map(function(c,n){ return (n+1)+'. '+c.code+' — '+c.name; }).join('\n');
-        var pick=prompt('Pick the best '+d.system+' code for "'+r.name+'":\n\n'+opts+'\n\nEnter 1-'+d.candidates.length+' (or Cancel):','1');
-        var n=parseInt(pick,10);
-        if(n>=1 && n<=d.candidates.length){
-          var c=d.candidates[n-1];
+        window.mcChoose({ title:'Pick the '+d.system+' code', message:'For "'+r.name+'" — coding is a clinical judgment, so confirm the best match.',
+          options:d.candidates.map(function(c){ return {label:c.code, sub:c.name}; }) }).then(function(sel){
+          if(sel===null || sel===undefined) return;
+          var c=d.candidates[sel];
           var arr=rload(); if(arr[i]){ arr[i].code=c.code; arr[i].codeSystem=c.system; arr[i].codeName=c.name; arr[i].codeUrl=c.url; rsave(arr); mcrRender(); }
-        }
+        });
       }).catch(function(){ alert('Couldn\'t reach the coding service — try again.'); });
   };
   window.mcrCodeAll=function(){
     var a=rload(), todo=[]; a.forEach(function(r,i){ if((r.type==='condition'||r.type==='lab')&&!r.code) todo.push(i); });
     if(!todo.length) return;
-    (function next(k){ if(k>=todo.length){ mcrRender(); return; } window.mcrCode(todo[k]); setTimeout(function(){ next(k+1); }, 50); })(0);
+    // one at a time; the styled chooser handles each (no OS prompts)
+    window.mcrCode(todo[0]);
   };
   // ---- FHIR import (MyChart / Apple Health / Blue Button export) ----
   function _fhirName(res){
@@ -7192,6 +7192,62 @@ document.addEventListener('DOMContentLoaded', function() {
         if(d.footer) h+='<p class="mcj-disc">'+esc(d.footer)+'</p>';
         out.innerHTML=h;
       }).catch(function(){ out.innerHTML='<div class="mcj-inssum">Couldn\'t look that up just now — try again.</div>'; });
+  };
+})();
+</script>
+
+<!-- ══ MedCompanion — reusable in-app dialogs (replace native prompt/confirm) ══ -->
+<style>
+  #mcDlg{ position:fixed; inset:0; z-index:100000; background:rgba(6,20,15,.62); display:none; align-items:center; justify-content:center; padding:20px; }
+  #mcDlg.show{ display:flex; }
+  .mcdlg-card{ background:#12281f; border:1px solid rgba(255,255,255,.12); border-radius:18px; max-width:420px; width:100%; max-height:82vh; overflow-y:auto; padding:22px; box-shadow:0 26px 70px rgba(0,0,0,.55); }
+  .mcdlg-t{ font-size:18px; font-weight:800; color:#eaf3ee; margin:0 0 6px; letter-spacing:-.01em; }
+  .mcdlg-m{ font-size:14px; color:#cfe3d8; line-height:1.55; margin:0 0 16px; }
+  .mcdlg-opt{ width:100%; text-align:left; background:#0b1f18; border:1px solid rgba(255,255,255,.12); color:#eaf3ee; border-radius:12px; padding:12px 14px; font-size:14px; font-weight:600; cursor:pointer; margin-bottom:9px; font-family:inherit; line-height:1.4; }
+  .mcdlg-opt:hover{ border-color:rgba(52,199,140,.5); background:#0f261d; }
+  .mcdlg-opt .sub{ display:block; font-weight:500; color:#8fbfa8; font-size:12.5px; margin-top:2px; }
+  .mcdlg-row{ display:flex; gap:10px; margin-top:6px; }
+  .mcdlg-btn{ flex:1; border:none; border-radius:11px; padding:12px; font-size:14.5px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .mcdlg-cancel{ background:rgba(255,255,255,.09); color:#cfe3d8; }
+  .mcdlg-ok{ background:#34c78c; color:#062418; }
+  .mcdlg-ok.danger{ background:#e0574d; color:#fff; }
+</style>
+<div id="mcDlg" role="dialog" aria-modal="true"><div class="mcdlg-card" id="mcDlgCard"></div></div>
+<script>
+(function(){
+  var el, card, resolver;
+  function ensure(){ el=document.getElementById('mcDlg'); card=document.getElementById('mcDlgCard');
+    if(el && !el._wired){ el._wired=1; el.addEventListener('click',function(e){ if(e.target===el){ done(null); } });
+      document.addEventListener('keydown',function(e){ if(e.key==='Escape' && el.classList.contains('show')) done(null); }); } }
+  function open(html){ ensure(); card.innerHTML=html; el.classList.add('show'); }
+  function done(v){ if(el) el.classList.remove('show'); var r=resolver; resolver=null; if(r) r(v); }
+  function esc(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+  window.mcConfirm=function(opts){
+    opts=opts||{};
+    return new Promise(function(res){ resolver=res;
+      open('<div class="mcdlg-t">'+esc(opts.title||'Are you sure?')+'</div>'
+        +(opts.message?'<div class="mcdlg-m">'+esc(opts.message)+'</div>':'')
+        +'<div class="mcdlg-row"><button class="mcdlg-btn mcdlg-cancel" id="mcDlgNo">'+esc(opts.cancel||'Cancel')+'</button>'
+        +'<button class="mcdlg-btn mcdlg-ok '+(opts.danger?'danger':'')+'" id="mcDlgYes">'+esc(opts.ok||'Confirm')+'</button></div>');
+      document.getElementById('mcDlgNo').onclick=function(){ done(false); };
+      document.getElementById('mcDlgYes').onclick=function(){ done(true); };
+    });
+  };
+  // options: [{label, sub}] -> resolves to chosen index, or null if cancelled
+  window.mcChoose=function(opts){
+    opts=opts||{};
+    return new Promise(function(res){ resolver=res;
+      var items=(opts.options||[]).map(function(o,i){
+        return '<button class="mcdlg-opt" data-i="'+i+'">'+esc(o.label)+(o.sub?'<span class="sub">'+esc(o.sub)+'</span>':'')+'</button>';
+      }).join('');
+      open('<div class="mcdlg-t">'+esc(opts.title||'Choose one')+'</div>'
+        +(opts.message?'<div class="mcdlg-m">'+esc(opts.message)+'</div>':'')
+        + items
+        +'<div class="mcdlg-row"><button class="mcdlg-btn mcdlg-cancel" id="mcDlgCX">Cancel</button></div>');
+      [].forEach.call(card.querySelectorAll('.mcdlg-opt'),function(b){ b.onclick=function(){ done(parseInt(b.getAttribute('data-i'),10)); }; });
+      document.getElementById('mcDlgCX').onclick=function(){ done(null); };
+    });
   };
 })();
 </script>
