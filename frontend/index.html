@@ -4263,23 +4263,23 @@ async function exportMyData() {
 }
 async function clearMyHealthData() {
   if (!(currentUser && currentUser.user_id)) return;
-  if (!confirm('Clear all your saved health data (symptom logs and history)? Your account stays active. This cannot be undone.')) return;
+  if (!(await window.mcConfirm({title:'Clear your saved health data?',message:'Your account stays active. This cannot be undone.',ok:'Clear data',danger:true}))) return;
   try {
     var res = await fetch(API + '/user/data/clear', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: currentUser.user_id }) });
     var d = await res.json();
-    if (d.status === 'ok') { alert('Your health data has been cleared. Your account is still active.'); openHealthHub(); }
+    if (d.status === 'ok') { window.mcToast('Your health data has been cleared'); openHealthHub(); }
     else alert('Could not clear your data right now — please try again.');
   } catch(e) { alert('Could not clear your data right now — please try again.'); }
 }
 async function deleteMyAccount() {
   if (!(currentUser && currentUser.user_id)) return;
-  if (!confirm('Delete your account and all your saved health data? This cannot be undone.')) return;
+  if (!(await window.mcConfirm({title:'Delete your account?',message:'Your account and all saved health data will be deleted. This cannot be undone.',ok:'Delete account',danger:true}))) return;
   try {
     await fetch(API + '/user/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: currentUser.user_id }) });
   } catch(e) {}
   try { localStorage.removeItem('mc_user'); localStorage.removeItem('mc_history'); } catch(e) {}
   signOut(); closeHealthHub();
-  alert('Your account and data have been deleted.');
+  window.mcToast('Your account and data have been deleted');
 }
 function shareVisitPrep() {
   var d = window._vpData; if (!d) return;
@@ -6410,13 +6410,13 @@ document.addEventListener('DOMContentLoaded', function() {
   window.mcvCopy=function(){
     var t=window._mcvText||'';
     if(navigator.share){ navigator.share({title:'My visit sheet', text:t}).catch(function(){}); }
-    else if(navigator.clipboard){ navigator.clipboard.writeText(t).then(function(){ alert('Copied — paste it into your portal message or notes.'); }); }
+    else if(navigator.clipboard){ navigator.clipboard.writeText(t).then(function(){ window.mcToast('Copied'); }); }
     else { alert(t); }
   };
   window.mcvShareLink=function(){
     var u=window._mcvLink||''; if(!u) return;
     if(navigator.share){ navigator.share({title:'My visit sheet', text:'A quick summary for my visit', url:u}).catch(function(){}); }
-    else if(navigator.clipboard){ navigator.clipboard.writeText(u).then(function(){ alert('Link copied — send it to your doctor or paste it into your portal message. They can open and print it.'); }); }
+    else if(navigator.clipboard){ navigator.clipboard.writeText(u).then(function(){ window.mcToast('Link copied'); }); }
     else { prompt('Copy this link for your doctor:', u); }
   };
   // On load: if Epic redirected back with ?code, finish the connection.
@@ -6485,10 +6485,10 @@ document.addEventListener('DOMContentLoaded', function() {
     var b=g.querySelectorAll('button'); b[0].classList.toggle('on',on); b[1].classList.toggle('on',!on);
   }
   window.mctWipe=function(){
-    if(!confirm('Delete ALL MedCompanion data on this device?\n\nThis removes your Health Journal check-ins, My Records entries, and saved settings from this phone. It cannot be undone.')) return;
+    window.mcConfirm({title:'Delete everything on this device?',message:'This removes your Health Journal, My Records, and saved settings from this phone. It cannot be undone.',ok:'Delete all',danger:true}).then(function(ok){ if(!ok) return;
     var keys=[]; for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k && (k.indexOf('mc_')===0 || k.indexOf('mc.')===0)) keys.push(k); }
     keys.forEach(function(k){ localStorage.removeItem(k); });
-    alert('Done — everything on this device was deleted.');
+    window.mcToast('Everything on this device was deleted'); });
   };
   window.openTrust=function(){
     var m=document.getElementById('mcTrust'); if(!m) return;
@@ -6621,7 +6621,7 @@ document.addEventListener('DOMContentLoaded', function() {
   window.mciCopyNote=function(){
     var t=window._mciNote||''; if(!t) return;
     if(navigator.share){ navigator.share({title:'Pre-visit intake — draft note', text:t}).catch(function(){}); }
-    else if(navigator.clipboard){ navigator.clipboard.writeText(t).then(function(){ alert('Draft note copied — your doctor can paste it and edit.'); }); }
+    else if(navigator.clipboard){ navigator.clipboard.writeText(t).then(function(){ window.mcToast('Draft note copied'); }); }
     else { prompt('Copy the draft note:', t); }
   };
   window.mciBuild=function(){
@@ -6841,7 +6841,7 @@ document.addEventListener('DOMContentLoaded', function() {
   window.mcpShare=function(){
     var u=window._mcpUrl||''; if(!u) return;
     if(navigator.share){ navigator.share({title:'My Health Passport', text:'My health summary for the visit', url:u}).catch(function(){}); }
-    else if(navigator.clipboard){ navigator.clipboard.writeText(u).then(function(){ alert('Link copied — send it to your doctor, or show them the QR code.'); }); }
+    else if(navigator.clipboard){ navigator.clipboard.writeText(u).then(function(){ window.mcToast('Link copied'); }); }
     else { prompt('Copy your passport link:', u); }
   };
 })();
@@ -7124,7 +7124,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if(!a.name){ return; }
     accounts.push(a); seal(accounts,pass).then(render);
   };
-  window.mcvDel=function(i){ if(!confirm('Remove this account from your vault?')) return; accounts.splice(i,1); seal(accounts,pass).then(render); };
+  window.mcvDel=function(i){ window.mcConfirm({title:'Remove this account?',message:'It will be deleted from your vault.',ok:'Remove',danger:true}).then(function(ok){ if(!ok) return; accounts.splice(i,1); seal(accounts,pass).then(render); }); };
   window.mcvReveal=function(i,k){ var el=document.getElementById('mcvF'+i+'_'+k); if(el&&accounts[i]) el.textContent=accounts[i].pass||''; };
   window.mcvCopy=function(i,k){
     var a=accounts[i]; if(!a) return;
@@ -7250,4 +7250,18 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   };
 })();
+</script>
+
+<!-- ══ MedCompanion — toast (replaces success alert()s) ══ -->
+<style>
+  #mcToast{ position:fixed; left:50%; bottom:calc(30px + env(safe-area-inset-bottom)); transform:translate(-50%,18px); z-index:100001; background:#12281f; color:#eaf3ee; border:1px solid rgba(52,199,140,.45); border-radius:999px; padding:12px 20px; font-size:14px; font-weight:600; box-shadow:0 16px 44px rgba(0,0,0,.5); opacity:0; pointer-events:none; transition:opacity .22s ease, transform .22s ease; max-width:90vw; text-align:center; }
+  #mcToast.show{ opacity:1; transform:translate(-50%,0); }
+  #mcToast.ok::before{ content:"✓"; color:#34c78c; font-weight:800; margin-right:8px; }
+</style>
+<script>
+  window.mcToast=function(msg, opts){ opts=opts||{}; var t=document.getElementById('mcToast');
+    if(!t){ t=document.createElement('div'); t.id='mcToast'; document.body.appendChild(t); }
+    t.textContent=msg; t.className=(opts.type||'ok')+' show';
+    clearTimeout(t._to); t._to=setTimeout(function(){ t.classList.remove('show'); }, opts.ms||2600);
+  };
 </script>
