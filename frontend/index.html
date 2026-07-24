@@ -2207,6 +2207,24 @@ document.addEventListener('DOMContentLoaded', function() {
 <meta name="apple-mobile-web-app-title" content="MedCompanion AI">
 </head>
 <body>
+<style id="mc-finish-unify">
+/* Finish pass: flip the legacy cream/serif tool modals to the premium dark palette.
+   Their inline styles use var(--cream) etc., and CSS custom properties cascade —
+   so redefining the vars on each modal shell restyles everything inside, no JS change. */
+#mcAModal,#mcCModal,#mcIDModal,#mcJModal,#mcLModal,#mcMedModal,#mcSchedModal,#mcTModal,#mcVModal{
+  --cream:#0b1f18; --white:#12281f; --lteal:#12281f;
+  --sage:#0f7a5a; --teal:#0e6e4e;
+  --border:rgba(255,255,255,.12);
+  --text-dark:#eaf3ee; --text-body:#cfe3d8; --text-soft:#8fbfa8;
+}
+/* inputs/selects/textareas need readable text on the now-dark fields */
+:is(#mcAModal,#mcCModal,#mcIDModal,#mcJModal,#mcLModal,#mcMedModal,#mcSchedModal,#mcTModal,#mcVModal) :is(input,select,textarea){
+  color:#eaf3ee !important; background:#0b1f18 !important; border-color:rgba(255,255,255,.16) !important;
+}
+:is(#mcAModal,#mcCModal,#mcIDModal,#mcJModal,#mcLModal,#mcMedModal,#mcSchedModal,#mcTModal,#mcVModal) ::placeholder{ color:#6f9585 !important; }
+:is(#mcAModal,#mcCModal,#mcIDModal,#mcJModal,#mcLModal,#mcMedModal,#mcSchedModal,#mcTModal,#mcVModal) option{ color:#eaf3ee; background:#0b1f18; }
+</style>
+
 
 <!-- ═══ NAV ═══ -->
 <a href="#main-content" class="skip-link">Skip to main content</a>
