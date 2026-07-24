@@ -46,6 +46,7 @@ logger = logging.getLogger(__name__)
 # device" true unless a deployment deliberately, and disclosed-ly, changes it.
 STORE_HISTORY = os.getenv("MC_STORE_HISTORY", "0") == "1"
 RC_PUBLIC_KEY = os.getenv("RC_PUBLIC_KEY", "")   # RevenueCat PUBLIC SDK key (safe to expose) — enables in-app IAP
+MC_GATING = os.getenv("MC_GATING", "0") == "1"   # freemium paywall enforcement — OFF by default (live app stays fully open until flipped on)
 UMLS_API_KEY = os.getenv("UMLS_API_KEY", "")   # free NLM key enables SNOMED CT coding
 
 
@@ -113,6 +114,17 @@ async def serve_family():
 @app.get("/founding")
 async def serve_founding():
     return FileResponse(os.path.join(frontend_dir, "founding.html"))
+
+@app.get("/billing-config")
+async def billing_config():
+    """Whether freemium gating is enforced, and which features belong to which tier.
+    gating=false (default) means everything is unlocked — the live app is untouched
+    until MC_GATING=1 is set (do that only once in-app purchases are live)."""
+    return {
+        "gating": MC_GATING,
+        "plus": ["family", "vault", "legacy"],
+        "pro": ["clinical", "handout", "chronology", "previsit"],
+    }
 
 @app.get("/rc-config")
 async def rc_config():

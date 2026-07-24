@@ -7482,3 +7482,80 @@ document.addEventListener('DOMContentLoaded', function() {
   window.closeFamily=function(){ var m=document.getElementById('mcFamily'); if(m) m.classList.remove('show'); };
 })();
 </script>
+
+<!-- ══ MedCompanion — freemium gating (OFF until MC_GATING=1) ══ -->
+<style>
+  #mcPay{ position:fixed; inset:0; z-index:100002; background:rgba(6,20,15,.66); display:none; align-items:center; justify-content:center; padding:20px; }
+  #mcPay.show{ display:flex; }
+  .mcpay-card{ background:#12281f; border:1px solid rgba(255,255,255,.12); border-radius:20px; max-width:400px; width:100%; padding:26px 24px; box-shadow:0 26px 70px rgba(0,0,0,.55); text-align:center; }
+  .mcpay-badge{ font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#e0a86a; background:rgba(224,168,106,.14); border-radius:999px; padding:5px 12px; display:inline-block; }
+  .mcpay-t{ font-size:21px; font-weight:850; color:#eaf3ee; margin:14px 0 6px; letter-spacing:-.01em; }
+  .mcpay-m{ font-size:14.5px; color:#cfe3d8; line-height:1.55; margin:0 0 16px; }
+  .mcpay-ul{ text-align:left; margin:0 0 20px; padding:0; list-style:none; }
+  .mcpay-ul li{ font-size:14px; color:#dcebe3; padding:6px 0 6px 24px; position:relative; }
+  .mcpay-ul li::before{ content:"✓"; position:absolute; left:2px; color:#34c78c; font-weight:800; }
+  .mcpay-go{ width:100%; background:#34c78c; color:#062418; border:none; font-weight:800; font-size:15px; padding:13px; border-radius:12px; cursor:pointer; }
+  .mcpay-later{ background:none; border:none; color:#8fbfa8; font-size:13.5px; margin-top:12px; cursor:pointer; }
+</style>
+<div id="mcPay" role="dialog" aria-modal="true"><div class="mcpay-card" id="mcPayCard"></div></div>
+<script>
+(function(){
+  var cfg={gating:false, plus:['family','vault','legacy'], pro:['clinical','handout','chronology','previsit']};
+  function base(){ return (typeof API!=='undefined')?API:''; }
+  try{ fetch(base()+'/billing-config').then(function(r){return r.json();}).then(function(c){ if(c) cfg=c; }).catch(function(){}); }catch(e){}
+  var RANK={free:0,plus:1,pro:2};
+
+  function localTier(){ try{ return localStorage.getItem('mc_tier')||'free'; }catch(e){ return 'free'; } }
+  window.mcTier=function(){
+    var P=(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Purchases)?Capacitor.Plugins.Purchases:null;
+    if(P && window.MC_RC_KEY){
+      return P.getCustomerInfo().then(function(info){
+        var ent=((info&&(info.customerInfo||info))||{}).entitlements; var act=(ent&&ent.active)||{};
+        if(act.pro) return 'pro'; if(act.plus) return 'plus'; return localTier();
+      }).catch(function(){ return localTier(); });
+    }
+    return Promise.resolve(localTier());
+  };
+  window.mcRequireTier=function(need, feature){
+    if(!cfg.gating) return Promise.resolve(true);           // gating OFF -> everything open
+    return window.mcTier().then(function(t){
+      if(RANK[t]>=RANK[need]) return true;
+      showPaywall(need, feature); return false;
+    });
+  };
+  function showPaywall(need, feature){
+    var el=document.getElementById('mcPay'), card=document.getElementById('mcPayCard');
+    var plan = need==='pro' ? 'Pro' : 'Plus';
+    var feats = need==='pro'
+      ? ['Generate patient handouts &amp; draft notes','Medical chronologies','Clinical tools for your practice']
+      : ['Everyone you care for — family profiles &amp; passports','The encrypted medical accounts vault','&ldquo;For My Family&rdquo; — insurance, will &amp; wishes','Unlimited plain-language explanations'];
+    card.innerHTML='<span class="mcpay-badge">MedCompanion '+plan+'</span>'
+      +'<div class="mcpay-t">'+(feature?esc(feature):'This')+' is part of '+plan+'</div>'
+      +'<div class="mcpay-m">Unlock it and everything below — private, on your device, never sold.</div>'
+      +'<ul class="mcpay-ul">'+feats.map(function(f){return '<li>'+f+'</li>';}).join('')+'</ul>'
+      +'<button class="mcpay-go" onclick="mcPayGo()">See plans →</button>'
+      +'<div><button class="mcpay-later" onclick="mcPayClose()">Maybe later</button></div>';
+    el.classList.add('show');
+  }
+  function esc(x){ return String(x==null?'':x).replace(/</g,'&lt;'); }
+  window.mcPayClose=function(){ var e=document.getElementById('mcPay'); if(e) e.classList.remove('show'); };
+  window.mcPayGo=function(){
+    mcPayClose();
+    var inApp=document.documentElement.classList.contains('cap-app')||(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
+    // in-app: open the in-app plans (founding page handles IAP); web: same page handles Stripe
+    location.href='/founding';
+  };
+  document.getElementById('mcPay').addEventListener('click',function(e){ if(e.target===this) mcPayClose(); });
+
+  // ── wrap the premium feature openers (only enforced when gating is ON) ──
+  function gate(name, need, label){
+    var orig=window[name]; if(typeof orig!=='function') return;
+    window[name]=function(){ var self=this, args=arguments;
+      window.mcRequireTier(need,label).then(function(ok){ if(ok) orig.apply(self,args); });
+    };
+  }
+  gate('openFamily','plus','Your Family');
+  gate('openVault','plus','Medical accounts');
+  gate('openLegacy','plus','For My Family');
+})();
+</script>
