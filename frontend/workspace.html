@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Provider Workspace · MedCompanion Clinical</title>
+<meta name="description" content="One place for your clinical tools: plain-language visit summaries, patient-education handouts, and medical chronologies.">
+<style>
+  :root{ --bg:#f4f7f5; --panel:#fff; --ink:#12211b; --sub:#566b60; --line:#e3ebe6; --accent:#0f7a5a; --accent-ink:#0b5c44; --accent-soft:#e7f4ee; --alert:#c0392b; --alert-soft:#fbe9e7; --sans:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; }
+  @media (prefers-color-scheme:dark){ :root{ --bg:#0b1611; --panel:#12211a; --ink:#e9f2ec; --sub:#93a89c; --line:rgba(255,255,255,.09); --accent:#34c78c; --accent-ink:#7fe6b4; --accent-soft:rgba(52,199,140,.12); --alert:#ff9c93; --alert-soft:rgba(224,87,77,.13); } }
+  *{ box-sizing:border-box; } html,body{ margin:0; }
+  body{ background:var(--bg); color:var(--ink); font-family:var(--sans); line-height:1.55; font-size:15px; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:860px; margin:0 auto; padding:0 20px 60px; }
+  header.top{ display:flex; align-items:center; justify-content:space-between; padding:18px 0; flex-wrap:wrap; gap:10px; }
+  .brand{ font-weight:800; font-size:16px; } .brand .c{ color:var(--accent); }
+  .lnk{ font-size:13px; color:var(--accent); text-decoration:none; font-weight:700; }
+  h1{ font-size:28px; font-weight:850; letter-spacing:-.02em; margin:10px 0 4px; }
+  .lede{ font-size:16px; color:var(--sub); margin:0 0 20px; }
+  .kicker{ font-size:11.5px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--sub); margin:26px 0 12px; }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media(max-width:600px){ .grid{ grid-template-columns:1fr; } }
+  .tool{ display:block; background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:20px; text-decoration:none; color:inherit; transition:border-color .15s; }
+  .tool:hover{ border-color:var(--accent); }
+  .tool .ic{ font-size:24px; } .tool h3{ font-size:17px; font-weight:800; margin:10px 0 5px; } .tool p{ margin:0; color:var(--sub); font-size:14px; } .tool .go{ color:var(--accent); font-weight:700; font-size:13.5px; margin-top:10px; display:inline-block; }
+  /* inline visit-summary tool */
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:20px; }
+  label{ display:block; font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--sub); margin:0 0 6px; }
+  textarea{ width:100%; background:var(--bg); border:1px solid var(--line); color:var(--ink); border-radius:10px; padding:12px 13px; font-size:14.5px; font-family:inherit; min-height:120px; resize:vertical; }
+  .btn{ background:var(--accent); color:#fff; border:none; font-weight:700; font-size:15px; padding:12px 22px; border-radius:10px; cursor:pointer; font-family:inherit; margin-top:12px; }
+  .btn.ghost{ background:transparent; color:var(--accent); border:1px solid var(--line); }
+  .banner{ background:var(--accent-soft); border:1px solid var(--line); border-radius:11px; padding:11px 14px; font-size:12.5px; color:var(--sub); margin:8px 0 14px; }
+  .out{ margin-top:16px; }
+  .sheet{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px; }
+  .sheet h2{ font-size:20px; font-weight:800; margin:0 0 10px; }
+  .sheet h4{ font-size:11.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--sub); margin:18px 0 7px; }
+  .sheet p{ margin:0; font-size:15px; line-height:1.6; } .sheet ul{ margin:0; padding-left:20px; } .sheet li{ margin-bottom:6px; }
+  .flags{ border:2px solid var(--alert); background:var(--alert-soft); border-radius:11px; padding:12px 15px; margin-top:8px; } .flags h4{ color:var(--alert); margin-top:0; } .flags li{ color:var(--ink); }
+  .foot{ margin-top:30px; padding-top:14px; border-top:1px solid var(--line); font-size:12px; color:var(--sub); line-height:1.6; }
+  @media print{ header.top,.kicker,.grid,.card,.foot,.btn,.acts{ display:none !important; } .sheet{ border:none; padding:0; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">MedCompanion <span class="c">Clinical</span></div>
+    <a class="lnk" href="/clinical">← Overview</a>
+  </header>
+  <h1>Provider workspace</h1>
+  <p class="lede">Your clinical tools in one place — turn a visit into something the patient actually understands, in seconds.</p>
+
+  <div class="kicker">Quick tools</div>
+  <div class="grid">
+    <a class="tool" href="/handout"><div class="ic">📄</div><h3>Patient education handout</h3><p>Any diagnosis → a plain-language, print-ready handout in any language.</p><span class="go">Open →</span></a>
+    <a class="tool" href="/pro"><div class="ic">🗂️</div><h3>Medical chronology</h3><p>Records → a factual, dated medical timeline for injury &amp; med-mal review.</p><span class="go">Open →</span></a>
+  </div>
+
+  <div class="kicker">Plain-language visit summary</div>
+  <div class="card">
+    <div class="banner">Paste today's visit note → a version your patient can read. For you to review before you hand it over. Nothing is stored.</div>
+    <label for="note">Visit note / assessment &amp; plan</label>
+    <textarea id="note" placeholder="S: 54M w/ HTN, T2DM… A: T2DM uncontrolled… P: increase metformin, start lisinopril, RTC 3mo, return precautions: CP, SOB…"></textarea>
+    <button class="btn" onclick="summarize()">Make patient-friendly summary</button>
+    <div id="out" class="out"></div>
+  </div>
+
+  <div class="foot">MedCompanion Clinical provides drafting and education assistance for a clinician to review — it is not a diagnosis, does not replace clinical judgment, and is not a medical device. Nothing entered here is stored on our servers. © Millennials Creatives LLC.</div>
+</div>
+<script>
+  function esc(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+  function list(a){ return '<ul>'+a.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>'; }
+  window.summarize=function(){
+    var note=(document.getElementById('note').value||'').trim(), out=document.getElementById('out');
+    if(!note){ out.innerHTML='<div class="card">Paste a visit note first.</div>'; return; }
+    out.innerHTML='<div class="card">Writing the patient-friendly summary… (~15s)</div>';
+    fetch('/explain-note',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({note:note})})
+      .then(function(r){return r.json();}).then(function(d){
+        var h='<div class="sheet">';
+        if(d.headline) h+='<h2>'+esc(d.headline)+'</h2>';
+        if(d.what_happened) h+='<h4>What happened at your visit</h4><p>'+esc(d.what_happened)+'</p>';
+        if(d.your_plan&&d.your_plan.length){ h+='<h4>Your plan</h4>'+list(d.your_plan); }
+        if(d.medications&&d.medications.length){ h+='<h4>Your medications</h4><ul>'+d.medications.map(function(m){return '<li><b>'+esc(m.name)+'</b>'+(m.change?' ('+esc(m.change)+')':'')+' — '+esc(m.plain||'')+'</li>';}).join('')+'</ul>'; }
+        if(d.watch_for&&d.watch_for.length){ h+='<div class="flags"><h4>⚠ When to get help</h4>'+list(d.watch_for)+'</div>'; }
+        if(d.glossary&&d.glossary.length){ h+='<h4>What the words mean</h4><ul>'+d.glossary.map(function(g){return '<li><b>'+esc(g.term)+'</b> — '+esc(g.plain)+'</li>';}).join('')+'</ul>'; }
+        if(d.questions&&d.questions.length){ h+='<h4>Questions to ask</h4>'+list(d.questions); }
+        if(d.note) h+='<p style="margin-top:16px;font-size:12.5px;color:var(--sub);font-style:italic">'+esc(d.note)+'</p>';
+        h+='</div><div class="acts" style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn" onclick="window.print()">Print / give to patient</button><button class="btn ghost" onclick="copyOut()">Copy text</button></div>';
+        out.innerHTML=h;
+      }).catch(function(){ out.innerHTML='<div class="card">Couldn\'t generate it just now — try again.</div>'; });
+  };
+  window.copyOut=function(){ var s=document.querySelector('.sheet'); if(!s) return; var t=s.innerText; if(navigator.clipboard){ navigator.clipboard.writeText(t).then(function(){ alert('Copied.'); }); } };
+</script>
+</body>
+</html>
