@@ -5578,26 +5578,37 @@ document.addEventListener('DOMContentLoaded', function() {
   function render(){
     var body=document.getElementById('mcTBody'); if(!body) return;
     var m=meds(), taken=takenToday();
+    var sched2; try{ sched2=JSON.parse(localStorage.getItem('mc_medsched')||'{}'); }catch(e){ sched2={}; }
+    var TSLOTS=[['morning','☀️','Morning'],['noon','🌤️','Noon'],['evening','🌆','Evening'],['bedtime','🌙','Bedtime'],['any','💊','Anytime']];
+    var chr=new Date().getHours(); var cur=(chr<11?'morning':(chr<15?'noon':(chr<20?'evening':'bedtime')));
+    // Expand each med into its scheduled doses (slot:med); unscheduled meds = one "anytime" dose (legacy bare-name key)
+    var doses=[]; m.forEach(function(x){ var sl=(sched2[x.name]||[]);
+      if(sl.length){ sl.forEach(function(s){ doses.push({med:x.name,dose:x.dose,slot:s,key:s+':'+x.name}); }); }
+      else { doses.push({med:x.name,dose:x.dose,slot:'any',key:x.name}); } });
+    var doneN=doses.filter(function(d){ return taken.indexOf(d.key)>=0; }).length;
     var medHtml;
     if(!m.length){ medHtml='<div style="color:var(--text-soft);font-size:13px;line-height:1.5">No medications added yet. <button id="mcTAddMeds" style="background:none;border:none;color:var(--teal);font-weight:700;cursor:pointer;text-decoration:underline;padding:0">Add your meds →</button></div>'; }
-    else { medHtml=m.map(function(x){ var on=taken.indexOf(x.name)>=0;
-      return '<button class="mcTMed" data-n="'+esc(x.name)+'" style="width:100%;display:flex;align-items:center;gap:.7rem;text-align:left;background:'+(on?'var(--lteal)':'var(--white)')+';border:1px solid '+(on?'var(--sage)':'var(--border)')+';border-radius:12px;padding:.65rem .8rem;margin-bottom:.45rem;cursor:pointer"><span style="width:24px;height:24px;border-radius:50%;border:2px solid '+(on?'var(--sage)':'var(--border)')+';background:'+(on?'var(--sage)':'transparent')+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">'+(on?'✓':'')+'</span><span style="flex:1"><b style="color:var(--text-dark);'+(on?'':'')+'">'+esc(x.name)+'</b>'+(x.dose?' <span style="color:var(--text-soft);font-size:13px">'+esc(x.dose)+'</span>':'')+'</span></button>'; }).join('');
-    }
+    else { medHtml=TSLOTS.map(function(sl){
+      var here=doses.filter(function(d){ return d.slot===sl[0]; }); if(!here.length) return '';
+      var isNow=(sl[0]===cur);
+      var hdr='<div style="display:flex;align-items:center;gap:.45rem;margin:.7rem 0 .4rem"><span style="font-size:15px">'+sl[1]+'</span><span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-soft)">'+sl[2]+'</span>'+(isNow?'<span style="font-size:10px;font-weight:800;color:#fff;background:var(--teal);border-radius:999px;padding:2px 8px;letter-spacing:.04em">DUE NOW</span>':'')+'</div>';
+      return hdr+here.map(function(d){ var on=taken.indexOf(d.key)>=0;
+        return '<button class="mcTMed" data-k="'+esc(d.key)+'" style="width:100%;display:flex;align-items:center;gap:.7rem;text-align:left;background:'+(on?'var(--lteal)':'var(--white)')+';border:1px solid '+(on?'var(--sage)':(isNow?'var(--teal)':'var(--border)'))+';border-radius:12px;padding:.65rem .8rem;margin-bottom:.45rem;cursor:pointer"><span style="width:24px;height:24px;border-radius:50%;border:2px solid '+(on?'var(--sage)':'var(--border)')+';background:'+(on?'var(--sage)':'transparent')+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">'+(on?'✓':'')+'</span><span style="flex:1"><b style="color:var(--text-dark)">'+esc(d.med)+'</b>'+(d.dose?' <span style="color:var(--text-soft);font-size:13px">'+esc(d.dose)+'</span>':'')+'</span></button>'; }).join('');
+    }).join(''); }
     var na=nextAppt();
     var apptHtml = na
       ? '<div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;background:var(--lteal);border:1px solid var(--border);border-radius:12px;padding:.7rem .85rem"><span><b style="color:var(--text-dark)">'+(esc(na.who)||'Appointment')+'</b><br><span style="font-size:12px;color:var(--sage);font-weight:700">'+relDays(na.date)+'</span></span><button id="mcTPrep" style="background:var(--teal);color:#fff;border:none;border-radius:10px;padding:.5rem .8rem;font-weight:700;font-size:12px;cursor:pointer">Prep</button></div>'
       : '<div style="color:var(--text-soft);font-size:13px">No upcoming appointments. <button id="mcTAddAppt" style="background:none;border:none;color:var(--teal);font-weight:700;cursor:pointer;text-decoration:underline;padding:0">Add one →</button></div>';
-    var doneN = m.filter(function(x){ return taken.indexOf(x.name)>=0; }).length;
 
     body.innerHTML =
         '<div style="margin-bottom:1.1rem"><div style="font-size:13px;color:var(--text-soft)">'+greeting()+'</div><div style="font-family:Lora,serif;font-size:22px;font-weight:700;color:var(--text-dark)">How are you today?</div></div>'
-      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem"><div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-soft)">Today\'s medications</div>'+(m.length?'<span style="font-size:12px;font-weight:700;color:'+(doneN===m.length?'var(--sage)':'var(--text-soft)')+'">'+doneN+' of '+m.length+' taken</span>':'')+'</div>'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem"><div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-soft)">Today\'s medications</div>'+(doses.length?'<span style="font-size:12px;font-weight:700;color:'+(doneN===doses.length?'var(--sage)':'var(--text-soft)')+'">'+doneN+' of '+doses.length+' taken</span>':'')+'</div>'
       + medHtml
       + '<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-soft);margin:1rem 0 .5rem">Next appointment</div>'
       + apptHtml
       + '<button id="mcTFeel" style="width:100%;background:var(--teal);color:#fff;border:none;border-radius:12px;padding:.85rem;font-weight:800;cursor:pointer;font-size:15px;margin-top:1.1rem">📓 Log how I\'m feeling</button>';
 
-    Array.prototype.forEach.call(document.querySelectorAll('.mcTMed'),function(b){ b.onclick=function(){ toggle(b.getAttribute('data-n')); }; });
+    Array.prototype.forEach.call(document.querySelectorAll('.mcTMed'),function(b){ b.onclick=function(){ toggle(b.getAttribute('data-k')); }; });
     var af=document.getElementById('mcTFeel'); if(af) af.onclick=function(){ closeT(); var it=document.querySelector('.mcHubItem[data-t=journal]'); if(it) it.click(); };
     var pp=document.getElementById('mcTPrep'); if(pp) pp.onclick=function(){ closeT(); if(typeof window.mcOpenAppts==='function') window.mcOpenAppts(); };
     var am=document.getElementById('mcTAddMeds'); if(am) am.onclick=function(){ closeT(); if(typeof window.mcOpenMeds==='function') window.mcOpenMeds(); };
@@ -5847,8 +5858,30 @@ document.addEventListener('DOMContentLoaded', function() {
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function meds(){ try { return JSON.parse(localStorage.getItem('mc_meds')||'[]'); } catch(e){ return []; } }
   function sched(){ try { return JSON.parse(localStorage.getItem('mc_medsched')||'{}'); } catch(e){ return {}; } }
-  function saveSched(s){ try { localStorage.setItem('mc_medsched', JSON.stringify(s)); } catch(e){} }
+  function saveSched(s){ try { localStorage.setItem('mc_medsched', JSON.stringify(s)); } catch(e){} scheduleReminders(); }
   var SLOTS=[['morning','☀️','Morning'],['noon','🌤️','Noon'],['evening','🌆','Evening'],['bedtime','🌙','Bedtime']];
+  // Default clock times per slot (used for real on-device reminders)
+  var SLOT_TIME={morning:{hour:8,minute:0,id:9101},noon:{hour:12,minute:0,id:9102},evening:{hour:18,minute:0,id:9103},bedtime:{hour:22,minute:0,id:9104}};
+  // Staged native reminders: real notifications on-device (Capacitor LocalNotifications), safe no-op on web.
+  function scheduleReminders(){
+    try{
+      var Cap=window.Capacitor, LN=Cap&&Cap.Plugins&&Cap.Plugins.LocalNotifications;
+      if(!LN) return {native:false, scheduled:0};   // web / no plugin — schedule data still saved for later
+      var m=meds(), s=sched(), notifs=[];
+      Object.keys(SLOT_TIME).forEach(function(slot){
+        var here=m.filter(function(x){ return (s[x.name]||[]).indexOf(slot)>=0; });
+        if(!here.length) return;
+        var t=SLOT_TIME[slot];
+        notifs.push({ id:t.id, title:'Time for your medication', body:here.map(function(x){ return x.name+(x.dose?(' '+x.dose):''); }).join(', '), schedule:{ on:{hour:t.hour, minute:t.minute}, repeats:true }, smallIcon:'ic_stat_icon' });
+      });
+      var allIds=Object.keys(SLOT_TIME).map(function(k){ return {id:SLOT_TIME[k].id}; });
+      LN.requestPermissions().then(function(){
+        LN.cancel({notifications:allIds}).catch(function(){}).then(function(){ if(notifs.length) LN.schedule({notifications:notifs}); });
+      }).catch(function(){});
+      return {native:true, scheduled:notifs.length};
+    }catch(e){ return {native:false, scheduled:0, error:String(e)}; }
+  }
+  window.mcScheduleReminders=scheduleReminders;
 
   function toggle(med, slot){ var s=sched(); var arr=(s[med]||[]).slice(); var i=arr.indexOf(slot); if(i>=0) arr.splice(i,1); else arr.push(slot); s[med]=arr; saveSched(s); sRender(); }
 
@@ -5865,6 +5898,11 @@ document.addEventListener('DOMContentLoaded', function() {
     body.innerHTML='<div id="mcSchedList">'+editor+'</div>'
       +(routine?'<div style="margin-top:1rem"><div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-soft);margin-bottom:.3rem">Your daily routine</div>'+routine+'</div>':'');
     Array.prototype.forEach.call(document.querySelectorAll('.mcSchedChip'),function(b){ b.onclick=function(){ toggle(b.getAttribute('data-med'), b.getAttribute('data-slot')); }; });
+    var note=document.getElementById('mcSchedNote');
+    if(note){ var LN=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.LocalNotifications;
+      var times='Morning 8:00 · Noon 12:00 · Evening 6:00 · Bedtime 10:00';
+      note.innerHTML = LN ? '🔔 Reminders are on — your phone will alert you at each time ('+times+'). Change a slot and it updates automatically.'
+                          : 'Reminder times: '+times+'. Phone alerts pop up in the iPhone app; here on the web your routine is saved and shown in “Today”.'; }
   }
   function openS(){ var m=document.getElementById('mcSchedModal'); if(m){ m.style.display='flex'; sRender(); } var hm=document.getElementById('mcHubMenu'); if(hm) hm.style.display='none'; }
   function closeS(){ var m=document.getElementById('mcSchedModal'); if(m) m.style.display='none'; }
@@ -5877,7 +5915,7 @@ document.addEventListener('DOMContentLoaded', function() {
       +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem"><div style="font-family:Lora,serif;font-size:22px;font-weight:700;color:var(--text-dark)">⏰ Medication Schedule</div><button id="mcSchedClose" aria-label="Close" style="background:none;border:none;font-size:28px;cursor:pointer;color:var(--text-soft);line-height:1">×</button></div>'
       +'<div style="font-size:13px;color:var(--text-soft);margin-bottom:1rem;line-height:1.5">Tap when you take each medication. I\'ll build your daily routine — and check them off with you each day in “Today”.</div>'
       +'<div id="mcSchedBody"></div>'
-      +'<div style="font-size:11px;color:var(--text-soft);margin-top:1rem;text-align:center;line-height:1.5">Phone reminders that pop up at each time are coming to the app. For now your routine is saved here &amp; in Today.</div>'
+      +'<div id="mcSchedNote" style="font-size:11px;color:var(--text-soft);margin-top:1rem;text-align:center;line-height:1.5"></div>'
       +'</div>';
     document.body.appendChild(m);
     m.addEventListener('click',function(e){ if(e.target===m) closeS(); });
