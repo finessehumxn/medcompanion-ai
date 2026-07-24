@@ -5610,12 +5610,24 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('mcIDClose').onclick=closeID;
     document.getElementById('mcIDShow').onclick=showCard;
 
+    // Print styles: isolate the emergency card and render it as a clean light wallet/fridge card
+    if(!document.getElementById('mcIDCardPrintCSS')){
+      var st=document.createElement('style'); st.id='mcIDCardPrintCSS';
+      st.textContent='@media print{ body>*:not(#mcIDCard){display:none!important;} '
+        +'#mcIDCard{position:static!important;background:#fff!important;padding:0!important;display:block!important;overflow:visible!important;} '
+        +'#mcIDCard #mcIDCardBody{max-width:none!important;border:2px solid #111;border-radius:10px;padding:16px 20px;} '
+        +'#mcIDCard *{color:#111!important;background:transparent!important;} '
+        +'#mcIDCard a[href^=tel]{border:1px solid #111!important;text-decoration:none;} '
+        +'#mcIDCardClose,#mcIDCardPrint{display:none!important;} }';
+      document.head.appendChild(st);
+    }
     // Full-screen emergency card (high-contrast, responder-facing)
     var card=document.createElement('div'); card.id='mcIDCard';
     card.style.cssText='display:none;position:fixed;inset:0;background:linear-gradient(160deg,#0B3D2E,#0A1F1A);z-index:100000;flex-direction:column;color:#fff;padding:22px;overflow-y:auto';
-    card.innerHTML='<button id="mcIDCardClose" aria-label="Close" style="align-self:flex-end;background:rgba(255,255,255,0.14);border:none;color:#fff;font-size:22px;width:38px;height:38px;border-radius:50%;cursor:pointer">×</button><div id="mcIDCardBody" style="max-width:440px;width:100%;margin:0 auto"></div>';
+    card.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;width:100%;max-width:440px;margin:0 auto"><button id="mcIDCardPrint" style="background:rgba(255,255,255,0.14);border:none;color:#fff;font-size:13px;font-weight:700;padding:.5rem .9rem;border-radius:100px;cursor:pointer">🖨 Print card</button><button id="mcIDCardClose" aria-label="Close" style="background:rgba(255,255,255,0.14);border:none;color:#fff;font-size:22px;width:38px;height:38px;border-radius:50%;cursor:pointer">×</button></div><div id="mcIDCardBody" style="max-width:440px;width:100%;margin:.6rem auto 0"></div>';
     document.body.appendChild(card);
     document.getElementById('mcIDCardClose').onclick=hideCard;
+    document.getElementById('mcIDCardPrint').onclick=function(){ window.print(); };
 
     var menu=document.getElementById('mcHubMenu'); var cancel=document.getElementById('mcHubCancel');
     if(menu && cancel){
