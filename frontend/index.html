@@ -1599,12 +1599,12 @@ h1, h2, h3 { font-family: 'Lora', Georgia, serif; color: var(--text-dark); line-
 .see-more-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
 
 /* ── Celebrity quote carousel ── */
-.celeb-quotes { position: relative; min-height: 120px; }
-.celeb-quote { display: none; }
-.celeb-quote.active { display: block; animation: fadeInQuote .5s ease; }
+.story-quotes { position: relative; min-height: 120px; }
+.story-quote { display: none; }
+.story-quote.active { display: block; animation: fadeInQuote .5s ease; }
 @keyframes fadeInQuote { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-.celeb-credit { color: var(--sage-light) !important; font-style: normal !important; font-size: 13px; }
-.celeb-credit i { font-size: 12px; vertical-align: -1px; }
+.story-credit { color: var(--sage-light) !important; font-style: normal !important; font-size: 13px; }
+.story-credit i { font-size: 12px; vertical-align: -1px; }
 .quote-dots {
   display: flex;
   gap: 8px;
@@ -2182,7 +2182,7 @@ function toggleMoreChips() {
 var currentQuote = 0;
 var quoteTimer = null;
 function goToQuote(n) {
-  var quotes = document.querySelectorAll('.celeb-quote');
+  var quotes = document.querySelectorAll('.story-quote');
   var dots = document.querySelectorAll('.qdot');
   if (!quotes.length) return;
   quotes[currentQuote].classList.remove('active');
@@ -2629,50 +2629,50 @@ document.addEventListener('DOMContentLoaded', function() {
 <section class="banner" aria-label="Why this exists">
   <div class="banner-inner">
     <div class="banner-quote">
-      <div class="celeb-quotes" id="celebQuotes">
-        <div class="celeb-quote active">
+      <div class="story-quotes" id="celebQuotes">
+        <div class="story-quote active">
           <p class="banner-quote-text">"I had a question I was too embarrassed to ask anyone. I Googled it and got more scared. I just needed someone to explain it to me like I was a real person."</p>
           <div class="banner-quote-credit">Sound familiar? You are exactly who this was built for.</div>
         </div>
-        <div class="celeb-quote">
-          <p class="banner-quote-text">"Selena Gomez went public about her lupus diagnosis after years of confusing symptoms she couldn't explain. Millions of people didn't know what lupus was until she said it out loud."</p>
-          <div class="banner-quote-credit celeb-credit"><i class="ti ti-sparkles"></i> You deserve to understand your diagnosis too — not just celebrities who can afford a team of doctors.</div>
+        <div class="story-quote">
+          <p class="banner-quote-text">"So many people live for years with confusing symptoms no one can explain — until a name like 'lupus' finally makes sense of it. You're allowed to keep asking until you get real answers."</p>
+          <div class="banner-quote-credit story-credit"><i class="ti ti-sparkles"></i> You deserve to understand your diagnosis too — not just celebrities who can afford a team of doctors.</div>
         </div>
-        <div class="celeb-quote">
-          <p class="banner-quote-text">"Michael B. Jordan has spoken openly about therapy and mental health — saying he didn't know what he was feeling or how to describe it to anyone. That's not weakness. That's being human."</p>
-          <div class="banner-quote-credit celeb-credit"><i class="ti ti-sparkles"></i> MedCompanion AI helps you find the words — for mental health, physical health, all of it.</div>
+        <div class="story-quote">
+          <p class="banner-quote-text">"So many of us quietly struggle with our mental health and can't find the words for what we're feeling. That's not weakness. That's being human."</p>
+          <div class="banner-quote-credit story-credit"><i class="ti ti-sparkles"></i> MedCompanion AI helps you find the words — for mental health, physical health, all of it.</div>
         </div>
-        <div class="celeb-quote">
-          <p class="banner-quote-text">"Chadwick Boseman fought colon cancer for 4 years without telling the world. 4 years of private fear, private pain, private questions. Nobody should have to carry that alone."</p>
-          <div class="banner-quote-credit celeb-credit"><i class="ti ti-sparkles"></i> Whatever you are carrying right now — you don't have to carry it alone anymore.</div>
+        <div class="story-quote">
+          <p class="banner-quote-text">"Some people carry a serious diagnosis in private for years — private fear, private pain, private questions. Nobody should have to carry that alone."</p>
+          <div class="banner-quote-credit story-credit"><i class="ti ti-sparkles"></i> Whatever you are carrying right now — you don't have to carry it alone anymore.</div>
         </div>
-        <div class="celeb-quote">
-          <p class="banner-quote-text">"Simone Biles stepped back from competition citing her mental health. She didn't have a diagnosis to explain — just a feeling that something wasn't right. That's enough."</p>
-          <div class="banner-quote-credit celeb-credit"><i class="ti ti-sparkles"></i> You don't need a medical degree to know something is wrong. Just tell us what you feel.</div>
+        <div class="story-quote">
+          <p class="banner-quote-text">"Sometimes there's no diagnosis to point to — just a feeling that something isn't right. That feeling is enough to take seriously."</p>
+          <div class="banner-quote-credit story-credit"><i class="ti ti-sparkles"></i> You don't need a medical degree to know something is wrong. Just tell us what you feel.</div>
         </div>
-        <div class="celeb-quote">
-          <p class="banner-quote-text">"Michael J. Fox was diagnosed with Parkinson's disease at just 29. A diagnosis can arrive at any age — and often leaves you with more questions than answers."</p>
-          <div class="banner-quote-credit celeb-credit"><i class="ti ti-sparkles"></i> Whatever your age, you deserve to understand what is happening in your body.</div>
+        <div class="story-quote">
+          <p class="banner-quote-text">"A life-changing diagnosis can arrive at any age — sometimes far younger than anyone expects — and it often leaves you with more questions than answers."</p>
+          <div class="banner-quote-credit story-credit"><i class="ti ti-sparkles"></i> Whatever your age, you deserve to understand what is happening in your body.</div>
         </div>
-        <div class="celeb-quote">
-          <p class="banner-quote-text">"Selma Blair lived with strange, frightening symptoms for years before she was diagnosed with multiple sclerosis. She said finally being able to name it brought relief."</p>
-          <div class="banner-quote-credit celeb-credit"><i class="ti ti-sparkles"></i> Putting a name to what you feel is the first step to feeling less afraid.</div>
+        <div class="story-quote">
+          <p class="banner-quote-text">"Many people live with strange, frightening symptoms for years before anyone can name what's wrong. Finally being able to name it can bring real relief."</p>
+          <div class="banner-quote-credit story-credit"><i class="ti ti-sparkles"></i> Putting a name to what you feel is the first step to feeling less afraid.</div>
         </div>
-        <div class="celeb-quote">
-          <p class="banner-quote-text">"Nick Jonas was diagnosed with type 1 diabetes at 13 — a teenager suddenly learning a whole new medical language overnight."</p>
-          <div class="banner-quote-credit celeb-credit"><i class="ti ti-sparkles"></i> Whether you are 13 or 73, you deserve it explained in words that make sense.</div>
+        <div class="story-quote">
+          <p class="banner-quote-text">"A child can be handed a lifelong diagnosis overnight — suddenly learning a whole new medical language, scared and overwhelmed."</p>
+          <div class="banner-quote-credit story-credit"><i class="ti ti-sparkles"></i> Whether you are 13 or 73, you deserve it explained in words that make sense.</div>
         </div>
-        <div class="celeb-quote">
-          <p class="banner-quote-text">"Venus Williams pushed through fatigue and joint pain for years before doctors identified Sjogren's syndrome, an autoimmune condition that is easy to miss."</p>
-          <div class="banner-quote-credit celeb-credit"><i class="ti ti-sparkles"></i> If something feels off and no one can explain it — you are not imagining it.</div>
+        <div class="story-quote">
+          <p class="banner-quote-text">"People push through fatigue and joint pain for years before anyone identifies an autoimmune condition that's easy to miss. If something feels off, you're not imagining it."</p>
+          <div class="banner-quote-credit story-credit"><i class="ti ti-sparkles"></i> If something feels off and no one can explain it — you are not imagining it.</div>
         </div>
-        <div class="celeb-quote">
-          <p class="banner-quote-text">"Toni Braxton has spoken openly about living with lupus — an autoimmune disease that is often misunderstood and hard to diagnose."</p>
-          <div class="banner-quote-credit celeb-credit"><i class="ti ti-sparkles"></i> Understanding your condition helps you speak up and advocate for yourself.</div>
+        <div class="story-quote">
+          <p class="banner-quote-text">"Autoimmune conditions like lupus are often misunderstood and hard to diagnose — and people get dismissed for years before they're finally believed."</p>
+          <div class="banner-quote-credit story-credit"><i class="ti ti-sparkles"></i> Understanding your condition helps you speak up and advocate for yourself.</div>
         </div>
-        <div class="celeb-quote">
-          <p class="banner-quote-text">"In 2024, Catherine, Princess of Wales, shared her cancer diagnosis publicly — a reminder that serious health news can reach anyone, in any family, at any age."</p>
-          <div class="banner-quote-credit celeb-credit"><i class="ti ti-sparkles"></i> No matter who you are, facing a diagnosis is easier when you truly understand it.</div>
+        <div class="story-quote">
+          <p class="banner-quote-text">"Serious health news can reach anyone — any family, any age, at any time. If it has reached you, you are far from the only one."</p>
+          <div class="banner-quote-credit story-credit"><i class="ti ti-sparkles"></i> No matter who you are, facing a diagnosis is easier when you truly understand it.</div>
         </div>
       </div>
       <div class="quote-dots" id="quoteDots">
@@ -5157,7 +5157,7 @@ function toggleMoreChips() {
 var currentQuote = 0;
 var quoteTimer = null;
 function goToQuote(n) {
-  var quotes = document.querySelectorAll('.celeb-quote');
+  var quotes = document.querySelectorAll('.story-quote');
   var dots = document.querySelectorAll('.qdot');
   if (!quotes.length) return;
   quotes[currentQuote].classList.remove('active');
