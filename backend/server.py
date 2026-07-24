@@ -189,6 +189,7 @@ async def data_policy():
             "My Records entries (stored only in your phone's local storage)",
             "The visit sheet (travels only inside the link you share; never uploaded)",
             "Medical account logins (encrypted on your device with your passphrase — never uploaded, never sent to the AI, never in a shared passport)",
+            "Your \"For My Family\" record — life insurance, will, wishes (encrypted on your device with your passphrase; never uploaded, never sent to AI; organizes info, not a legal will)",
         ],
         "sent_to_ai_only_when_you_tap": {
             "text_features": {

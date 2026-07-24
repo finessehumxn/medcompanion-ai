@@ -2438,6 +2438,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="nav-dd-sec">More</div>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();if(window.mcOpenMedID)mcOpenMedID()"><i class="ti ti-id"></i> Medical ID</a>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openVault()"><i class="ti ti-key"></i> Medical accounts</a>
+        <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openLegacy()"><i class="ti ti-heart-handshake"></i> For My Family</a>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();if(window.mcOpenCare)mcOpenCare()"><i class="ti ti-users"></i> Care circle</a>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openTrust()"><i class="ti ti-lock"></i> Your data &amp; AI</a>
       </div>
@@ -2482,6 +2483,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();if(window.mcOpenAppts)mcOpenAppts()"><i class="ti ti-calendar-event"></i> Appointments</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();if(window.mcOpenMedID)mcOpenMedID()"><i class="ti ti-id"></i> Medical ID</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openVault()"><i class="ti ti-key"></i> Medical accounts</a>
+  <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openLegacy()"><i class="ti ti-heart-handshake"></i> For My Family</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();if(window.mcOpenCare)mcOpenCare()"><i class="ti ti-users"></i> Care circle</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openRecords()"><i class="ti ti-file-text"></i> My Records</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openVisit()"><i class="ti ti-clipboard-heart"></i> Prep for my visit</a>
@@ -7265,4 +7267,116 @@ document.addEventListener('DOMContentLoaded', function() {
     t.textContent=msg; t.className=(opts.type||'ok')+' show';
     clearTimeout(t._to); t._to=setTimeout(function(){ t.classList.remove('show'); }, opts.ms||2600);
   };
+</script>
+
+<!-- ══ MedCompanion — For My Family (encrypted affairs/legacy organizer) ══ -->
+<style>
+  .mcl-sec{ background:#12281f; border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:16px; margin-bottom:14px; }
+  .mcl-sh{ font-size:13px; font-weight:800; color:#7fe6b4; margin:0 0 4px; display:flex; align-items:center; gap:8px; }
+  .mcl-two{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media(max-width:520px){ .mcl-two{ grid-template-columns:1fr; } }
+  .mcl-pol{ background:#0b1f18; border:1px solid rgba(255,255,255,.12); border-radius:11px; padding:12px; margin-bottom:10px; position:relative; }
+  .mcl-rm{ position:absolute; top:8px; right:10px; background:none; border:none; color:#ff9c93; font-size:18px; cursor:pointer; }
+  .mcl-legal{ background:rgba(224,166,63,.1); border:1px solid rgba(224,166,63,.35); border-radius:11px; padding:12px 14px; font-size:12.5px; color:#e8c98a; line-height:1.55; margin-bottom:14px; }
+</style>
+<div id="mcLegacy" class="mcj-screen" role="dialog" aria-label="For my family">
+  <div class="mcj-wrap">
+    <div class="mcj-top"><div class="mcj-title">For My Family</div><button class="mcj-x" onclick="closeLegacy()" aria-label="Close">&times;</button></div>
+    <p class="mcj-sub">The things your family will need if something happens to you &mdash; life insurance, your will, who's in charge, your wishes. So they're never left scrambling or guessing. <b>Encrypted on this device</b>, never uploaded, never sent to AI.</p>
+    <div id="mclBody"></div>
+    <p class="mcj-disc">This <b>organizes</b> the information &mdash; it is <b>not a will</b> and does not replace an attorney or a licensed estate plan. For a legally valid will, power of attorney, or beneficiary designation, see a licensed professional. We can't see or recover your passphrase, and we can't release this automatically &mdash; print it for your executor or share your passphrase with someone you trust. <a href="javascript:void(0)" onclick="openTrust()" style="color:#7fe6b4;text-decoration:underline">🔒 How your data is handled</a></p>
+  </div>
+</div>
+<script>
+(function(){
+  var KEY='mc_legacy', data=null, pass=null;
+  function b64(u8){ var s=''; u8.forEach(function(b){ s+=String.fromCharCode(b); }); return btoa(s); }
+  function ub64(str){ return Uint8Array.from(atob(str), function(c){ return c.charCodeAt(0); }); }
+  function esc(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function blob(){ try{ return JSON.parse(localStorage.getItem(KEY)||'null'); }catch(e){ return null; } }
+  function has(){ var b=blob(); return !!(b&&b.c); }
+  function deriveKey(p,salt){ return crypto.subtle.importKey('raw',new TextEncoder().encode(p),'PBKDF2',false,['deriveKey']).then(function(km){ return crypto.subtle.deriveKey({name:'PBKDF2',salt:salt,iterations:250000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['encrypt','decrypt']); }); }
+  function seal(){ var salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12)); return deriveKey(pass,salt).then(function(k){ return crypto.subtle.encrypt({name:'AES-GCM',iv:iv},k,new TextEncoder().encode(JSON.stringify(data))); }).then(function(ct){ localStorage.setItem(KEY,JSON.stringify({v:1,s:b64(salt),i:b64(iv),c:b64(new Uint8Array(ct))})); }); }
+  function unseal(p){ var b=blob(); if(!b) return Promise.reject(); return deriveKey(p,ub64(b.s)).then(function(k){ return crypto.subtle.decrypt({name:'AES-GCM',iv:ub64(b.i)},k,ub64(b.c)); }).then(function(pt){ return JSON.parse(new TextDecoder().decode(pt)); }); }
+  function fresh(){ return { ins:[], will:{has:'',loc:'',exec:'',execPh:'',poa:'',poaPh:'',atty:'',attyPh:''}, wishes:{disp:'',funeral:'',msg:''}, docs:{locs:'',safe:'',advisor:'',advisorPh:''} }; }
+
+  function lockUI(){
+    var setup=!has();
+    return '<div class="mcj-card"><div style="text-align:center;padding:8px 4px"><div style="font-size:34px">'+(setup?'🗝️':'🔒')+'</div>'
+      +'<div style="font-weight:800;font-size:16px;margin:8px 0 4px">'+(setup?'Create your family record':'Locked')+'</div>'
+      +'<p class="mcj-sub" style="margin:0 0 14px">'+(setup?'Pick a passphrase. It encrypts everything on this device — we never see it and can\'t reset it.':'Enter your passphrase to unlock.')+'</p></div>'
+      +'<input type="password" class="mcj-input" id="mclP" placeholder="Passphrase" autocomplete="off">'
+      +(setup?'<input type="password" class="mcj-input" id="mclP2" placeholder="Confirm passphrase" autocomplete="off" style="margin-top:10px">':'')
+      +'<button class="mcj-save" onclick="mclUnlock('+(setup?'true':'false')+')">'+(setup?'Create':'Unlock')+'</button>'
+      +'<div id="mclErr" class="mcj-sub" style="color:#ff9c93;margin:10px 0 0"></div></div>';
+  }
+  function fld(label,path,ph,type){ var v=get(path)||''; return '<div class="mcj-lbl">'+label+'</div><input type="'+(type||'text')+'" class="mcj-input" data-p="'+path+'" placeholder="'+(ph||'')+'" value="'+esc(v)+'">'; }
+  function get(path){ var p=path.split('.'),o=data; for(var i=0;i<p.length;i++){ if(o==null) return ''; o=o[p[i]]; } return o; }
+  function set(path,val){ var p=path.split('.'),o=data; for(var i=0;i<p.length-1;i++){ o=o[p[i]]=o[p[i]]||{}; } o[p[p.length-1]]=val; }
+  function insCard(x,i){
+    return '<div class="mcl-pol"><button class="mcl-rm" onclick="mclInsDel('+i+')">&times;</button>'
+      +'<div class="mcj-lbl" style="margin-top:0">Insurer / plan</div><input class="mcj-input" data-ins="'+i+'.insurer" value="'+esc(x.insurer)+'" placeholder="e.g. MetLife term life">'
+      +'<div class="mcl-two"><div><div class="mcj-lbl">Policy #</div><input class="mcj-input" data-ins="'+i+'.policy" value="'+esc(x.policy)+'"></div>'
+      +'<div><div class="mcj-lbl">Coverage</div><input class="mcj-input" data-ins="'+i+'.amount" value="'+esc(x.amount)+'" placeholder="$"></div></div>'
+      +'<div class="mcj-lbl">Beneficiary</div><input class="mcj-input" data-ins="'+i+'.beneficiary" value="'+esc(x.beneficiary)+'">'
+      +'<div class="mcl-two"><div><div class="mcj-lbl">Agent</div><input class="mcj-input" data-ins="'+i+'.agent" value="'+esc(x.agent)+'"></div>'
+      +'<div><div class="mcj-lbl">Agent phone</div><input class="mcj-input" data-ins="'+i+'.phone" value="'+esc(x.phone)+'"></div></div></div>';
+  }
+  function unlockedUI(){
+    var ins=data.ins.map(insCard).join('');
+    return '<div class="mcl-legal">🔓 Unlocked — it re-locks when you close this screen. Remember to <b>Save</b>.</div>'
+      +'<div class="mcl-sec"><div class="mcl-sh">💵 Life insurance &amp; benefits</div><p class="mcj-sub" style="margin:2px 0 10px">Policies, employer benefits, pensions.</p><div id="mclIns">'+ins+'</div><button class="mcj-analyze" onclick="mclInsAdd()">＋ Add a policy</button></div>'
+      +'<div class="mcl-sec"><div class="mcl-sh">📜 Will &amp; who\'s in charge</div>'
+        +'<div class="mcj-lbl" style="margin-top:0">Do you have a will?</div><select class="mcj-input" data-p="will.has"><option value="">Choose…</option><option'+(get("will.has")==="yes"?" selected":"")+'>Yes</option><option'+(get("will.has")==="no"?" selected":"")+'>No</option><option'+(get("will.has")==="unsure"?" selected":"")+'>Not sure</option></select>'
+        +fld("Where the will is kept","will.loc","e.g. fireproof box, attorney's office")
+        +'<div class="mcl-two"><div>'+fld("Executor","will.exec")+'</div><div>'+fld("Executor phone","will.execPh","","tel")+'</div></div>'
+        +'<div class="mcl-two"><div>'+fld("Financial POA","will.poa")+'</div><div>'+fld("Their phone","will.poaPh","","tel")+'</div></div>'
+        +'<div class="mcl-two"><div>'+fld("Estate attorney","will.atty")+'</div><div>'+fld("Attorney phone","will.attyPh","","tel")+'</div></div></div>'
+      +'<div class="mcl-sec"><div class="mcl-sh">🕊 Final wishes</div>'
+        +'<div class="mcj-lbl" style="margin-top:0">Preference</div><select class="mcj-input" data-p="wishes.disp"><option value="">Choose…</option><option'+(get("wishes.disp")==="Burial"?" selected":"")+'>Burial</option><option'+(get("wishes.disp")==="Cremation"?" selected":"")+'>Cremation</option><option'+(get("wishes.disp")==="Undecided"?" selected":"")+'>Undecided</option></select>'
+        +'<div class="mcj-lbl">Funeral / service notes</div><textarea class="mcj-area" data-p="wishes.funeral" placeholder="Any wishes for the service…">'+esc(get("wishes.funeral"))+'</textarea>'
+        +'<div class="mcj-lbl">A message for your family</div><textarea class="mcj-area" data-p="wishes.msg" placeholder="Anything you\'d want them to read…">'+esc(get("wishes.msg"))+'</textarea></div>'
+      +'<div class="mcl-sec"><div class="mcl-sh">🗂 Documents &amp; advisors</div>'
+        +'<div class="mcj-lbl" style="margin-top:0">Where key documents are</div><textarea class="mcj-area" data-p="docs.locs" placeholder="Birth cert, deeds, titles, passwords list…">'+esc(get("docs.locs"))+'</textarea>'
+        +fld("Safe deposit box (bank &amp; location)","docs.safe")
+        +'<div class="mcl-two"><div>'+fld("Financial advisor / accountant","docs.advisor")+'</div><div>'+fld("Their phone","docs.advisorPh","","tel")+'</div></div></div>'
+      +'<button class="mcj-save" onclick="mclSave()">Save</button>'
+      +'<button class="mcj-analyze" style="margin-top:10px" onclick="mclExport()">🖨 Print / save a copy for my family</button>'
+      +'<button class="mcj-analyze" style="margin-top:10px" onclick="mclLock()">🔒 Lock</button>';
+  }
+  function render(){ document.getElementById('mclBody').innerHTML = data ? unlockedUI() : lockUI(); }
+
+  function collect(){
+    [].forEach.call(document.querySelectorAll('#mclBody [data-p]'),function(el){ set(el.getAttribute('data-p'), el.value); });
+    [].forEach.call(document.querySelectorAll('#mclBody [data-ins]'),function(el){ var kv=el.getAttribute('data-ins').split('.'); var i=+kv[0]; if(data.ins[i]) data.ins[i][kv[1]]=el.value; });
+  }
+  window.mclUnlock=function(setup){
+    var p=(document.getElementById('mclP').value||''), err=document.getElementById('mclErr');
+    if(p.length<6){ err.textContent='Use at least 6 characters.'; return; }
+    if(setup){ var p2=(document.getElementById('mclP2').value||''); if(p!==p2){ err.textContent='Those don\'t match.'; return; } pass=p; data=fresh(); seal().then(render); return; }
+    err.textContent='Unlocking…';
+    unseal(p).then(function(d){ pass=p; data=Object.assign(fresh(),d||{}); render(); }).catch(function(){ err.textContent='That passphrase didn\'t work.'; });
+  };
+  window.mclInsAdd=function(){ collect(); data.ins.push({insurer:'',policy:'',amount:'',beneficiary:'',agent:'',phone:''}); render(); };
+  window.mclInsDel=function(i){ collect(); data.ins.splice(i,1); render(); };
+  window.mclSave=function(){ collect(); seal().then(function(){ if(window.mcToast) mcToast('Saved &amp; encrypted'.replace('&amp;','&')); }); };
+  window.mclLock=function(){ pass=null; data=null; render(); };
+  window.mclExport=function(){
+    collect();
+    var d=data, w=window.open('','_blank'); if(!w){ if(window.mcToast) mcToast('Allow pop-ups to print'); return; }
+    function row(k,v){ return v?('<tr><td style="color:#555;padding:4px 12px 4px 0;vertical-align:top;white-space:nowrap">'+esc(k)+'</td><td style="padding:4px 0">'+esc(v).replace(/\n/g,'<br>')+'</td></tr>'):''; }
+    var ins=d.ins.filter(function(x){return x.insurer||x.policy;}).map(function(x){ return '<table style="margin-bottom:10px">'+row('Insurer',x.insurer)+row('Policy #',x.policy)+row('Coverage',x.amount)+row('Beneficiary',x.beneficiary)+row('Agent',x.agent+(x.phone?' · '+x.phone:''))+'</table>'; }).join('');
+    w.document.write('<html><head><meta charset="utf-8"><title>For My Family — MedCompanion</title><style>body{font:14px/1.55 -apple-system,system-ui,Arial;max-width:680px;margin:24px auto;padding:0 18px;color:#111}h1{font-size:24px;margin:0 0 4px}h2{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#0f7a5a;border-bottom:1px solid #ddd;padding-bottom:5px;margin:22px 0 8px}.note{color:#666;font-size:12px;margin-bottom:18px}</style></head><body>'
+      +'<h1>For My Family</h1><div class="note">Prepared with MedCompanion · '+esc((new Date()).toISOString().slice(0,10))+' · This organizes information; it is not a will and does not replace an attorney.</div>'
+      +(ins?'<h2>Life insurance &amp; benefits</h2>'+ins:'')
+      +'<h2>Will &amp; who\'s in charge</h2><table>'+row('Has a will?',d.will.has)+row('Will is kept',d.will.loc)+row('Executor',d.will.exec+(d.will.execPh?' · '+d.will.execPh:''))+row('Financial POA',d.will.poa+(d.will.poaPh?' · '+d.will.poaPh:''))+row('Estate attorney',d.will.atty+(d.will.attyPh?' · '+d.will.attyPh:''))+'</table>'
+      +'<h2>Final wishes</h2><table>'+row('Preference',d.wishes.disp)+row('Service notes',d.wishes.funeral)+row('Message',d.wishes.msg)+'</table>'
+      +'<h2>Documents &amp; advisors</h2><table>'+row('Key documents',d.docs.locs)+row('Safe deposit',d.docs.safe)+row('Advisor',d.docs.advisor+(d.docs.advisorPh?' · '+d.docs.advisorPh:''))+'</table>'
+      +'<p class="note" style="margin-top:24px">Keep this with your important papers, or give it to the person you\'ve chosen as executor.</p>'
+      +'</body></html>');
+    w.document.close(); setTimeout(function(){ try{ w.print(); }catch(e){} }, 400);
+  };
+  window.openLegacy=function(){ var m=document.getElementById('mcLegacy'); if(!m) return; pass=null; data=null; m.classList.add('show'); render(); };
+  window.closeLegacy=function(){ pass=null; data=null; var m=document.getElementById('mcLegacy'); if(m) m.classList.remove('show'); };
+})();
 </script>
