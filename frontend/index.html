@@ -7502,7 +7502,9 @@ document.addEventListener('DOMContentLoaded', function() {
 (function(){
   var cfg={gating:false, plus:['family','vault','legacy'], pro:['clinical','handout','chronology','previsit']};
   function base(){ return (typeof API!=='undefined')?API:''; }
-  try{ fetch(base()+'/billing-config').then(function(r){return r.json();}).then(function(c){ if(c) cfg=c; }).catch(function(){}); }catch(e){}
+  function applyTestFlag(){ try{ if(localStorage.getItem('mc_gating_test')==='1') cfg.gating=true; }catch(e){} }
+  applyTestFlag();
+  try{ fetch(base()+'/billing-config').then(function(r){return r.json();}).then(function(c){ if(c) cfg=c; applyTestFlag(); }).catch(function(){}); }catch(e){}
   var RANK={free:0,plus:1,pro:2};
 
   function localTier(){ try{ return localStorage.getItem('mc_tier')||'free'; }catch(e){ return 'free'; } }
