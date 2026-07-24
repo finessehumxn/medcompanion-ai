@@ -5753,6 +5753,95 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 </script>
 
+<!-- ═══ VISIT SUMMARY — a printable one-page packet to bring to any appointment (assembled on-device) ═══ -->
+<style>
+  @media print {
+    body > *:not(#mcPacket){ display:none !important; }
+    #mcPacket{ position:static !important; background:#fff !important; padding:0 !important; }
+    #mcPacket .mcpk-sheet{ box-shadow:none !important; border:none !important; max-width:none !important; }
+    .mcpk-noprint{ display:none !important; }
+  }
+  #mcPacket .mcpk-sheet{ color:#16212b; }
+  #mcPacket h2{ font-family:Lora,serif; }
+  #mcPacket .mcpk-sec{ margin-top:18px; }
+  #mcPacket .mcpk-sh{ font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#0B6E4F; border-bottom:2px solid #dfeee7; padding-bottom:4px; margin-bottom:8px; }
+  #mcPacket table{ width:100%; border-collapse:collapse; font-size:13px; }
+  #mcPacket th{ text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:#5b6b78; padding:4px 6px; border-bottom:1px solid #e2e9ee; }
+  #mcPacket td{ padding:5px 6px; border-bottom:1px solid #eef3f6; vertical-align:top; }
+  #mcPacket .mcpk-q{ border:none; border-bottom:1px solid #cdd8df; height:26px; }
+</style>
+<div id="mcPacket" style="display:none;position:fixed;inset:0;background:#eef2f4;z-index:100000;overflow-y:auto;padding:20px">
+  <div class="mcpk-sheet" style="max-width:720px;margin:0 auto;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.25);padding:34px 38px">
+    <div class="mcpk-noprint" style="display:flex;justify-content:space-between;gap:10px;margin-bottom:18px">
+      <button onclick="window.print()" style="background:#0B6E4F;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-weight:800;font-size:14px;cursor:pointer">🖨 Print / Save PDF</button>
+      <button onclick="document.getElementById('mcPacket').style.display='none'" style="background:#fff;border:1px solid #d5dee4;color:#5b6b78;border-radius:10px;padding:10px 16px;font-weight:700;font-size:14px;cursor:pointer">Close</button>
+    </div>
+    <div id="mcpkBody"></div>
+  </div>
+</div>
+<script>
+(function(){
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function get(k,f){ try{ return JSON.parse(localStorage.getItem(k)||f); }catch(e){ return JSON.parse(f); } }
+  var SL={morning:'Morning',noon:'Noon',evening:'Evening',bedtime:'Bedtime'};
+  function render(){
+    var d=get('mc_medid','{}'), m=get('mc_meds','[]'), sc=get('mc_medsched','{}'), sy=get('mc_symptoms','[]');
+    var now=new Date();
+    var when=function(n){ var s=sc[n]||[]; return s.length? s.map(function(x){return SL[x]||x;}).join(', ') : '—'; };
+    var h='';
+    h+='<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;border-bottom:3px solid #0B6E4F;padding-bottom:12px">'
+      +'<div><div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#0B6E4F">Visit Summary</div>'
+      +'<h2 style="margin:.15rem 0 0;font-size:26px;font-weight:800;color:#16212b">'+(esc(d.name)||'My health summary')+'</h2></div>'
+      +'<div style="text-align:right;font-size:12px;color:#5b6b78">Prepared '+now.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+(d.blood&&d.blood!=='Unknown'?'<br><b style="color:#16212b">Blood type '+esc(d.blood)+'</b>':'')+'</div></div>';
+    // About
+    h+='<div class="mcpk-sec"><div class="mcpk-sh">About me</div><table><tr><td style="width:33%;color:#5b6b78">Conditions</td><td><b>'+(esc(d.conditions)||'None listed')+'</b></td></tr>'
+      +'<tr><td style="color:#5b6b78">Allergies</td><td style="color:#b5533f;font-weight:800">'+(esc(d.allergies)||'None listed')+'</td></tr>'
+      +(d.notes?'<tr><td style="color:#5b6b78">Notes</td><td>'+esc(d.notes)+'</td></tr>':'')+'</table></div>';
+    // Meds
+    h+='<div class="mcpk-sec"><div class="mcpk-sh">Current medications ('+m.length+')</div>';
+    if(m.length){ h+='<table><thead><tr><th>Medication</th><th>Dose</th><th>When</th><th>Standard code</th></tr></thead><tbody>'
+      +m.map(function(x){ return '<tr><td><b>'+esc(x.name)+'</b></td><td>'+(esc(x.dose)||'—')+'</td><td>'+esc(when(x.name))+'</td><td style="color:#5b6b78;font-size:11px">'+(x.rxcui?('RxCUI '+esc(x.rxcui)):'—')+'</td></tr>'; }).join('')
+      +'</tbody></table>'; }
+    else { h+='<div style="font-size:13px;color:#5b6b78">None listed.</div>'; }
+    h+='</div>';
+    // Recent symptoms
+    var recent=sy.slice(-8).reverse();
+    if(recent.length){ h+='<div class="mcpk-sec"><div class="mcpk-sh">Recent symptoms</div><table><tbody>'
+      +recent.map(function(x){ var dots='●●●●●'.slice(0,x.severity)+'○○○○○'.slice(0,5-(x.severity||0)); return '<tr><td style="width:22%;color:#5b6b78;white-space:nowrap">'+esc(x.date)+'</td><td><b>'+esc(x.symptom)+'</b> <span style="color:#0B6E4F;letter-spacing:1px;font-size:11px">'+dots+'</span>'+(x.note?'<br><span style="color:#5b6b78;font-size:12px">'+esc(x.note)+'</span>':'')+'</td></tr>'; }).join('')
+      +'</tbody></table></div>'; }
+    // Questions
+    var savedQ=''; try{ savedQ=localStorage.getItem('mc_visitq')||''; }catch(e){}
+    h+='<div class="mcpk-sec"><div class="mcpk-sh">Questions I want to ask</div>'
+      +'<textarea id="mcpkQ" class="mcpk-noprint" placeholder="Type your questions here — they\'ll print on the sheet." style="width:100%;min-height:70px;border:1px solid #d5dee4;border-radius:10px;padding:10px;font:14px/1.5 inherit;resize:vertical">'+esc(savedQ)+'</textarea>'
+      +'<div style="display:none" class="mcpk-printq"></div>'
+      +'</div>';
+    // Emergency contact
+    if(d.icePhone||d.iceName){ h+='<div class="mcpk-sec"><div class="mcpk-sh">Emergency contact</div><div style="font-size:14px"><b>'+(esc(d.iceName)||'Contact')+'</b>'+(d.icePhone?' · '+esc(d.icePhone):'')+'</div></div>'; }
+    h+='<div style="margin-top:24px;padding-top:12px;border-top:1px solid #e2e9ee;font-size:11px;color:#8494a0;line-height:1.5">Prepared with MedCompanion from information kept on this person\'s device — please verify with the patient. Medication codes are RxNorm (U.S. National Library of Medicine). This is information to support your visit, not a diagnosis.</div>';
+    document.getElementById('mcpkBody').innerHTML=h;
+    var q=document.getElementById('mcpkQ');
+    if(q){ q.addEventListener('input', function(){ try{ localStorage.setItem('mc_visitq', q.value); }catch(e){}
+      var pq=document.querySelector('.mcpk-printq'); if(pq){ var lines=q.value.split('\n').filter(function(x){return x.trim();}); pq.innerHTML=lines.length?('<ul style="margin:0;padding-left:20px">'+lines.map(function(l){return '<li style="margin-bottom:6px">'+esc(l)+'</li>';}).join('')+'</ul>'):''; pq.style.display=lines.length?'block':'none'; } });
+      // trigger once to populate print list
+      q.dispatchEvent(new Event('input'));
+    }
+  }
+  function openP(){ var m=document.getElementById('mcPacket'); if(m){ render(); m.style.display='block'; } var hm=document.getElementById('mcHubMenu'); if(hm) hm.style.display='none'; }
+  window.mcOpenPacket=openP;
+  function init(){
+    var menu=document.getElementById('mcHubMenu'); var cancel=document.getElementById('mcHubCancel');
+    if(menu && cancel && !document.getElementById('mcpkHubItem')){
+      var item=document.createElement('button'); item.className='mcHubItem'; item.id='mcpkHubItem';
+      item.style.cssText='width:100%;text-align:left;display:flex;gap:.7rem;align-items:center;background:var(--lteal);border:1px solid var(--border);border-radius:14px;padding:.85rem;margin-bottom:.5rem;cursor:pointer';
+      item.innerHTML='<span style="font-size:22px">📄</span><span><b style="color:var(--text-dark)">Visit summary sheet</b><br><span style="font-size:12px;color:var(--text-soft)">One page to bring to your appointment · print/PDF</span></span>';
+      item.onclick=openP;
+      cancel.parentNode.insertBefore(item, cancel);
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
+
 <!-- ═══ FIRST-RUN WALKTHROUGH — real screenshots, screen by screen (matches BarterThat) ═══ -->
 <script>
 (function(){
