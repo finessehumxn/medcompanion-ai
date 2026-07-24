@@ -5538,20 +5538,26 @@ document.addEventListener('DOMContentLoaded', function() {
     var bs=document.getElementById('mcID_blood'); d.blood=bs?bs.value:'Unknown';
     saveId(d); return d;
   }
-  function showCard(){ var d=saveForm();
-    var m=meds(); var medTxt = m.length ? m.map(function(x){ return esc(x.name)+(x.dose?(' '+esc(x.dose)):''); }).join(', ') : 'None listed';
+  function buildCard(d, medTxt, forOther){
     function row(label,val,big){ return '<div style="border-top:1px solid rgba(255,255,255,0.18);padding:.7rem 0"><div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#bfe6d5;font-weight:700">'+label+'</div><div style="font-size:'+(big?'22px':'17px')+';font-weight:'+(big?'800':'600')+';margin-top:.15rem;line-height:1.3">'+val+'</div></div>'; }
     var card=document.getElementById('mcIDCard'); if(!card){ return; }
+    var hasBlood = d.blood && d.blood!=='Unknown';
     card.querySelector('#mcIDCardBody').innerHTML =
-        '<div style="text-align:center;margin-bottom:.4rem"><div style="font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#ffd7cf;font-weight:800">⚕ In Case of Emergency</div><div style="font-family:Lora,serif;font-size:26px;font-weight:800;margin-top:.2rem">'+(esc(d.name)||'My Medical ID')+'</div></div>'
-      + row('Blood type', esc(d.blood||'Unknown'), true)
+        '<div style="text-align:center;margin-bottom:.4rem"><div style="font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#ffd7cf;font-weight:800">⚕ In Case of Emergency</div><div style="font-family:Lora,serif;font-size:26px;font-weight:800;margin-top:.2rem">'+(esc(d.name)||(forOther?'Emergency card':'My Medical ID'))+'</div>'+(forOther?'<div style="font-size:12px;color:#bfe6d5;margin-top:.15rem">Carried by their caregiver</div>':'')+'</div>'
+      + (hasBlood||!forOther ? row('Blood type', esc(d.blood||'Unknown'), true) : '')
       + row('Medical conditions', esc(d.conditions)||'None listed')
       + row('Allergies', '<span style="color:#ffb3a7">'+(esc(d.allergies)||'None listed')+'</span>')
       + row('Current medications', medTxt)
       + (d.notes ? row('Notes', esc(d.notes)) : '')
-      + (d.icePhone ? '<a href="tel:'+esc(d.icePhone)+'" style="display:block;text-align:center;background:#e0594e;color:#fff;text-decoration:none;font-weight:800;font-size:17px;padding:.9rem;border-radius:14px;margin-top:1rem">📞 Call '+(esc(d.iceName)||'emergency contact')+'</a>' : '<div style="text-align:center;color:#bfe6d5;font-size:13px;margin-top:1rem">Add an emergency contact so responders can call for you.</div>');
+      + (d.icePhone ? '<a href="tel:'+esc(d.icePhone)+'" style="display:block;text-align:center;background:#e0594e;color:#fff;text-decoration:none;font-weight:800;font-size:17px;padding:.9rem;border-radius:14px;margin-top:1rem">📞 Call '+(esc(d.iceName)||'emergency contact')+'</a>' : (forOther?'':'<div style="text-align:center;color:#bfe6d5;font-size:13px;margin-top:1rem">Add an emergency contact so responders can call for you.</div>'));
     card.style.display='flex';
   }
+  function showCard(){ var d=saveForm();
+    var m=meds(); var medTxt = m.length ? m.map(function(x){ return esc(x.name)+(x.dose?(' '+esc(x.dose)):''); }).join(', ') : 'None listed';
+    buildCard(d, medTxt, false);
+  }
+  window.mcShowEmergencyFor=function(p){ if(!p) return; var medTxt=(p.meds&&String(p.meds).trim())?esc(String(p.meds).trim()):'None listed';
+    buildCard({name:p.name, blood:p.blood, conditions:p.conditions, allergies:p.allergies, notes:p.notes, iceName:p.iceName, icePhone:p.icePhone}, medTxt, true); };
   function hideCard(){ var c=document.getElementById('mcIDCard'); if(c) c.style.display='none'; }
   function openID(){ var m=document.getElementById('mcIDModal'); if(m){ m.style.display='flex'; loadForm(); } var hm=document.getElementById('mcHubMenu'); if(hm) hm.style.display='none'; }
   function closeID(){ var m=document.getElementById('mcIDModal'); if(m) m.style.display='none'; }
@@ -5726,13 +5732,15 @@ document.addEventListener('DOMContentLoaded', function() {
         +'<div style="display:flex;align-items:center;gap:.6rem"><span style="font-size:26px">'+(p.emoji||'🧑')+'</span><span style="flex:1"><b style="color:var(--text-dark);font-size:15px">'+esc(p.name)+'</b>'+(p.relation?' <span style="color:var(--text-soft);font-size:13px">· '+esc(p.relation)+'</span>':'')+'</span></div>'
         +(bits.length?'<div style="font-size:13px;color:var(--text-body);line-height:1.6;margin-top:.5rem">'+bits.join('<br>')+'</div>':'')
         +(function(){ var ml=medList(p); if(!ml.length) return ''; var tn=takenFor(p.id).filter(function(x){return ml.indexOf(x)>=0;}).length; var done=tn===ml.length; return '<button class="mcCMeds" data-id="'+esc(p.id)+'" style="width:100%;margin-top:.6rem;background:'+(done?'var(--sage)':'var(--white)')+';color:'+(done?'#fff':'var(--sage)')+';border:1.5px solid var(--sage);border-radius:10px;padding:.55rem;font-weight:700;font-size:12px;cursor:pointer">💊 Today\'s meds · '+tn+' of '+ml.length+(done?' ✓':'')+'</button>'; })()
-        +'<div style="display:flex;gap:.5rem;margin-top:.5rem"><button class="mcCAsk" data-id="'+esc(p.id)+'" style="flex:1;background:var(--teal);color:#fff;border:none;border-radius:10px;padding:.55rem;font-weight:700;font-size:12px;cursor:pointer">💬 Guidance</button><button class="mcCPk" data-id="'+esc(p.id)+'" style="flex:1;background:var(--white);border:1px solid var(--border);color:var(--text-dark);border-radius:10px;padding:.55rem;font-weight:700;font-size:12px;cursor:pointer">📄 Visit sheet</button><button class="mcCDel" data-id="'+esc(p.id)+'" style="background:var(--white);border:1px solid var(--border);color:#c0392b;border-radius:10px;padding:.55rem .8rem;cursor:pointer;font-size:12px">×</button></div>'
+        +'<div style="display:flex;gap:.5rem;margin-top:.5rem"><button class="mcCAsk" data-id="'+esc(p.id)+'" style="flex:1;background:var(--teal);color:#fff;border:none;border-radius:10px;padding:.55rem;font-weight:700;font-size:12px;cursor:pointer">💬 Guidance</button><button class="mcCPk" data-id="'+esc(p.id)+'" style="flex:1;background:var(--white);border:1px solid var(--border);color:var(--text-dark);border-radius:10px;padding:.55rem;font-weight:700;font-size:12px;cursor:pointer">📄 Visit sheet</button></div>'
+        +'<div style="display:flex;gap:.5rem;margin-top:.5rem"><button class="mcCEmg" data-id="'+esc(p.id)+'" style="flex:1;background:#fbeae6;border:1px solid #f2c4bb;color:#a3372a;border-radius:10px;padding:.55rem;font-weight:700;font-size:12px;cursor:pointer">🆘 Emergency card</button><button class="mcCDel" data-id="'+esc(p.id)+'" style="background:var(--white);border:1px solid var(--border);color:#c0392b;border-radius:10px;padding:.55rem .9rem;cursor:pointer;font-size:12px">Remove</button></div>'
         +'</div>';
     }).join(''); }
     Array.prototype.forEach.call(document.querySelectorAll('.mcCDel'),function(b){ b.onclick=function(){ saveCircle(circle().filter(function(x){ return String(x.id)!==b.getAttribute('data-id'); })); cRender(); }; });
     Array.prototype.forEach.call(document.querySelectorAll('.mcCAsk'),function(b){ b.onclick=function(){ askCare(b.getAttribute('data-id')); }; });
     Array.prototype.forEach.call(document.querySelectorAll('.mcCMeds'),function(b){ b.onclick=function(){ openCareMeds(b.getAttribute('data-id')); }; });
     Array.prototype.forEach.call(document.querySelectorAll('.mcCPk'),function(b){ b.onclick=function(){ var p=byId(b.getAttribute('data-id')); if(p && window.mcOpenPacketFor) window.mcOpenPacketFor({id:p.id, name:p.name, conditions:p.conditions, allergies:p.allergies, notes:p.notes, meds:medList(p).map(function(n){ return {name:n}; })}); }; });
+    Array.prototype.forEach.call(document.querySelectorAll('.mcCEmg'),function(b){ b.onclick=function(){ var p=byId(b.getAttribute('data-id')); if(p && window.mcShowEmergencyFor){ closeC(); window.mcShowEmergencyFor({name:p.name, conditions:p.conditions, allergies:p.allergies, notes:p.notes, meds:p.meds}); } }; });
   }
   function cAdd(){ var f={}; ['name','relation','conditions','meds','allergies','notes'].forEach(function(k){ var el=document.getElementById('mcC_'+k); f[k]=el?el.value.trim():''; });
     if(!f.name){ alert('Add their name.'); return; }
