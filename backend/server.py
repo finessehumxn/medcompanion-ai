@@ -109,6 +109,10 @@ async def serve_clinical():
 async def serve_family():
     return FileResponse(os.path.join(frontend_dir, "family.html"))
 
+@app.get("/founding")
+async def serve_founding():
+    return FileResponse(os.path.join(frontend_dir, "founding.html"))
+
 @app.get("/p")
 async def serve_passport():
     return FileResponse(os.path.join(frontend_dir, "passport.html"))
