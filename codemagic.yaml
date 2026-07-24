@@ -30,7 +30,7 @@ workflows:
             "version": "1.0.0",
             "private": true,
             "devDependencies": { "@capacitor/cli": "^8.4.0" },
-            "dependencies": { "@capacitor/core": "^8.4.0", "@capacitor/ios": "^8.4.0", "@capacitor-community/speech-recognition": "^7.0.1" }
+            "dependencies": { "@capacitor/core": "^8.4.0", "@capacitor/ios": "^8.4.0", "@capacitor-community/speech-recognition": "^7.0.1", "@revenuecat/purchases-capacitor": "^10.0.0" }
           }
           EOF
           npm install --no-audit --no-fund
@@ -147,7 +147,7 @@ workflows:
             "version": "1.0.0",
             "private": true,
             "devDependencies": { "@capacitor/cli": "^8.4.0" },
-            "dependencies": { "@capacitor/core": "^8.4.0", "@capacitor/android": "^8.4.0", "@capacitor-community/speech-recognition": "^7.0.1" }
+            "dependencies": { "@capacitor/core": "^8.4.0", "@capacitor/android": "^8.4.0", "@capacitor-community/speech-recognition": "^7.0.1", "@revenuecat/purchases-capacitor": "^10.0.0" }
           }
           EOF
           npm install --no-audit --no-fund

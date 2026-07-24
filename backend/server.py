@@ -45,6 +45,7 @@ logger = logging.getLogger(__name__)
 # clear in-app consent). This makes the promise "your records stay on your
 # device" true unless a deployment deliberately, and disclosed-ly, changes it.
 STORE_HISTORY = os.getenv("MC_STORE_HISTORY", "0") == "1"
+RC_PUBLIC_KEY = os.getenv("RC_PUBLIC_KEY", "")   # RevenueCat PUBLIC SDK key (safe to expose) — enables in-app IAP
 UMLS_API_KEY = os.getenv("UMLS_API_KEY", "")   # free NLM key enables SNOMED CT coding
 
 
@@ -112,6 +113,11 @@ async def serve_family():
 @app.get("/founding")
 async def serve_founding():
     return FileResponse(os.path.join(frontend_dir, "founding.html"))
+
+@app.get("/rc-config")
+async def rc_config():
+    """RevenueCat public SDK key for in-app purchases (empty until set). Public key by design."""
+    return {"key": RC_PUBLIC_KEY}
 
 @app.get("/p")
 async def serve_passport():

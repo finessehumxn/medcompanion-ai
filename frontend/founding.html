@@ -131,21 +131,55 @@
     proYearly:    'https://buy.stripe.com/6oU4gAa623Cx6HYcmlcwg01',
     proLifetime:  'https://buy.stripe.com/cNieVefqm8WRaYedqpcwg00'
   };
+  // ── Apple In-App Purchase (RevenueCat), used INSIDE the iOS app only ──
+  // Web uses Stripe (below). Apple 3.1.1 requires StoreKit for in-app digital goods.
+  var MC_IAP = {
+    ready:false,
+    // App Store Connect product IDs — create these to match, then RevenueCat maps them.
+    PRODUCT:{ plusMonthly:'mc_plus_monthly', plusYearly:'mc_plus_yearly', plusLifetime:'mc_plus_lifetime',
+              proMonthly:'mc_pro_monthly',  proYearly:'mc_pro_yearly',  proLifetime:'mc_pro_lifetime' },
+    rc:function(){ return (window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.Purchases) ? Capacitor.Plugins.Purchases : null; },
+    configure:function(){
+      var P=this.rc(); if(!P) return Promise.resolve(false); if(this.ready) return Promise.resolve(true);
+      var key=window.MC_RC_KEY||''; if(!key) return Promise.resolve(false);
+      var self=this;
+      return P.configure({apiKey:key}).then(function(){ self.ready=true; return true; }).catch(function(){ return false; });
+    },
+    buy:function(k){
+      var P=this.rc(), pid=this.PRODUCT[k]; if(!P||!pid) return Promise.reject('na');
+      return this.configure().then(function(ok){ if(!ok) throw 'not-configured';
+        return P.getProducts({ productIdentifiers:[pid] }); })
+        .then(function(res){ var prod=((res&&(res.products||res.storeProducts))||[])[0]; if(!prod) throw 'no-product';
+          return P.purchaseStoreProduct({ product:prod }); });
+    },
+    restore:function(){ var P=this.rc(); if(!P) return Promise.reject('na'); var self=this;
+      return this.configure().then(function(){ return P.restorePurchases(); }); }
+  };
+  window.MC_IAP = MC_IAP;
+  // Pull the RevenueCat public key (only needed inside the app) so purchases can run.
+  try{ if(document.documentElement.classList.contains('cap-app')||(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())){
+    fetch((location.origin)+'/rc-config').then(function(r){return r.json();}).then(function(c){ if(c&&c.key){ window.MC_RC_KEY=c.key; MC_IAP.configure(); } }).catch(function(){});
+  } }catch(e){}
+  window.mcRestore = function(){
+    if(!MC_IAP.rc()){ return; }
+    MC_IAP.restore().then(function(){ alert('Purchases restored.'); }).catch(function(){ alert('Nothing to restore, or restore is unavailable.'); });
+  };
   function go(key){
-    // Apple Guideline 3.1.1: inside the iOS app, digital subscriptions MUST use
-    // Apple In-App Purchase — never external (Stripe) checkout. Web can use Stripe.
     var inApp = document.documentElement.classList.contains('cap-app') ||
                 (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
     if (inApp) {
-      var P = (window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.Purchases) ? Capacitor.Plugins.Purchases : null;
-      if (P && P.purchaseProduct) { try { P.purchaseProduct({ productIdentifier: key }); return; } catch(e){} }
-      alert("Subscriptions on iPhone are being set up — thanks for your patience.");
+      // iOS: purchase via Apple IAP (StoreKit through RevenueCat). Never Stripe here.
+      if (!MC_IAP.rc() || !window.MC_RC_KEY) { alert("In-app subscriptions are being finalized — thank you for your patience."); return; }
+      MC_IAP.buy(key).then(function(){ alert("You're all set — thank you! Your plan is active."); })
+        .catch(function(e){ if(String(e).indexOf('cancel')<0) alert("That purchase didn't complete. Please try again."); });
       return;
     }
+    // Web: Stripe checkout.
     var url = STRIPE[key];
     if (url) { window.location.href = url; }
     else { alert("Checkout opens here once founding sign-ups go live — join the list at team@medcompanionai.com to be first."); }
   }
 </script>
+<div style="text-align:center;padding:8px 0 20px"><a href="javascript:void(0)" onclick="mcRestore()" style="font-size:12.5px;color:#8fbfa8;text-decoration:underline">Restore purchases</a></div>
 </body>
 </html>
