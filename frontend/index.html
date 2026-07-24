@@ -7798,12 +7798,32 @@ document.addEventListener('DOMContentLoaded', function() {
   var RANK={free:0,plus:1,pro:2};
 
   function localTier(){ try{ return localStorage.getItem('mc_tier')||'free'; }catch(e){ return 'free'; } }
+  // Resolve the paid tier from RevenueCat customer info — tolerant of entitlement NAMING.
+  // Matches by (1) entitlement id containing pro/plus, (2) the active product id (mc_pro_*/mc_plus_*),
+  // (3) active-subscription / purchased product ids. So a purchase can't silently fail to unlock
+  // just because the entitlement was named "premium" or "medcompanion_pro" instead of "pro"/"plus".
+  function tierFromInfo(info){
+    try{
+      var ci=(info&&(info.customerInfo||info))||{};
+      var act=(ci.entitlements&&ci.entitlements.active)||{};
+      var hasPro=false, hasPlus=false;
+      Object.keys(act).forEach(function(k){
+        if(/pro/i.test(k)) hasPro=true; if(/plus/i.test(k)) hasPlus=true;
+        var e=act[k]||{}, pid=String(e.productIdentifier||e.productId||e.product_identifier||'');
+        if(/mc_pro_/i.test(pid)) hasPro=true; if(/mc_plus_/i.test(pid)) hasPlus=true;
+      });
+      [].concat(ci.activeSubscriptions||[], ci.allPurchasedProductIdentifiers||ci.allPurchasedProductIds||[])
+        .forEach(function(pid){ pid=String(pid); if(/mc_pro_/i.test(pid)) hasPro=true; if(/mc_plus_/i.test(pid)) hasPlus=true; });
+      if(hasPro) return 'pro'; if(hasPlus) return 'plus';
+    }catch(e){}
+    return null;
+  }
+  window._mcTierFromInfo=tierFromInfo; // exposed for verification
   window.mcTier=function(){
     var P=(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Purchases)?Capacitor.Plugins.Purchases:null;
     if(P && window.MC_RC_KEY){
       return P.getCustomerInfo().then(function(info){
-        var ent=((info&&(info.customerInfo||info))||{}).entitlements; var act=(ent&&ent.active)||{};
-        if(act.pro) return 'pro'; if(act.plus) return 'plus'; return localTier();
+        return tierFromInfo(info) || localTier();
       }).catch(function(){ return localTier(); });
     }
     return Promise.resolve(localTier());

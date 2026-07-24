@@ -58,7 +58,9 @@ Full detail in `ios-iap-setup.md`. Summary:
 - [ ] **Create two entitlements** and attach products:
       - `plus` ← the three `mc_plus_*` products
       - `pro`  ← the three `mc_pro_*` products
-      *(the app's `mcTier()` reads these entitlement names — see Section 3).*
+      *(`mcTier()` is now tolerant — it unlocks if the entitlement id contains "pro"/"plus" **or** the
+      active product id is `mc_pro_*`/`mc_plus_*`. Naming them `plus`/`pro` is cleanest, but a mismatch
+      no longer silently fails as long as the `mc_` product IDs from Section 2a are used.)*
 - [ ] Copy the **Apple public SDK key** (`appl_…`).
 
 **2c. Railway env**
