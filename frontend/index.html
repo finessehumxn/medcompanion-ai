@@ -2420,6 +2420,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="nav-dd">
       <button class="nav-link nav-dd-btn" onclick="toggleNavDD(event)" aria-haspopup="true" aria-expanded="false"><i class="ti ti-heart-plus" aria-hidden="true"></i> My Health <i class="ti ti-chevron-down" aria-hidden="true" style="font-size:13px;margin-left:-2px"></i></button>
       <div class="nav-dd-menu" id="navDD" role="menu">
+        <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openFamily()"><i class="ti ti-users-group"></i> Your Family</a>
         <div class="nav-dd-sec">Understand</div>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openPass()"><i class="ti ti-id-badge-2"></i> Health Passport</a>
         <a href="javascript:void(0)" role="menuitem" onclick="closeNavDD();openRecords()"><i class="ti ti-file-text"></i> My Records</a>
@@ -2473,6 +2474,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Mobile menu (hidden by default) -->
 <div class="mobile-menu" id="mobileMenu" role="navigation" aria-label="Mobile navigation" aria-hidden="true">
   <a href="#start" class="mobile-link" onclick="toggleMobileMenu()"><i class="ti ti-message-circle-heart"></i> Talk to me</a>
+  <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openFamily()"><i class="ti ti-users-group"></i> Your Family</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openJournal()"><i class="ti ti-notebook"></i> Health Journal</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();openTrends()"><i class="ti ti-chart-line"></i> Trends</a>
   <a href="javascript:void(0)" class="mobile-link" onclick="toggleMobileMenu();if(window.mcOpenMeds)mcOpenMeds()"><i class="ti ti-pill"></i> Medications</a>
@@ -7378,5 +7380,105 @@ document.addEventListener('DOMContentLoaded', function() {
   };
   window.openLegacy=function(){ var m=document.getElementById('mcLegacy'); if(!m) return; pass=null; data=null; m.classList.add('show'); render(); };
   window.closeLegacy=function(){ pass=null; data=null; var m=document.getElementById('mcLegacy'); if(m) m.classList.remove('show'); };
+})();
+</script>
+
+<!-- ══ MedCompanion — Family hub (everyone you care for, in one place) ══ -->
+<style>
+  .mcf-person{ display:flex; align-items:center; gap:13px; background:#12281f; border:1px solid rgba(255,255,255,.09); border-radius:15px; padding:14px 16px; margin-bottom:11px; cursor:pointer; text-align:left; width:100%; font-family:inherit; }
+  .mcf-person:hover{ border-color:rgba(52,199,140,.4); }
+  .mcf-av{ width:44px; height:44px; border-radius:50%; background:rgba(52,199,140,.16); display:grid; place-items:center; font-size:20px; flex:none; }
+  .mcf-nm{ font-size:15.5px; font-weight:700; color:#eaf3ee; }
+  .mcf-meta{ font-size:12.5px; color:#8fbfa8; margin-top:2px; }
+  .mcf-meta .al{ color:#ff9c93; font-weight:600; }
+  .mcf-chev{ margin-left:auto; color:#8fbfa8; font-size:18px; flex:none; }
+  .mcf-you{ border-color:rgba(52,199,140,.35); }
+</style>
+<div id="mcFamily" class="mcj-screen" role="dialog" aria-label="Your family">
+  <div class="mcj-wrap">
+    <div class="mcj-top"><div class="mcj-title">Your Family</div><button class="mcj-x" onclick="closeFamily()" aria-label="Close">&times;</button></div>
+    <p class="mcj-sub">Everyone you care for, in one private place &mdash; each with an ER-ready Health Passport a tap away. Kept on your device.</p>
+    <div id="mcfBody"></div>
+    <p class="mcj-disc">Profiles are stored on your device. A person's passport shares only what you choose, and nothing is uploaded. <a href="javascript:void(0)" onclick="openTrust()" style="color:#7fe6b4;text-decoration:underline">🔒 How your data is handled</a></p>
+  </div>
+</div>
+<script>
+(function(){
+  var KEY='mc_people', editing=null;
+  function esc(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function ld(){ try{ return JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){ return []; } }
+  function sv(a){ try{ localStorage.setItem(KEY, JSON.stringify(a)); }catch(e){} }
+  function lines(v){ return (v||'').split('\n').map(function(x){return x.trim();}).filter(Boolean); }
+  // "You" pulls from the existing Medical ID
+  function you(){ try{ return JSON.parse(localStorage.getItem('mc_medid')||'{}')||{}; }catch(e){ return {}; } }
+
+  function personCard(p,i){
+    var al=(p.al&&p.al.length)?('⚠ '+p.al.length+' allerg'+(p.al.length===1?'y':'ies')):'';
+    var bits=[p.rel, p.age, al].filter(Boolean).join(' · ');
+    return '<button class="mcf-person" onclick="mcfEdit('+i+')"><span class="mcf-av">'+(p.rel&&/child|son|daughter|kid/i.test(p.rel)?'🧒':'🧑')+'</span>'
+      +'<span><span class="mcf-nm">'+esc(p.name||'Unnamed')+'</span><span class="mcf-meta">'+esc(bits)+(al?'':'')+'</span></span><span class="mcf-chev">›</span></button>';
+  }
+  function hubUI(){
+    var y=you();
+    var people=ld();
+    var yc='<button class="mcf-person mcf-you" onclick="mcfOpenYou()"><span class="mcf-av">💚</span><span><span class="mcf-nm">You'+(y.name?' — '+esc(y.name):'')+'</span><span class="mcf-meta">Your Medical ID, records &amp; passport</span></span><span class="mcf-chev">›</span></button>';
+    return '<div class="mcj-card"><div class="mcj-h">You</div>'+yc+'</div>'
+      +'<div class="mcj-card"><div class="mcj-h">People you care for</div>'
+      +(people.length?people.map(personCard).join(''):'<div class="mcj-empty">No one added yet. Add a parent, child, or anyone you help care for.</div>')
+      +'<button class="mcj-analyze" style="margin-top:6px" onclick="mcfAdd()">＋ Add someone you care for</button></div>';
+  }
+  function editUI(p,i){
+    return '<div class="mcj-card"><div class="mcj-h">'+(i===null?'Add a person':'Edit '+esc(p.name||'person'))+'</div>'
+      +'<div class="mcp-two" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><div class="mcj-lbl" style="margin-top:0">Name</div><input class="mcj-input" id="mcfN" value="'+esc(p.name)+'" placeholder="e.g. Mom (Rose)"></div>'
+      +'<div><div class="mcj-lbl" style="margin-top:0">Relationship</div><input class="mcj-input" id="mcfR" value="'+esc(p.rel)+'" placeholder="mother / son…"></div></div>'
+      +'<div class="mcp-two" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><div class="mcj-lbl">Age / sex</div><input class="mcj-input" id="mcfA" value="'+esc(p.age)+'" placeholder="78 F"></div>'
+      +'<div><div class="mcj-lbl">Blood type</div><input class="mcj-input" id="mcfB" value="'+esc(p.blood)+'" placeholder="O+"></div></div>'
+      +'<div class="mcj-lbl">Allergies (one per line)</div><textarea class="mcj-area" id="mcfAl" placeholder="Penicillin">'+esc((p.al||[]).join('\n'))+'</textarea>'
+      +'<div class="mcj-lbl">Conditions (one per line)</div><textarea class="mcj-area" id="mcfC">'+esc((p.c||[]).join('\n'))+'</textarea>'
+      +'<div class="mcj-lbl">Medications (one per line)</div><textarea class="mcj-area" id="mcfM">'+esc((p.m||[]).join('\n'))+'</textarea>'
+      +'<div class="mcp-two" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><div class="mcj-lbl">Emergency contact</div><input class="mcj-input" id="mcfIN" value="'+esc(p.iceN)+'"></div>'
+      +'<div><div class="mcj-lbl">Their phone</div><input class="mcj-input" id="mcfIP" value="'+esc(p.iceP)+'"></div></div>'
+      +'<button class="mcj-save" onclick="mcfSave('+(i===null?'null':i)+')">Save</button>'
+      +'<button class="mcj-analyze" style="margin-top:10px" onclick="mcfSaveAndPass('+(i===null?'null':i)+')">🪪 Save &amp; make their Health Passport</button>'
+      +(i===null?'':'<button class="mcj-analyze" style="margin-top:10px;color:#ff9c93;border-color:rgba(224,87,77,.4)" onclick="mcfDel('+i+')">Remove this person</button>')
+      +'<button class="mcj-analyze" style="margin-top:10px" onclick="mcfBack()">← Back to family</button></div>'
+      +'<div id="mcfPass"></div>';
+  }
+  function render(){ var b=document.getElementById('mcfBody'); if(!b) return; b.innerHTML = editing===undefined ? hubUI() : editUI(editing.p, editing.i); }
+  function readForm(){
+    return { name:(document.getElementById('mcfN').value||'').trim(), rel:(document.getElementById('mcfR').value||'').trim(),
+      age:(document.getElementById('mcfA').value||'').trim(), blood:(document.getElementById('mcfB').value||'').trim(),
+      al:lines(document.getElementById('mcfAl').value), c:lines(document.getElementById('mcfC').value), m:lines(document.getElementById('mcfM').value),
+      iceN:(document.getElementById('mcfIN').value||'').trim(), iceP:(document.getElementById('mcfIP').value||'').trim() };
+  }
+  window.mcfAdd=function(){ editing={p:{name:'',rel:'',age:'',blood:'',al:[],c:[],m:[],iceN:'',iceP:''}, i:null}; render(); };
+  window.mcfEdit=function(i){ var a=ld(); editing={p:a[i]||{}, i:i}; render(); };
+  window.mcfBack=function(){ editing=undefined; render(); };
+  window.mcfSave=function(i){ var a=ld(), p=readForm(); if(!p.name){ if(window.mcToast) mcToast('Add a name first'); return; } if(i===null){ a.push(p); } else { a[i]=p; } sv(a); editing=undefined; render(); if(window.mcToast) mcToast('Saved'); };
+  window.mcfDel=function(i){ window.mcConfirm({title:'Remove this person?',message:'Their profile will be deleted from this device.',ok:'Remove',danger:true}).then(function(ok){ if(!ok) return; var a=ld(); a.splice(i,1); sv(a); editing=undefined; render(); }); };
+  function passLink(p){
+    var d={ n:p.name||'', a:p.age||'', al:p.al||[], c:p.c||[], m:p.m||[], b:(p.blood&&p.blood.toLowerCase()!=='unknown')?p.blood:'', ice:(p.iceN||p.iceP)?{n:p.iceN||'',p:p.iceP||''}:null, d:(new Date()).toISOString().slice(0,10) };
+    Object.keys(d).forEach(function(k){ if(d[k]===''||d[k]===null||(Array.isArray(d[k])&&!d[k].length)) delete d[k]; });
+    try{ return location.origin+'/p#'+encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(d))))); }catch(e){ return ''; }
+  }
+  window.mcfSaveAndPass=function(i){
+    var a=ld(), p=readForm(); if(!p.name){ if(window.mcToast) mcToast('Add a name first'); return; }
+    if(i===null){ a.push(p); i=a.length-1; } else { a[i]=p; } sv(a); editing={p:p,i:i};
+    var url=passLink(p), out=document.getElementById('mcfPass'); if(!url||!out) return;
+    var qr='';
+    if(typeof qrcode!=='undefined'){ try{ var q=qrcode(0,'L'); q.addData(url); q.make(); qr='<div style="text-align:center;background:#fff;border-radius:16px;padding:18px;margin-top:14px"><img style="width:230px;max-width:78%;image-rendering:pixelated" src="'+q.createDataURL(6,4)+'"><div style="font-size:12.5px;color:#5a6c78;margin-top:8px;font-weight:600">Have the clinician scan this &mdash; '+esc(p.name)+'\'s essentials in 20 seconds</div></div>'; }catch(e){} }
+    window._mcfShareUrl=url;
+    out.innerHTML='<div class="mcj-insh">🪪 '+esc(p.name)+'\'s Health Passport</div>'+qr
+      +'<button class="mcp-btn primary" style="width:100%;margin-top:10px;background:#34c78c;color:#062418;border:none;font-weight:800;padding:12px;border-radius:11px;cursor:pointer" onclick="mcfShare()">📤 Share the link</button>';
+    try{ out.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
+  };
+  window.mcfShare=function(){ var u=window._mcfShareUrl||''; if(!u) return;
+    if(navigator.share){ navigator.share({title:'Health Passport', url:u}).catch(function(){}); }
+    else if(navigator.clipboard){ navigator.clipboard.writeText(u).then(function(){ window.mcToast&&mcToast('Link copied'); }); }
+    else { prompt('Copy the passport link:', u); }
+  };
+  window.mcfOpenYou=function(){ if(window.mcOpenMedID) mcOpenMedID(); };
+  window.openFamily=function(){ var m=document.getElementById('mcFamily'); if(!m) return; editing=undefined; m.classList.add('show'); render(); };
+  window.closeFamily=function(){ var m=document.getElementById('mcFamily'); if(m) m.classList.remove('show'); };
 })();
 </script>
