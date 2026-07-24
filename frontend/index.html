@@ -5181,6 +5181,25 @@ document.addEventListener('DOMContentLoaded', function() {
   function meds(){ try { return JSON.parse(localStorage.getItem('mc_meds')||'[]'); } catch(e){ return []; } }
   function saveMeds(m){ try { localStorage.setItem('mc_meds', JSON.stringify(m)); } catch(e){} }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  // Deterministic allergy↔medication cross-check. Curated class map (NOT AI). Conservative,
+  // never says "don't take" — flags for the user to confirm with a pharmacist/clinician.
+  var ALLERGY_CLASSES=[
+    {a:['penicillin','pcn','amoxicillin','augmentin','ampicillin'], meds:['penicillin','amoxicillin','ampicillin','augmentin','dicloxacillin','piperacillin','nafcillin','amox'], label:'penicillin-class antibiotic'},
+    {a:['sulfa','sulfonamide','bactrim','septra'], meds:['sulfamethoxazole','bactrim','septra','sulfasalazine','sulfadiazine','trimethoprim-sulfa'], label:'sulfa drug'},
+    {a:['aspirin','asa','nsaid','ibuprofen','naproxen'], meds:['aspirin','ibuprofen','advil','motrin','naproxen','aleve','celecoxib','celebrex','diclofenac','meloxicam','ketorolac','indomethacin'], label:'NSAID / aspirin-class drug'},
+    {a:['codeine','opioid','morphine'], meds:['codeine','hydrocodone','oxycodone','morphine','tramadol','hydromorphone','norco','percocet'], label:'opioid'}
+  ];
+  window.mcAllergyFlags=function(medArr, allergiesStr){
+    var flags=[]; if(!allergiesStr) return flags;
+    var allergies=String(allergiesStr).toLowerCase().split(/[,;\/]| and /).map(function(s){return s.trim();}).filter(Boolean);
+    (medArr||[]).forEach(function(m){ var name=String((m&&m.name)||m||'').toLowerCase(); if(!name) return;
+      var direct=allergies.filter(function(al){ return al.length>=4 && name.indexOf(al)>=0; });
+      if(direct.length){ flags.push({med:(m&&m.name)||m, note:'matches your listed allergy (“'+direct[0]+'”)'}); return; }
+      ALLERGY_CLASSES.forEach(function(c){ var allergyHit=allergies.some(function(al){ return c.a.some(function(x){ return al.indexOf(x)>=0; }); }); if(!allergyHit) return;
+        if(c.meds.some(function(x){ return name.indexOf(x)>=0; })){ flags.push({med:(m&&m.name)||m, note:'is a '+c.label+', and you list a related allergy'}); } });
+    });
+    var seen={}, out=[]; flags.forEach(function(f){ var k=(f.med+'|'+f.note).toLowerCase(); if(!seen[k]){ seen[k]=1; out.push(f); } }); return out;
+  };
   function perDay(name){ try{ var s=JSON.parse(localStorage.getItem('mc_medsched')||'{}'); return (s[name]||[]).length||1; }catch(e){ return 1; } }
   function daysLeft(x){ if(x.supply==null||x.supply==='') return null; var per=perDay(x.name); var base=Math.floor(Number(x.supply)/per); if(!isFinite(base)) return null; var el=x.supplyDate?Math.floor((Date.now()-new Date(x.supplyDate+'T00:00:00').getTime())/86400000):0; return base-el; }
   function setSupply(i){ var m=meds(), x=m[i]; if(!x) return; var per=perDay(x.name);
@@ -5195,7 +5214,10 @@ document.addEventListener('DOMContentLoaded', function() {
     var m = meds();
     var badge = document.getElementById('mcMedCount'); if(badge){ badge.textContent = m.length ? m.length : ''; badge.style.display = m.length ? 'inline-flex' : 'none'; }
     if(!m.length){ list.innerHTML = '<div style="color:var(--text-soft);font-size:14px;padding:.4rem 0;line-height:1.5">No medications yet. Add what you take — it stays private on this device.</div>'; return; }
-    list.innerHTML = m.map(function(x,i){
+    var allg=''; try{ allg=(JSON.parse(localStorage.getItem('mc_medid')||'{}').allergies)||''; }catch(e){}
+    var flags=window.mcAllergyFlags?window.mcAllergyFlags(m, allg):[];
+    var flagBanner = flags.length ? '<div style="background:#fbeae6;border:1px solid #f2c4bb;border-radius:12px;padding:.75rem .85rem;margin-bottom:.7rem;font-size:12.5px;color:#a3372a;line-height:1.55">⚠️ <b>Worth double-checking with your pharmacist:</b><br>'+flags.map(function(f){ return '<b>'+esc(f.med)+'</b> '+esc(f.note)+'.'; }).join('<br>')+'<br><span style="color:#7d4a41">This is a safety reminder from your allergy list in Medical ID — not medical advice. Your care team may have a reason it\'s safe for you.</span></div>' : '';
+    list.innerHTML = flagBanner + m.map(function(x,i){
       var rx = x.rxcui?'<span style="font-size:11px;color:var(--sage);font-weight:700" title="'+esc(x.rxnorm||'')+' · RxCUI '+esc(x.rxcui)+'">✓ '+esc(x.rxnorm||'standardized')+'</span>':(x.rxnorm==='__none__'?'<span style="font-size:11px;color:var(--text-soft)">not matched to a standard code</span>':'');
       var dl=daysLeft(x), refill;
       if(dl==null){ refill='<button class="mcSup" data-i="'+i+'" style="background:none;border:none;color:var(--teal);font-size:11px;font-weight:700;cursor:pointer;padding:0;text-decoration:underline">+ track refills</button>'; }
