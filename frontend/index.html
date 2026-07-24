@@ -5427,7 +5427,27 @@ document.addEventListener('DOMContentLoaded', function() {
 (function(){
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function appts(){ try { return JSON.parse(localStorage.getItem('mc_appts')||'[]'); } catch(e){ return []; } }
-  function saveAppts(a){ try { localStorage.setItem('mc_appts', JSON.stringify(a)); } catch(e){} }
+  function saveAppts(a){ try { localStorage.setItem('mc_appts', JSON.stringify(a)); } catch(e){} scheduleApptReminders(); }
+  // Staged native appointment reminders: day-before at 6pm + morning-of. No-op on web; real on device (Capacitor LocalNotifications).
+  function scheduleApptReminders(){
+    try{
+      var Cap=window.Capacitor, LN=Cap&&Cap.Plugins&&Cap.Plugins.LocalNotifications; if(!LN) return {native:false, scheduled:0};
+      var list=appts(), now=Date.now(), base=9200, notifs=[], i=0;
+      var cancelIds=[]; for(var c=0;c<80;c++) cancelIds.push({id:base+c});
+      list.slice().sort(function(x,y){ return (x.date||'').localeCompare(y.date||''); }).forEach(function(x){
+        if(i>=38 || !x.date) return;
+        var atStr=(x.time&&/^\d{1,2}:\d{2}/.test(x.time))?x.time:'08:00';
+        var day=new Date(x.date+'T'+(atStr.length===4?('0'+atStr):atStr)+':00');
+        if(day.getTime()>now){ notifs.push({id:base+(i*2), title:'Appointment today', body:(x.who||'Your appointment')+(x.time?(' at '+x.time):''), schedule:{at:day}}); }
+        var db=new Date(x.date+'T18:00:00'); db.setDate(db.getDate()-1);
+        if(db.getTime()>now){ notifs.push({id:base+(i*2)+1, title:'Appointment tomorrow', body:(x.who||'Your appointment')+(x.time?(' at '+x.time):''), schedule:{at:db}}); }
+        i++;
+      });
+      LN.requestPermissions().then(function(){ LN.cancel({notifications:cancelIds}).catch(function(){}).then(function(){ if(notifs.length) LN.schedule({notifications:notifs}); }); }).catch(function(){});
+      return {native:true, scheduled:notifs.length};
+    }catch(e){ return {native:false, scheduled:0, error:String(e)}; }
+  }
+  window.mcScheduleApptReminders=scheduleApptReminders;
   function rel(dateStr){ try { var d=new Date(dateStr+'T00:00:00'); var now=new Date(); now.setHours(0,0,0,0); var days=Math.round((d-now)/86400000);
     if(days<0) return {t:'past', s:Math.abs(days)+ (Math.abs(days)===1?' day ago':' days ago')};
     if(days===0) return {t:'today', s:'Today'};
@@ -5476,12 +5496,15 @@ document.addEventListener('DOMContentLoaded', function() {
       +'<input id="mcAWho" placeholder="Doctor / clinic (e.g. Dr. Lee, cardiology)" style="width:100%;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px;margin-bottom:.55rem">'
       +'<input id="mcAReason" placeholder="Reason (optional)" style="width:100%;padding:.7rem;border:1px solid var(--border);border-radius:12px;font-size:14px;margin-bottom:.6rem">'
       +'<button id="mcAAdd" style="width:100%;background:var(--sage);color:#fff;border:none;border-radius:12px;padding:.7rem;font-weight:700;cursor:pointer">+ Add appointment</button>'
-      +'<div style="font-size:11px;color:var(--text-soft);margin-top:.7rem;text-align:center;line-height:1.5">Reminders that pop up on your phone are coming to the app — for now your visits are saved &amp; counted down here.</div>'
+      +'<div id="mcANote" style="font-size:11px;color:var(--text-soft);margin-top:.7rem;text-align:center;line-height:1.5"></div>'
       +'</div>';
     document.body.appendChild(m);
     m.addEventListener('click',function(e){ if(e.target===m) closeA(); });
     document.getElementById('mcAClose').onclick=closeA;
     document.getElementById('mcAAdd').onclick=aAdd;
+    var note=document.getElementById('mcANote'); if(note){ var LN=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.LocalNotifications;
+      note.innerHTML = LN ? '🔔 Reminders are on — your phone will remind you the evening before and the morning of each visit.'
+                          : 'Phone reminders (evening before + morning of) arrive in the iPhone app; here your visits are saved &amp; counted down.'; }
 
     var menu=document.getElementById('mcHubMenu'); var cancel=document.getElementById('mcHubCancel');
     if(menu && cancel){
