@@ -139,7 +139,7 @@
     if (inApp) {
       var P = (window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.Purchases) ? Capacitor.Plugins.Purchases : null;
       if (P && P.purchaseProduct) { try { P.purchaseProduct({ productIdentifier: key }); return; } catch(e){} }
-      alert("To subscribe on your iPhone, use the in-app upgrade (App Store). You can also subscribe on the web at medcompanionai.com.");
+      alert("Subscriptions on iPhone are being set up — thanks for your patience.");
       return;
     }
     var url = STRIPE[key];
