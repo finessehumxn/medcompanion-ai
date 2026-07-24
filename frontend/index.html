@@ -5560,26 +5560,30 @@ document.addEventListener('DOMContentLoaded', function() {
     var bs=document.getElementById('mcID_blood'); d.blood=bs?bs.value:'Unknown';
     saveId(d); return d;
   }
-  function buildCard(d, medTxt, forOther){
+  function buildCard(d, medTxt, forOther, medArr){
     function row(label,val,big){ return '<div style="border-top:1px solid rgba(255,255,255,0.18);padding:.7rem 0"><div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#bfe6d5;font-weight:700">'+label+'</div><div style="font-size:'+(big?'22px':'17px')+';font-weight:'+(big?'800':'600')+';margin-top:.15rem;line-height:1.3">'+val+'</div></div>'; }
     var card=document.getElementById('mcIDCard'); if(!card){ return; }
     var hasBlood = d.blood && d.blood!=='Unknown';
+    var flags=(window.mcAllergyFlags&&medArr)?window.mcAllergyFlags(medArr, d.allergies):[];
+    var flagHtml = flags.length ? '<div style="background:rgba(224,89,78,.28);border:1.5px solid #ffb3a7;border-radius:12px;padding:.75rem .85rem;margin-top:1rem;font-size:13.5px;color:#fff;line-height:1.5">⚠️ <b>Allergy alert</b> — '+flags.map(function(f){ return esc(f.med); }).join(', ')+' may conflict with a listed allergy. Confirm before administering.</div>' : '';
     card.querySelector('#mcIDCardBody').innerHTML =
         '<div style="text-align:center;margin-bottom:.4rem"><div style="font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#ffd7cf;font-weight:800">⚕ In Case of Emergency</div><div style="font-family:Lora,serif;font-size:26px;font-weight:800;margin-top:.2rem">'+(esc(d.name)||(forOther?'Emergency card':'My Medical ID'))+'</div>'+(forOther?'<div style="font-size:12px;color:#bfe6d5;margin-top:.15rem">Carried by their caregiver</div>':'')+'</div>'
       + (hasBlood||!forOther ? row('Blood type', esc(d.blood||'Unknown'), true) : '')
       + row('Medical conditions', esc(d.conditions)||'None listed')
       + row('Allergies', '<span style="color:#ffb3a7">'+(esc(d.allergies)||'None listed')+'</span>')
       + row('Current medications', medTxt)
+      + flagHtml
       + (d.notes ? row('Notes', esc(d.notes)) : '')
       + (d.icePhone ? '<a href="tel:'+esc(d.icePhone)+'" style="display:block;text-align:center;background:#e0594e;color:#fff;text-decoration:none;font-weight:800;font-size:17px;padding:.9rem;border-radius:14px;margin-top:1rem">📞 Call '+(esc(d.iceName)||'emergency contact')+'</a>' : (forOther?'':'<div style="text-align:center;color:#bfe6d5;font-size:13px;margin-top:1rem">Add an emergency contact so responders can call for you.</div>'));
     card.style.display='flex';
   }
   function showCard(){ var d=saveForm();
     var m=meds(); var medTxt = m.length ? m.map(function(x){ return esc(x.name)+(x.dose?(' '+esc(x.dose)):''); }).join(', ') : 'None listed';
-    buildCard(d, medTxt, false);
+    buildCard(d, medTxt, false, m);
   }
   window.mcShowEmergencyFor=function(p){ if(!p) return; var medTxt=(p.meds&&String(p.meds).trim())?esc(String(p.meds).trim()):'None listed';
-    buildCard({name:p.name, blood:p.blood, conditions:p.conditions, allergies:p.allergies, notes:p.notes, iceName:p.iceName, icePhone:p.icePhone}, medTxt, true); };
+    var arr=(p.meds?String(p.meds).split(/[,;\n]/).map(function(s){ return {name:s.trim()}; }).filter(function(x){ return x.name; }):[]);
+    buildCard({name:p.name, blood:p.blood, conditions:p.conditions, allergies:p.allergies, notes:p.notes, iceName:p.iceName, icePhone:p.icePhone}, medTxt, true, arr); };
   function hideCard(){ var c=document.getElementById('mcIDCard'); if(c) c.style.display='none'; }
   function openID(){ var m=document.getElementById('mcIDModal'); if(m){ m.style.display='flex'; loadForm(); } var hm=document.getElementById('mcHubMenu'); if(hm) hm.style.display='none'; }
   function closeID(){ var m=document.getElementById('mcIDModal'); if(m) m.style.display='none'; }
@@ -5891,6 +5895,9 @@ document.addEventListener('DOMContentLoaded', function() {
     h+='<div class="mcpk-sec"><div class="mcpk-sh">'+(mine?'About me':'About '+(esc((d.name||'them').split(' ')[0])))+'</div><table><tr><td style="width:33%;color:#5b6b78">Conditions</td><td><b>'+(esc(d.conditions)||'None listed')+'</b></td></tr>'
       +'<tr><td style="color:#5b6b78">Allergies</td><td style="color:#b5533f;font-weight:800">'+(esc(d.allergies)||'None listed')+'</td></tr>'
       +(d.notes?'<tr><td style="color:#5b6b78">Notes</td><td>'+esc(d.notes)+'</td></tr>':'')+'</table></div>';
+    // Allergy cross-check alert (deterministic — from the allergy list above)
+    var pkFlags=(window.mcAllergyFlags?window.mcAllergyFlags(m, d.allergies):[]);
+    if(pkFlags.length){ h+='<div style="background:#fbeae6;border:1px solid #e6a99c;border-radius:10px;padding:12px 14px;margin-top:12px;font-size:12.5px;color:#a3372a;line-height:1.5">⚠ <b>Allergy cross-check:</b> '+pkFlags.map(function(f){ return esc(f.med)+' '+esc(f.note); }).join('; ')+'. Flagged from the allergy list above for the care team to confirm — not medical advice.</div>'; }
     // Meds
     h+='<div class="mcpk-sec"><div class="mcpk-sh">Current medications ('+m.length+')</div>';
     if(m.length){ h+='<table><thead><tr><th>Medication</th><th>Dose</th><th>When</th><th>Standard code</th></tr></thead><tbody>'
