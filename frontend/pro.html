@@ -41,6 +41,7 @@
   .banner{ background:var(--accent-soft); border:1px solid var(--line); border-radius:10px; padding:10px 14px; font-size:12.5px; color:var(--sub); margin-bottom:8px; }
   @media print{ header.top .row, .input-card, .btn, .home{ display:none; } body{ background:#fff; } }
 </style>
+<script src="/pro-gate.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -101,6 +102,7 @@
     rd.readAsText(f);
   };
   window.build=function(){
+    if(window.mcProGate && !window.mcProGate("build")) return;
     var notes=document.getElementById('notes').value.trim(), matter=document.getElementById('matter').value.trim();
     var out=document.getElementById('out');
     if(!notes){ out.innerHTML='<div class="card">Paste some records or import a file first.</div>'; return; }

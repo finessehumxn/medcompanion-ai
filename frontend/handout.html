@@ -44,6 +44,7 @@
     .flags{ border:2px solid #999; background:#fff; }
   }
 </style>
+<script src="/pro-gate.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -95,6 +96,7 @@
     document.getElementById('dx').placeholder = med?'e.g. Warfarin':'e.g. Type 2 diabetes, newly diagnosed';
   };
   window.gen=function(){
+    if(window.mcProGate && !window.mcProGate("gen")) return;
     var dx=(document.getElementById('dx').value||'').trim();
     var out=document.getElementById('out');
     if(!dx){ out.innerHTML='<div class="card">Enter a diagnosis or topic first.</div>'; return; }

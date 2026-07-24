@@ -38,6 +38,7 @@
   .foot{ margin-top:30px; padding-top:14px; border-top:1px solid var(--line); font-size:12px; color:var(--sub); line-height:1.6; }
   @media print{ header.top,.kicker,.grid,.card,.foot,.btn,.acts{ display:none !important; } .sheet{ border:none; padding:0; } }
 </style>
+<script src="/pro-gate.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -69,6 +70,7 @@
   function esc(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
   function list(a){ return '<ul>'+a.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>'; }
   window.summarize=function(){
+    if(window.mcProGate && !window.mcProGate("summarize")) return;
     var note=(document.getElementById('note').value||'').trim(), out=document.getElementById('out');
     if(!note){ out.innerHTML='<div class="card">Paste a visit note first.</div>'; return; }
     out.innerHTML='<div class="card">Writing the patient-friendly summary… (~15s)</div>';
