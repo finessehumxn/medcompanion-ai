@@ -128,6 +128,7 @@ async def billing_config():
         "gating": MC_GATING,
         "plus": ["family", "vault", "legacy"],
         "pro": ["clinical", "handout", "chronology", "previsit"],
+        "free_ai_daily": int(os.getenv("MC_FREE_AI_DAILY", "5")),
     }
 
 @app.get("/rc-config")

@@ -6476,6 +6476,13 @@ document.addEventListener('DOMContentLoaded', function() {
       localStorage.setItem('mc_ai_consent','1');
       localStorage.setItem('mc_ai_enabled','1');
     }
+    // Free-tier daily quota (only enforced when gating is ON and the user is free).
+    if(window._mcGating && (window._mcTier||'free')==='free'){
+      var k='mc_ai_used_'+(new Date().toISOString().slice(0,10));
+      var used=parseInt(localStorage.getItem(k)||'0',10), lim=window._mcFreeAI||5;
+      if(used>=lim){ if(window.mcShowQuotaPaywall) window.mcShowQuotaPaywall(lim); return false; }
+      try{ localStorage.setItem(k, used+1); }catch(e){}
+    }
     return true;
   };
   window.mctSetAI=function(v){
@@ -7502,9 +7509,22 @@ document.addEventListener('DOMContentLoaded', function() {
 (function(){
   var cfg={gating:false, plus:['family','vault','legacy'], pro:['clinical','handout','chronology','previsit']};
   function base(){ return (typeof API!=='undefined')?API:''; }
+  function publish(){ window._mcGating=!!cfg.gating; window._mcFreeAI=cfg.free_ai_daily||5; }
   function applyTestFlag(){ try{ if(localStorage.getItem('mc_gating_test')==='1') cfg.gating=true; }catch(e){} }
-  applyTestFlag();
-  try{ fetch(base()+'/billing-config').then(function(r){return r.json();}).then(function(c){ if(c) cfg=c; applyTestFlag(); }).catch(function(){}); }catch(e){}
+  applyTestFlag(); publish();
+  try{ fetch(base()+'/billing-config').then(function(r){return r.json();}).then(function(c){ if(c) cfg=c; applyTestFlag(); publish();
+    window.mcTier().then(function(t){ window._mcTier=t; }); }).catch(function(){}); }catch(e){}
+  window._mcTier=window._mcTier||'free';
+  window.mcShowQuotaPaywall=function(limit){
+    var el=document.getElementById('mcPay'), card=document.getElementById('mcPayCard'); if(!el) return;
+    card.innerHTML='<span class="mcpay-badge">MedCompanion Plus</span>'
+      +'<div class="mcpay-t">You\'ve used your '+(limit||5)+' free explanations today</div>'
+      +'<div class="mcpay-m">Upgrade to Plus for <b>unlimited</b> plain-language explanations — for you and everyone you care for.</div>'
+      +'<ul class="mcpay-ul"><li>Unlimited AI explanations &amp; guides</li><li>Family profiles &amp; passports</li><li>The encrypted vault &amp; &ldquo;For My Family&rdquo;</li></ul>'
+      +'<button class="mcpay-go" onclick="mcPayGo()">See plans →</button>'
+      +'<div><button class="mcpay-later" onclick="mcPayClose()">Maybe tomorrow</button></div>';
+    el.classList.add('show');
+  };
   var RANK={free:0,plus:1,pro:2};
 
   function localTier(){ try{ return localStorage.getItem('mc_tier')||'free'; }catch(e){ return 'free'; } }
