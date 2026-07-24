@@ -5703,12 +5703,13 @@ document.addEventListener('DOMContentLoaded', function() {
         +'<div style="display:flex;align-items:center;gap:.6rem"><span style="font-size:26px">'+(p.emoji||'🧑')+'</span><span style="flex:1"><b style="color:var(--text-dark);font-size:15px">'+esc(p.name)+'</b>'+(p.relation?' <span style="color:var(--text-soft);font-size:13px">· '+esc(p.relation)+'</span>':'')+'</span></div>'
         +(bits.length?'<div style="font-size:13px;color:var(--text-body);line-height:1.6;margin-top:.5rem">'+bits.join('<br>')+'</div>':'')
         +(function(){ var ml=medList(p); if(!ml.length) return ''; var tn=takenFor(p.id).filter(function(x){return ml.indexOf(x)>=0;}).length; var done=tn===ml.length; return '<button class="mcCMeds" data-id="'+esc(p.id)+'" style="width:100%;margin-top:.6rem;background:'+(done?'var(--sage)':'var(--white)')+';color:'+(done?'#fff':'var(--sage)')+';border:1.5px solid var(--sage);border-radius:10px;padding:.55rem;font-weight:700;font-size:12px;cursor:pointer">💊 Today\'s meds · '+tn+' of '+ml.length+(done?' ✓':'')+'</button>'; })()
-        +'<div style="display:flex;gap:.5rem;margin-top:.5rem"><button class="mcCAsk" data-id="'+esc(p.id)+'" style="flex:1;background:var(--teal);color:#fff;border:none;border-radius:10px;padding:.55rem;font-weight:700;font-size:12px;cursor:pointer">💬 Guidance for their care</button><button class="mcCDel" data-id="'+esc(p.id)+'" style="background:var(--white);border:1px solid var(--border);color:#c0392b;border-radius:10px;padding:.55rem .8rem;cursor:pointer;font-size:12px">Remove</button></div>'
+        +'<div style="display:flex;gap:.5rem;margin-top:.5rem"><button class="mcCAsk" data-id="'+esc(p.id)+'" style="flex:1;background:var(--teal);color:#fff;border:none;border-radius:10px;padding:.55rem;font-weight:700;font-size:12px;cursor:pointer">💬 Guidance</button><button class="mcCPk" data-id="'+esc(p.id)+'" style="flex:1;background:var(--white);border:1px solid var(--border);color:var(--text-dark);border-radius:10px;padding:.55rem;font-weight:700;font-size:12px;cursor:pointer">📄 Visit sheet</button><button class="mcCDel" data-id="'+esc(p.id)+'" style="background:var(--white);border:1px solid var(--border);color:#c0392b;border-radius:10px;padding:.55rem .8rem;cursor:pointer;font-size:12px">×</button></div>'
         +'</div>';
     }).join(''); }
     Array.prototype.forEach.call(document.querySelectorAll('.mcCDel'),function(b){ b.onclick=function(){ saveCircle(circle().filter(function(x){ return String(x.id)!==b.getAttribute('data-id'); })); cRender(); }; });
     Array.prototype.forEach.call(document.querySelectorAll('.mcCAsk'),function(b){ b.onclick=function(){ askCare(b.getAttribute('data-id')); }; });
     Array.prototype.forEach.call(document.querySelectorAll('.mcCMeds'),function(b){ b.onclick=function(){ openCareMeds(b.getAttribute('data-id')); }; });
+    Array.prototype.forEach.call(document.querySelectorAll('.mcCPk'),function(b){ b.onclick=function(){ var p=byId(b.getAttribute('data-id')); if(p && window.mcOpenPacketFor) window.mcOpenPacketFor({id:p.id, name:p.name, conditions:p.conditions, allergies:p.allergies, notes:p.notes, meds:medList(p).map(function(n){ return {name:n}; })}); }; });
   }
   function cAdd(){ var f={}; ['name','relation','conditions','meds','allergies','notes'].forEach(function(k){ var el=document.getElementById('mcC_'+k); f[k]=el?el.value.trim():''; });
     if(!f.name){ alert('Add their name.'); return; }
@@ -5822,17 +5823,19 @@ document.addEventListener('DOMContentLoaded', function() {
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function get(k,f){ try{ return JSON.parse(localStorage.getItem(k)||f); }catch(e){ return JSON.parse(f); } }
   var SL={morning:'Morning',noon:'Noon',evening:'Evening',bedtime:'Bedtime'};
-  function render(){
-    var d=get('mc_medid','{}'), m=get('mc_meds','[]'), sc=get('mc_medsched','{}'), sy=get('mc_symptoms','[]');
+  function render(src){
+    var d, m, sc, sy, qkey, mine=!src;
+    if(src){ d={name:src.name,blood:src.blood,conditions:src.conditions,allergies:src.allergies,notes:src.notes,iceName:src.iceName,icePhone:src.icePhone}; m=src.meds||[]; sc=src.sched||{}; sy=src.syms||[]; qkey='mc_visitq_'+(src.id||'x'); }
+    else { d=get('mc_medid','{}'); m=get('mc_meds','[]'); sc=get('mc_medsched','{}'); sy=get('mc_symptoms','[]'); qkey='mc_visitq'; }
     var now=new Date();
     var when=function(n){ var s=sc[n]||[]; return s.length? s.map(function(x){return SL[x]||x;}).join(', ') : '—'; };
     var h='';
     h+='<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;border-bottom:3px solid #0B6E4F;padding-bottom:12px">'
       +'<div><div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#0B6E4F">Visit Summary</div>'
-      +'<h2 style="margin:.15rem 0 0;font-size:26px;font-weight:800;color:#16212b">'+(esc(d.name)||'My health summary')+'</h2></div>'
+      +'<h2 style="margin:.15rem 0 0;font-size:26px;font-weight:800;color:#16212b">'+(esc(d.name)||(mine?'My health summary':'Health summary'))+'</h2></div>'
       +'<div style="text-align:right;font-size:12px;color:#5b6b78">Prepared '+now.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+(d.blood&&d.blood!=='Unknown'?'<br><b style="color:#16212b">Blood type '+esc(d.blood)+'</b>':'')+'</div></div>';
     // About
-    h+='<div class="mcpk-sec"><div class="mcpk-sh">About me</div><table><tr><td style="width:33%;color:#5b6b78">Conditions</td><td><b>'+(esc(d.conditions)||'None listed')+'</b></td></tr>'
+    h+='<div class="mcpk-sec"><div class="mcpk-sh">'+(mine?'About me':'About '+(esc((d.name||'them').split(' ')[0])))+'</div><table><tr><td style="width:33%;color:#5b6b78">Conditions</td><td><b>'+(esc(d.conditions)||'None listed')+'</b></td></tr>'
       +'<tr><td style="color:#5b6b78">Allergies</td><td style="color:#b5533f;font-weight:800">'+(esc(d.allergies)||'None listed')+'</td></tr>'
       +(d.notes?'<tr><td style="color:#5b6b78">Notes</td><td>'+esc(d.notes)+'</td></tr>':'')+'</table></div>';
     // Meds
@@ -5848,8 +5851,8 @@ document.addEventListener('DOMContentLoaded', function() {
       +recent.map(function(x){ var dots='●●●●●'.slice(0,x.severity)+'○○○○○'.slice(0,5-(x.severity||0)); return '<tr><td style="width:22%;color:#5b6b78;white-space:nowrap">'+esc(x.date)+'</td><td><b>'+esc(x.symptom)+'</b> <span style="color:#0B6E4F;letter-spacing:1px;font-size:11px">'+dots+'</span>'+(x.note?'<br><span style="color:#5b6b78;font-size:12px">'+esc(x.note)+'</span>':'')+'</td></tr>'; }).join('')
       +'</tbody></table></div>'; }
     // Questions
-    var savedQ=''; try{ savedQ=localStorage.getItem('mc_visitq')||''; }catch(e){}
-    h+='<div class="mcpk-sec"><div class="mcpk-sh">Questions I want to ask</div>'
+    var savedQ=''; try{ savedQ=localStorage.getItem(qkey)||''; }catch(e){}
+    h+='<div class="mcpk-sec"><div class="mcpk-sh">'+(mine?'Questions I want to ask':'Questions to ask')+'</div>'
       +'<textarea id="mcpkQ" class="mcpk-noprint" placeholder="Type your questions here — they\'ll print on the sheet." style="width:100%;min-height:70px;border:1px solid #d5dee4;border-radius:10px;padding:10px;font:14px/1.5 inherit;resize:vertical">'+esc(savedQ)+'</textarea>'
       +'<div style="display:none" class="mcpk-printq"></div>'
       +'</div>';
@@ -5858,14 +5861,15 @@ document.addEventListener('DOMContentLoaded', function() {
     h+='<div style="margin-top:24px;padding-top:12px;border-top:1px solid #e2e9ee;font-size:11px;color:#8494a0;line-height:1.5">Prepared with MedCompanion from information kept on this person\'s device — please verify with the patient. Medication codes are RxNorm (U.S. National Library of Medicine). This is information to support your visit, not a diagnosis.</div>';
     document.getElementById('mcpkBody').innerHTML=h;
     var q=document.getElementById('mcpkQ');
-    if(q){ q.addEventListener('input', function(){ try{ localStorage.setItem('mc_visitq', q.value); }catch(e){}
+    if(q){ q.addEventListener('input', function(){ try{ localStorage.setItem(qkey, q.value); }catch(e){}
       var pq=document.querySelector('.mcpk-printq'); if(pq){ var lines=q.value.split('\n').filter(function(x){return x.trim();}); pq.innerHTML=lines.length?('<ul style="margin:0;padding-left:20px">'+lines.map(function(l){return '<li style="margin-bottom:6px">'+esc(l)+'</li>';}).join('')+'</ul>'):''; pq.style.display=lines.length?'block':'none'; } });
       // trigger once to populate print list
       q.dispatchEvent(new Event('input'));
     }
   }
-  function openP(){ var m=document.getElementById('mcPacket'); if(m){ render(); m.style.display='block'; } var hm=document.getElementById('mcHubMenu'); if(hm) hm.style.display='none'; }
-  window.mcOpenPacket=openP;
+  function openP(src){ var m=document.getElementById('mcPacket'); if(m){ render(src); m.style.display='block'; } var hm=document.getElementById('mcHubMenu'); if(hm) hm.style.display='none'; var cc=document.getElementById('mcCModal'); if(src && cc) cc.style.display='none'; }
+  window.mcOpenPacket=function(){ openP(); };
+  window.mcOpenPacketFor=function(src){ openP(src); };
   function init(){
     var menu=document.getElementById('mcHubMenu'); var cancel=document.getElementById('mcHubCancel');
     if(menu && cancel && !document.getElementById('mcpkHubItem')){
