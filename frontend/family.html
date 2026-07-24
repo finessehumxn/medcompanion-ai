@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MedCompanion Family — everyone you love, in one private place</title>
+<meta name="description" content="Every medical record, med, and allergy for the people you love — in one private place, ready for any doctor or emergency. And we never sell your data.">
+<style>
+  :root{ --bg:#f6f4ee; --panel:#fff; --ink:#17241d; --sub:#5c6b60; --line:#e7e2d6;
+    --green:#0f7a5a; --green-ink:#0b5c44; --green-soft:#e7f4ee; --warm:#c2683a; --warm-soft:#f8ece2; 
+    --max:920px; --sans:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; --serif:Georgia,'Times New Roman',serif; }
+  @media (prefers-color-scheme:dark){ :root{ --bg:#0b1611; --panel:#12211a; --ink:#eef4ef; --sub:#9db0a4; --line:rgba(255,255,255,.09);
+    --green:#34c78c; --green-ink:#7fe6b4; --green-soft:rgba(52,199,140,.12); --warm:#e0a06e; --warm-soft:rgba(224,160,110,.12); } }
+  :root[data-theme="light"]{ --bg:#f6f4ee; --panel:#fff; --ink:#17241d; --sub:#5c6b60; --line:#e7e2d6; --green:#0f7a5a; --green-ink:#0b5c44; --green-soft:#e7f4ee; --warm:#c2683a; --warm-soft:#f8ece2; }
+  :root[data-theme="dark"]{ --bg:#0b1611; --panel:#12211a; --ink:#eef4ef; --sub:#9db0a4; --line:rgba(255,255,255,.09); --green:#34c78c; --green-ink:#7fe6b4; --green-soft:rgba(52,199,140,.12); --warm:#e0a06e; --warm-soft:rgba(224,160,110,.12); }
+  *{ box-sizing:border-box; } html,body{ margin:0; }
+  body{ background:var(--bg); color:var(--ink); font-family:var(--sans); line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:var(--max); margin:0 auto; padding:0 22px; }
+  header.top{ display:flex; align-items:center; justify-content:space-between; padding:20px 0; flex-wrap:wrap; gap:10px; }
+  .brand{ font-weight:800; font-size:17px; } .brand .f{ color:var(--warm); }
+  .lnk{ font-size:13.5px; color:var(--sub); text-decoration:none; font-weight:600; }
+  .btn{ display:inline-block; background:var(--green); color:#fff; text-decoration:none; font-weight:700; font-size:15px; padding:12px 22px; border-radius:11px; border:none; cursor:pointer; }
+  .btn.warm{ background:var(--warm); }
+  .btn.ghost{ background:transparent; color:var(--green); border:1px solid var(--line); }
+  .hero{ padding:44px 0 22px; max-width:20ch; } .hero.wide{ max-width:none; }
+  .eyebrow{ font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--warm); }
+  h1{ font-size:44px; line-height:1.05; font-weight:850; letter-spacing:-.03em; margin:14px 0 16px; max-width:16ch; text-wrap:balance; }
+  @media(max-width:560px){ h1{ font-size:32px; } }
+  .lede{ font-size:19px; color:var(--sub); margin:0 0 24px; max-width:52ch; }
+  .lede b{ color:var(--ink); }
+  .cta-row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+  .cta-note{ font-size:13px; color:var(--sub); }
+  section{ padding:34px 0; border-top:1px solid var(--line); }
+  .kicker{ font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--sub); margin:0 0 8px; }
+  h2{ font-size:27px; font-weight:850; letter-spacing:-.02em; margin:0 0 8px; text-wrap:balance; }
+  .lead{ font-size:16.5px; color:var(--sub); margin:0 0 22px; max-width:60ch; }
+  /* the moment */
+  .moment{ background:var(--warm-soft); border:1px solid var(--line); border-radius:20px; padding:28px; }
+  .moment .q{ font-family:var(--serif); font-size:22px; line-height:1.4; color:var(--ink); font-style:italic; max-width:40ch; }
+  .moment .a{ font-size:16px; color:var(--sub); margin-top:14px; max-width:52ch; }
+  .moment .a b{ color:var(--ink); }
+  /* pricing */
+  .plans{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media(max-width:640px){ .plans{ grid-template-columns:1fr; } }
+  .plan{ background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:26px; }
+  .plan.pro{ border-color:var(--warm); box-shadow:0 0 0 1px var(--warm) inset; }
+  .plan .name{ font-size:14px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--green-ink); }
+  .plan.pro .name{ color:var(--warm); }
+  .plan .price{ font-size:40px; font-weight:850; letter-spacing:-.02em; margin:8px 0 2px; }
+  .plan .price span{ font-size:15px; font-weight:600; color:var(--sub); }
+  .plan .who{ font-size:14px; color:var(--sub); margin-bottom:16px; }
+  .plan ul{ list-style:none; margin:0 0 20px; padding:0; }
+  .plan li{ font-size:14.5px; padding:7px 0 7px 26px; position:relative; line-height:1.45; }
+  .plan li::before{ content:"✓"; position:absolute; left:2px; color:var(--green); font-weight:800; }
+  .plan.pro li::before{ color:var(--warm); }
+  .pill{ display:inline-block; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--warm); background:var(--warm-soft); border-radius:999px; padding:4px 11px; margin-bottom:12px; }
+  /* proof */
+  .proof{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media(max-width:640px){ .proof{ grid-template-columns:1fr; } }
+  .pcard{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:20px 22px; }
+  .pcard .ic{ font-size:22px; } .pcard h3{ font-size:17px; font-weight:800; margin:10px 0 6px; } .pcard p{ margin:0; color:var(--sub); font-size:14.5px; }
+  .foot{ padding:32px 0 60px; color:var(--sub); font-size:12.5px; line-height:1.6; border-top:1px solid var(--line); }
+  a.inline{ color:var(--green); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">MedCompanion <span class="f">Family</span></div>
+    <nav style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+      <a class="lnk" href="/trust">Why trust us</a>
+      <a class="lnk" href="/app">Open the app</a>
+      <a class="btn" href="/app">Start free</a>
+    </nav>
+  </header>
+
+  <div class="hero wide">
+    <div class="eyebrow">MedCompanion Family</div>
+    <h1>Everyone you love, in one private place.</h1>
+    <p class="lede">Every record, medication, and allergy — for your parents, your kids, and you — in one place that's <b>ready for any doctor or emergency</b>. And unlike the free apps, <b>we never sell your data</b>.</p>
+    <div class="cta-row">
+      <a class="btn warm" href="/app">Start free →</a>
+      <span class="cta-note">Free forever for yourself · Family plan for the people you care for</span>
+    </div>
+  </div>
+
+  <section>
+    <div class="moment">
+      <div class="q">"Mom's in the ER. They're asking what she takes, if she's allergic to anything, who her doctor is — and I don't know."</div>
+      <div class="a">That's the moment MedCompanion Family is built for. One tap, and the ER team sees her <b>allergies, medications, blood type, conditions, and who to call</b> — even if she can't speak for herself. <b>Nothing you'll ever have to scramble for again.</b></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker">Simple plans</div>
+    <h2>Free for you. A little more for your family.</h2>
+    <p class="lead">The core is free forever — no ads, no data-selling, no catch. The Family plan adds everyone you care for, and the tools that matter when it counts.</p>
+    <div class="plans">
+      <div class="plan">
+        <div class="name">Free</div>
+        <div class="price">$0</div>
+        <div class="who">For understanding your own health</div>
+        <ul>
+          <li>Understand your records, labs &amp; meds in plain language</li>
+          <li>Symptom help &amp; prep for your visits</li>
+          <li>Your own Health Passport &amp; Medical ID</li>
+          <li>Health journal &amp; trends over time</li>
+          <li>We never sell your data — and you can verify it</li>
+        </ul>
+        <a class="btn ghost" href="/app">Start free</a>
+      </div>
+      <div class="plan pro">
+        <span class="pill">Most families choose this</span>
+        <div class="name">Family</div>
+        <div class="price">$8.99<span>/mo</span></div>
+        <div class="who">or $69/year · for the people you care for</div>
+        <ul>
+          <li><b>Up to 6 profiles</b> — parents, kids, anyone you care for</li>
+          <li>A Health Passport + Medical ID for <b>each person</b>, ER-ready</li>
+          <li><b>Encrypted vault</b> for every medical login (each hospital's MyChart, insurance, pharmacy)</li>
+          <li>Unlimited plain-language explanations &amp; medication guides</li>
+          <li>Everything stays local-first &amp; private — never sold</li>
+        </ul>
+        <a class="btn warm" href="mailto:hello@medcompanionai.com?subject=MedCompanion%20Family%20early%20access">Get Family</a>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker">Why us, not the million others</div>
+    <h2>The things a free, ad-funded app can't give you.</h2>
+    <div class="proof">
+      <div class="pcard"><div class="ic">🚫💰</div><h3>We don't sell you</h3><p>Every free health app makes money from your data. We make money from the Family plan, so you're the customer — not the product. We publish machine-readable proof at <a class="inline" href="/data-policy">/data-policy</a>.</p></div>
+      <div class="pcard"><div class="ic">🪪</div><h3>Works with any doctor</h3><p>The Health Passport opens on any phone in 20 seconds — no login, no app for them, no hospital system required. And it's stored nowhere; it travels only in the link.</p></div>
+      <div class="pcard"><div class="ic">👨‍👩‍👧</div><h3>Built for caregivers</h3><p>Managing a parent's meds across three doctors, or a child's allergies — one calm place instead of a shoebox of papers and a dozen logins.</p></div>
+      <div class="pcard"><div class="ic">🏥</div><h3>Medical-grade, not AI slop</h3><p>Real codes (RxNorm, LOINC, ICD-10) and real FDA/NIH sources — never invented. Honest guardrails: information, never a diagnosis.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div style="text-align:center">
+      <h2>Peace of mind is worth having ready.</h2>
+      <p class="lead" style="margin:0 auto 20px">Start free today. Add your family when you're ready.</p>
+      <a class="btn warm" href="/app">Open MedCompanion →</a>
+    </div>
+  </section>
+
+  <div class="foot">
+    MedCompanion provides information to help you understand and organize your family's health — it is not a diagnosis, not medical advice, and not a substitute for your care team. In an emergency, call your local emergency number. Prices shown are launch pricing and may change. © Millennials Creatives LLC.
+  </div>
+</div>
+</body>
+</html>
